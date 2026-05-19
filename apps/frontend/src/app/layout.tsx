@@ -17,6 +17,9 @@ export const metadata: Metadata = {
   description: "Sistema de gestión de reservas deportivas",
 };
 
+import { Sidebar } from "@/components/layout/Sidebar";
+import { Header } from "@/components/layout/Header";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -27,8 +30,12 @@ export default function RootLayout({
       lang="es"
       className={`dark ${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col" suppressHydrationWarning>
-        {children}
+      <body className="min-h-full flex h-screen w-full bg-background text-foreground overflow-hidden" suppressHydrationWarning>
+        <Sidebar />
+        <div className="flex-1 flex flex-col h-full overflow-hidden relative">
+          <Header />
+          {children}
+        </div>
       </body>
     </html>
   );

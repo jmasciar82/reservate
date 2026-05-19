@@ -1,9 +1,26 @@
 import { Module } from '@nestjs/common';
+import { MongooseModule } from '@nestjs/mongoose';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { ReservationsModule } from './modules/reservations/reservations.module';
+import { CourtsModule } from './modules/courts/courts.module';
 
 @Module({
-  imports: [],
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
+    MongooseModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => ({
+        uri: configService.get<string>('MONGO_URI'),
+      }),
+      inject: [ConfigService],
+    }),
+    ReservationsModule,
+    CourtsModule,
+  ],
   controllers: [AppController],
   providers: [AppService],
 })
