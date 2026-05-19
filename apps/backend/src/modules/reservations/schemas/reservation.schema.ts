@@ -8,8 +8,8 @@ export class Reservation {
   @Prop({ type: Types.ObjectId, ref: 'Court', required: true })
   courtId: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
-  userId: Types.ObjectId;
+  @Prop({ required: true })
+  userId: string;
 
   @Prop({ required: true })
   startTime: Date;
@@ -19,6 +19,12 @@ export class Reservation {
 
   @Prop({ default: 'pending', enum: ['pending', 'confirmed', 'cancelled', 'completed'] })
   status: string;
+
+  @Prop({ default: 0 })
+  totalPrice: number;
+
+  @Prop({ default: 'pending', enum: ['pending', 'paid'] })
+  paymentStatus: string;
 }
 
 export const ReservationSchema = SchemaFactory.createForClass(Reservation);

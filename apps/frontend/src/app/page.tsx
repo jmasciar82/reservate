@@ -1,4 +1,6 @@
-import { CalendarDays, MoreVertical } from "lucide-react";
+import { CalendarDays } from "lucide-react";
+import NewReservationButton from "../components/NewReservationButton";
+import ReservationActions from "../components/ReservationActions";
 
 async function getReservations() {
   try {
@@ -26,9 +28,7 @@ export default async function Dashboard() {
             <h1 className="text-3xl font-bold mb-2">¡Hola, Juan! 👋</h1>
             <p className="text-zinc-400">Aquí tienes el resumen de tu club deportivo hoy.</p>
           </div>
-          <button className="px-4 py-2 bg-primary text-primary-foreground font-semibold rounded-lg shadow-[0_0_15px_rgba(57,255,20,0.3)] hover:scale-105 transition-transform">
-            + Nueva Reserva
-          </button>
+          <NewReservationButton />
         </div>
 
         {/* Stats Grid */}
@@ -68,16 +68,34 @@ export default async function Dashboard() {
                   <div className="flex items-center space-x-4">
                     <div className="w-1.5 h-12 bg-primary rounded-full shadow-[0_0_8px_rgba(57,255,20,0.5)]" />
                     <div>
-                      <p className="font-semibold text-white">Reserva #{res._id.substring(0, 5)}</p>
-                      <p className="text-sm text-zinc-400">Usuario ID: {res.userId}</p>
+                      <p className="font-semibold text-white">Reserva #{res._id.substring(0, 5)} - {res.courtId?.name || 'Cancha'}</p>
+                      <p className="text-sm text-zinc-400">Jugador: <strong className="text-zinc-200">{res.userId}</strong> {res.courtId && <span className="text-xs text-zinc-500 capitalize">({res.courtId.sport})</span>}</p>
                     </div>
                   </div>
                   <div className="text-right flex items-center space-x-6">
-                    <span className="text-sm font-medium">{new Date(res.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                    <span className={`px-3 py-1 text-xs font-medium rounded-full ${res.status === 'confirmed' ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-orange-500/10 text-orange-400 border border-orange-500/20'}`}>
-                      {res.status.toUpperCase()}
-                    </span>
-                    <button className="text-zinc-500 hover:text-white"><MoreVertical className="w-5 h-5" /></button>
+                    <div className="flex flex-col items-end">
+                      <span className="text-sm font-medium text-white">
+                        {new Date(res.startTime).toLocaleDateString([], {day: '2-digit', month: '2-digit'})} - {new Date(res.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} hs
+                      </span>
+                      <span className="text-xs text-primary font-semibold mt-0.5">${res.totalPrice?.toLocaleString('es-AR') || '0'}</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className={`px-2.5 py-0.5 text-[10px] font-semibold rounded-full ${res.paymentStatus === 'paid' ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'}`}>
+                        {res.paymentStatus === 'paid' ? 'PAGADO' : 'PAGO PENDIENTE'}
+                      </span>
+                      <span className={`px-2.5 py-0.5 text-[10px] font-semibold rounded-full ${
+                        res.status === 'confirmed' ? 'bg-primary/10 text-primary border border-primary/20' :
+                        res.status === 'cancelled' ? 'bg-red-500/10 text-red-400 border border-red-500/20' :
+                        res.status === 'completed' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' :
+                        'bg-zinc-800 text-zinc-400 border border-zinc-700'
+                      }`}>
+                        {res.status === 'pending' ? 'POR CONFIRMAR' : 
+                         res.status === 'confirmed' ? 'CONFIRMADA' : 
+                         res.status === 'cancelled' ? 'CANCELADA' : 
+                         res.status === 'completed' ? 'COMPLETADA' : res.status.toUpperCase()}
+                      </span>
+                    </div>
+                    <ReservationActions reservationId={res._id} status={res.status} paymentStatus={res.paymentStatus} />
                   </div>
                 </div>
               ))

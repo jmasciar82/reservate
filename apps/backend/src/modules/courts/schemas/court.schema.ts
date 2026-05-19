@@ -16,6 +16,12 @@ export class Court {
 
   @Prop({ default: true })
   isActive: boolean;
+
+  @Prop({ default: false })
+  isCovered: boolean;
+
+  @Prop({ required: true, default: 0 })
+  pricePerHour: number;
 }
 
 export const CourtSchema = SchemaFactory.createForClass(Court);
