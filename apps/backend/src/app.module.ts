@@ -14,8 +14,10 @@ import { ClubsModule } from './modules/clubs/clubs.module';
     }),
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => ({
-        uri: configService.get<string>('MONGO_URI'),
+      useFactory: (configService: ConfigService) => ({
+        uri:
+          configService.get<string>('MONGO_URI') ??
+          'mongodb://localhost:27017/reservate',
       }),
       inject: [ConfigService],
     }),

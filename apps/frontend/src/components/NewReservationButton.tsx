@@ -1,24 +1,50 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { X, Calendar, Clock, User, MapPin } from "lucide-react";
-
-interface Court {
-  _id: string;
-  name: string;
-  sport: string;
-  isCovered?: boolean;
-}
+import { Calendar, Clock, MapPin, User, X } from "lucide-react";
+import { apiUrl } from "@/lib/api";
+import type { Court } from "@/lib/types";
 
 const PRESET_TIMES = [
-  "10:00", "10:30", "11:00", "11:30", "12:00", "12:30", "13:00", "13:30",
-  "14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00", "17:30",
-  "18:00", "18:30", "19:00", "19:30", "20:00", "20:30", "21:00", "21:30",
-  "22:00", "22:30", "23:00"
+  "10:00",
+  "10:30",
+  "11:00",
+  "11:30",
+  "12:00",
+  "12:30",
+  "13:00",
+  "13:30",
+  "14:00",
+  "14:30",
+  "15:00",
+  "15:30",
+  "16:00",
+  "16:30",
+  "17:00",
+  "17:30",
+  "18:00",
+  "18:30",
+  "19:00",
+  "19:30",
+  "20:00",
+  "20:30",
+  "21:00",
+  "21:30",
+  "22:00",
+  "22:30",
+  "23:00",
 ];
 
-export default function NewReservationButton() {
+interface NewReservationButtonProps {
+  activeClubId: string;
+  defaultDate: string;
+}
+
+export default function NewReservationButton({
+  activeClubId,
+  defaultDate,
+}: NewReservationButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [courts, setCourts] = useState<Court[]>([]);
   const [loading, setLoading] = useState(false);
@@ -27,134 +53,203 @@ export default function NewReservationButton() {
 
   const [formData, setFormData] = useState({
     playerName: "",
-    date: "",
+    date: defaultDate,
     time: "",
     duration: "1.5",
     courtId: "",
   });
 
-  // Filter start times so bookings don't go past 24:00 (closing hour)
-  const filteredTimes = formData.duration === "1.5"
-    ? PRESET_TIMES.filter(t => t <= "22:30")
-    : PRESET_TIMES;
+  const filteredTimes =
+    formData.duration === "1.5"
+      ? PRESET_TIMES.filter((time) => time <= "22:30")
+      : PRESET_TIMES;
+  const isTimeSelectionReady =
+    Boolean(formData.date) && Boolean(formData.time) && Boolean(formData.duration);
 
   useEffect(() => {
-    if (isOpen && formData.date && formData.time && formData.duration) {
+    const shouldLoadCourts = isOpen && isTimeSelectionReady && activeClubId;
+    const controller = new AbortController();
+
+    if (!shouldLoadCourts) {
+      void Promise.resolve().then(() => {
+        setCourts([]);
+        setCourtsLoading(false);
+      });
+      return () => controller.abort();
+    }
+
+    void Promise.resolve().then(async () => {
       setCourtsLoading(true);
-      
-      const [year, month, day] = formData.date.split('-');
-      const [hours, minutes] = formData.time.split(':');
-      
-      const start = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hours), parseInt(minutes));
-      const durationMs = parseFloat(formData.duration) * 60 * 60 * 1000;
+
+      const [year, month, day] = formData.date.split("-");
+      const [hours, minutes] = formData.time.split(":");
+      const start = new Date(
+        Number(year),
+        Number(month) - 1,
+        Number(day),
+        Number(hours),
+        Number(minutes),
+      );
+      const durationMs = Number(formData.duration) * 60 * 60 * 1000;
       const end = new Date(start.getTime() + durationMs);
 
-      const url = `http://localhost:3001/courts/available?startTime=${start.toISOString()}&endTime=${end.toISOString()}`;
-      
-      fetch(url)
-        .then(res => res.json())
-        .then(data => {
-          setCourts(data);
-          // If the selected court is no longer available in the new list, clear the selection
-          if (formData.courtId && !data.some((c: Court) => c._id === formData.courtId)) {
-            setFormData(prev => ({ ...prev, courtId: "" }));
-          }
-        })
-        .catch(err => console.error("Error fetching available courts:", err))
-        .finally(() => setCourtsLoading(false));
-    } else {
-      setCourts([]);
-    }
-  }, [isOpen, formData.date, formData.time, formData.duration]);
+      try {
+        const response = await fetch(
+          apiUrl("/courts/available", {
+            startTime: start.toISOString(),
+            endTime: end.toISOString(),
+            clubId: activeClubId,
+          }),
+          { signal: controller.signal },
+        );
+
+        if (!response.ok) {
+          setCourts([]);
+          return;
+        }
+
+        const data = (await response.json()) as Court[];
+        setCourts(data);
+
+        if (
+          formData.courtId &&
+          !data.some((court) => court._id === formData.courtId)
+        ) {
+          setFormData((prev) => ({ ...prev, courtId: "" }));
+        }
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          console.error("Error fetching available courts:", error);
+          setCourts([]);
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setCourtsLoading(false);
+        }
+      }
+    });
+
+    return () => controller.abort();
+  }, [
+    activeClubId,
+    formData.courtId,
+    formData.date,
+    formData.duration,
+    formData.time,
+    isOpen,
+    isTimeSelectionReady,
+  ]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const [year, month, day] = formData.date.split('-');
-      const [hours, minutes] = formData.time.split(':');
-      
-      const startTime = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hours), parseInt(minutes));
-      const durationMs = parseFloat(formData.duration) * 60 * 60 * 1000;
+      const [year, month, day] = formData.date.split("-");
+      const [hours, minutes] = formData.time.split(":");
+      const startTime = new Date(
+        Number(year),
+        Number(month) - 1,
+        Number(day),
+        Number(hours),
+        Number(minutes),
+      );
+      const durationMs = Number(formData.duration) * 60 * 60 * 1000;
       const endTime = new Date(startTime.getTime() + durationMs);
 
-      const payload = {
-        userId: formData.playerName,
-        courtId: formData.courtId,
-        startTime: startTime.toISOString(),
-        endTime: endTime.toISOString(),
-      };
-
-      const response = await fetch('http://localhost:3001/reservations', {
-        method: 'POST',
+      const response = await fetch(apiUrl("/reservations"), {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          userId: formData.playerName,
+          courtId: formData.courtId,
+          startTime: startTime.toISOString(),
+          endTime: endTime.toISOString(),
+        }),
       });
 
       if (response.ok) {
         setIsOpen(false);
-        setFormData({ playerName: "", date: "", time: "", duration: "1.5", courtId: "" });
+        setFormData({
+          playerName: "",
+          date: defaultDate,
+          time: "",
+          duration: "1.5",
+          courtId: "",
+        });
         router.refresh();
       } else {
-        const errorData = await response.json().catch(() => ({}));
-        const errorMessage = errorData.message || "Error al crear la reserva";
-        alert(`No se pudo crear la reserva: ${errorMessage}`);
+        const errorData = (await response.json().catch(() => ({}))) as {
+          message?: string;
+        };
+        alert(`No se pudo crear la reserva: ${errorData.message ?? "Error"}`);
       }
     } catch (error) {
-      console.error("Error submitting form:", error);
+      console.error("Error submitting reservation:", error);
+      alert("No se pudo crear la reserva.");
     } finally {
       setLoading(false);
     }
   };
 
-  const isTimeSelectionReady = formData.date && formData.time && formData.duration;
-
   return (
     <>
-      <button 
-        onClick={() => setIsOpen(true)}
-        className="px-4 py-2 bg-primary text-primary-foreground font-semibold rounded-lg shadow-[0_0_15px_rgba(57,255,20,0.3)] hover:scale-105 transition-transform"
+      <button
+        onClick={() => {
+          setFormData((prev) => ({
+            ...prev,
+            date: prev.date || defaultDate,
+          }));
+          setIsOpen(true);
+        }}
+        disabled={!activeClubId}
+        className="px-4 py-2 bg-primary text-primary-foreground font-semibold rounded-lg shadow-[0_0_15px_rgba(57,255,20,0.3)] hover:scale-[1.02] transition-transform disabled:opacity-50 disabled:pointer-events-none"
       >
-        + Nueva Reserva
+        + Nueva reserva
       </button>
 
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsOpen(false)} />
-          
-          <div className="relative w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            {/* Header */}
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setIsOpen(false)}
+          />
+
+          <div className="relative w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <div className="px-6 py-4 border-b border-zinc-800 flex justify-between items-center bg-zinc-900/50">
               <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                <div className="w-2 h-6 bg-primary rounded-full shadow-[0_0_8px_rgba(57,255,20,0.5)]"></div>
-                Nueva Reserva
+                <span className="w-2 h-6 bg-primary rounded-full shadow-[0_0_8px_rgba(57,255,20,0.5)]" />
+                Nueva reserva
               </h2>
-              <button 
+              <button
                 onClick={() => setIsOpen(false)}
                 className="text-zinc-400 hover:text-white transition-colors p-1 bg-zinc-800/50 hover:bg-zinc-800 rounded-lg"
+                title="Cerrar"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Form */}
             <form onSubmit={handleSubmit} className="p-6 space-y-5">
-              
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-zinc-400 flex items-center gap-2">
                   <User className="w-4 h-4 text-primary" />
-                  Nombre del Jugador
+                  Nombre del jugador
                 </label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   required
                   placeholder="Ej. Juan Pérez"
                   value={formData.playerName}
-                  onChange={(e) => setFormData({...formData, playerName: e.target.value})}
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-white placeholder:text-zinc-600 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      playerName: e.target.value,
+                    }))
+                  }
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-white placeholder:text-zinc-600 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
                 />
               </div>
 
@@ -163,12 +258,14 @@ export default function NewReservationButton() {
                   <Calendar className="w-4 h-4 text-primary" />
                   Fecha
                 </label>
-                <input 
-                  type="date" 
+                <input
+                  type="date"
                   required
                   value={formData.date}
-                  onChange={(e) => setFormData({...formData, date: e.target.value})}
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all [color-scheme:dark]"
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, date: e.target.value }))
+                  }
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all [color-scheme:dark]"
                 />
               </div>
 
@@ -176,120 +273,131 @@ export default function NewReservationButton() {
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium text-zinc-400 flex items-center gap-2">
                     <Clock className="w-4 h-4 text-primary" />
-                    Hora de Inicio
+                    Inicio
                   </label>
-                  <div className="relative">
-                    <select 
-                      required
-                      value={formData.time}
-                      onChange={(e) => setFormData({...formData, time: e.target.value})}
-                      className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all appearance-none"
-                    >
-                      <option value="" disabled>--:--</option>
-                      {filteredTimes.map((t) => (
-                        <option key={t} value={t}>{t} hs</option>
-                      ))}
-                    </select>
-                    <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none">
-                      <svg className="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-                    </div>
-                  </div>
+                  <select
+                    required
+                    value={formData.time}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, time: e.target.value }))
+                    }
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                  >
+                    <option value="" disabled>
+                      --:--
+                    </option>
+                    {filteredTimes.map((time) => (
+                      <option key={time} value={time}>
+                        {time} hs
+                      </option>
+                    ))}
+                  </select>
                 </div>
-                
+
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium text-zinc-400 flex items-center gap-2">
                     <Clock className="w-4 h-4 text-primary" />
                     Duración
                   </label>
-                  <div className="relative">
-                    <select 
-                      required
-                      value={formData.duration}
-                      onChange={(e) => {
-                        const newDur = e.target.value;
-                        if (newDur === "1.5" && formData.time === "23:00") {
-                          setFormData({ ...formData, duration: newDur, time: "" });
-                        } else {
-                          setFormData({ ...formData, duration: newDur });
-                        }
-                      }}
-                      className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all appearance-none"
-                    >
-                      <option value="1">1 hora</option>
-                      <option value="1.5">1.5 horas</option>
-                    </select>
-                    <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none">
-                      <svg className="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-                    </div>
-                  </div>
+                  <select
+                    required
+                    value={formData.duration}
+                    onChange={(e) => {
+                      const nextDuration = e.target.value;
+                      setFormData((prev) => ({
+                        ...prev,
+                        duration: nextDuration,
+                        time:
+                          nextDuration === "1.5" && prev.time === "23:00"
+                            ? ""
+                            : prev.time,
+                      }));
+                    }}
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                  >
+                    <option value="1">1 hora</option>
+                    <option value="1.5">1.5 horas</option>
+                  </select>
                 </div>
               </div>
 
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-zinc-400 flex items-center gap-2">
                   <MapPin className="w-4 h-4 text-primary" />
-                  Cancha Disponible
+                  Cancha disponible
                 </label>
-                <div className="relative">
-                  <select 
-                    required
-                    value={formData.courtId}
-                    onChange={(e) => setFormData({...formData, courtId: e.target.value})}
-                    disabled={!isTimeSelectionReady || courtsLoading || courts.length === 0}
-                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {!isTimeSelectionReady ? (
-                      <option value="">Selecciona fecha, hora y duración...</option>
-                    ) : courtsLoading ? (
-                      <option value="">Buscando canchas libres...</option>
-                    ) : courts.length === 0 ? (
-                      <option value="">No hay canchas libres en este horario</option>
-                    ) : (
-                      <>
-                        <option value="" disabled>Selecciona una cancha libre</option>
-                        {courts.map((court) => (
-                          <option key={court._id} value={court._id}>
-                            {court.name} ({court.sport}) - {court.isCovered ? 'Techada' : 'Descubierta'}
-                          </option>
-                        ))}
-                      </>
-                    )}
-                  </select>
-                  <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none">
-                    <svg className="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-                  </div>
-                </div>
+                <select
+                  required
+                  value={formData.courtId}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      courtId: e.target.value,
+                    }))
+                  }
+                  disabled={!isTimeSelectionReady || courtsLoading || courts.length === 0}
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {!isTimeSelectionReady ? (
+                    <option value="">Seleccioná fecha, hora y duración</option>
+                  ) : courtsLoading ? (
+                    <option value="">Buscando canchas libres...</option>
+                  ) : courts.length === 0 ? (
+                    <option value="">No hay canchas libres en este horario</option>
+                  ) : (
+                    <>
+                      <option value="" disabled>
+                        Seleccioná una cancha libre
+                      </option>
+                      {courts.map((court) => (
+                        <option key={court._id} value={court._id}>
+                          {court.name} ({court.sport}) -{" "}
+                          {court.isCovered ? "Techada" : "Descubierta"}
+                        </option>
+                      ))}
+                    </>
+                  )}
+                </select>
               </div>
 
-              {/* Info summary */}
               {isTimeSelectionReady && formData.time && (
-                <div className="bg-primary/10 border border-primary/20 rounded-xl p-4 flex items-start gap-3">
-                  <div className="mt-1 w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_5px_rgba(57,255,20,0.8)] flex-shrink-0"></div>
+                <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 flex items-start gap-3">
+                  <span className="mt-1 w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_5px_rgba(57,255,20,0.8)] flex-shrink-0" />
                   <p className="text-sm text-zinc-300 leading-relaxed">
-                    Tu partido será de <strong className="text-white font-semibold">{formData.duration === "1" ? "1:00 hs" : "1:30 hs"}</strong>, comenzando a las <strong className="text-white font-semibold">{formData.time} hs</strong> y finalizando a las <strong className="text-white font-semibold">
+                    El turno dura{" "}
+                    <strong className="text-white font-semibold">
+                      {formData.duration === "1" ? "1:00 hs" : "1:30 hs"}
+                    </strong>
+                    , empieza a las{" "}
+                    <strong className="text-white font-semibold">
+                      {formData.time} hs
+                    </strong>{" "}
+                    y termina a las{" "}
+                    <strong className="text-white font-semibold">
                       {(() => {
-                        const [h, m] = formData.time.split(':').map(Number);
-                        const durMin = parseFloat(formData.duration) * 60;
-                        const endMinTotal = h * 60 + m + durMin;
-                        const endH = Math.floor(endMinTotal / 60) % 24;
-                        const endM = endMinTotal % 60;
-                        return `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
-                      })()} hs
-                    </strong>.
+                        const [h, m] = formData.time.split(":").map(Number);
+                        const durationMinutes = Number(formData.duration) * 60;
+                        const endTotal = h * 60 + m + durationMinutes;
+                        const endHour = Math.floor(endTotal / 60) % 24;
+                        const endMinute = endTotal % 60;
+                        return `${String(endHour).padStart(2, "0")}:${String(
+                          endMinute,
+                        ).padStart(2, "0")}`;
+                      })()}{" "}
+                      hs
+                    </strong>
+                    .
                   </p>
                 </div>
               )}
 
-              <div className="pt-2">
-                <button 
-                  type="submit" 
-                  disabled={loading || !formData.courtId}
-                  className="w-full py-3.5 bg-primary text-primary-foreground font-bold rounded-xl shadow-[0_0_20px_rgba(57,255,20,0.2)] hover:shadow-[0_0_25px_rgba(57,255,20,0.4)] transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:pointer-events-none disabled:-translate-y-0 text-base"
-                >
-                  {loading ? 'Confirmando...' : 'Confirmar Reserva'}
-                </button>
-              </div>
-
+              <button
+                type="submit"
+                disabled={loading || !formData.courtId}
+                className="w-full py-3.5 bg-primary text-primary-foreground font-bold rounded-lg shadow-[0_0_20px_rgba(57,255,20,0.2)] hover:shadow-[0_0_25px_rgba(57,255,20,0.4)] transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:pointer-events-none disabled:-translate-y-0 text-base"
+              >
+                {loading ? "Confirmando..." : "Confirmar reserva"}
+              </button>
             </form>
           </div>
         </div>

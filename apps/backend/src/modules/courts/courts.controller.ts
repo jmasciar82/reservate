@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  Query,
+} from '@nestjs/common';
 import { CourtsService } from './courts.service';
 import { CreateCourtDto } from './dto/create-court.dto';
 import { UpdateCourtDto } from './dto/update-court.dto';
@@ -21,12 +30,20 @@ export class CourtsController {
   async findAvailable(
     @Query('startTime') startTime: string,
     @Query('endTime') endTime: string,
+    @Query('clubId') clubId?: string,
   ) {
-    return this.courtsService.findAvailable(new Date(startTime), new Date(endTime));
+    return this.courtsService.findAvailable(
+      new Date(startTime),
+      new Date(endTime),
+      clubId,
+    );
   }
 
   @Put(':id')
-  async update(@Param('id') id: string, @Body() updateCourtDto: UpdateCourtDto) {
+  async update(
+    @Param('id') id: string,
+    @Body() updateCourtDto: UpdateCourtDto,
+  ) {
     return this.courtsService.update(id, updateCourtDto);
   }
 

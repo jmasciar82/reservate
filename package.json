@@ -9,8 +9,12 @@
   ],
   "scripts": {
     "build": "turbo run build",
+    "db:seed": "npm run db:seed -w backend",
     "dev": "turbo run dev",
-    "lint": "turbo run lint"
+    "dev:backend": "npm run dev -w backend",
+    "dev:frontend": "npm run dev -w frontend",
+    "lint": "turbo run lint",
+    "test": "npm run test -w backend"
   },
   "devDependencies": {
     "turbo": "latest"

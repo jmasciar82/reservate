@@ -1,35 +1,45 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { MoreVertical, CheckCircle, Ban } from "lucide-react";
+import { Ban, CheckCircle, CircleDollarSign, MoreVertical } from "lucide-react";
+import { apiUrl } from "@/lib/api";
+import type { PaymentStatus, ReservationStatus } from "@/lib/types";
 
 interface ReservationActionsProps {
   reservationId: string;
-  status: string;
-  paymentStatus: string;
+  status: ReservationStatus;
+  paymentStatus: PaymentStatus;
 }
 
-export default function ReservationActions({ reservationId, status, paymentStatus }: ReservationActionsProps) {
+export default function ReservationActions({
+  reservationId,
+  status,
+  paymentStatus,
+}: ReservationActionsProps) {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
-  // Close menu when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setIsOpen(false);
       }
     }
+
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleUpdate = async (payload: { status?: string; paymentStatus?: string }) => {
+  const handleUpdate = async (payload: {
+    status?: ReservationStatus;
+    paymentStatus?: PaymentStatus;
+  }) => {
     setIsOpen(false);
+
     try {
-      const res = await fetch(`http://localhost:3001/reservations/${reservationId}`, {
+      const response = await fetch(apiUrl(`/reservations/${reservationId}`), {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -37,21 +47,23 @@ export default function ReservationActions({ reservationId, status, paymentStatu
         body: JSON.stringify(payload),
       });
 
-      if (res.ok) {
+      if (response.ok) {
         router.refresh();
       } else {
         alert("Error al actualizar la reserva.");
       }
     } catch (error) {
       console.error("Error updating reservation:", error);
+      alert("Error al actualizar la reserva.");
     }
   };
 
   const showConfirm = status === "pending";
+  const showMarkPaid = paymentStatus !== "paid" && status !== "cancelled";
   const showCancel = status !== "cancelled";
 
-  if (!showConfirm && !showCancel) {
-    return <div className="w-9 h-9" />; // Spacer
+  if (!showConfirm && !showMarkPaid && !showCancel) {
+    return <div className="w-9 h-9" />;
   }
 
   return (
@@ -65,28 +77,40 @@ export default function ReservationActions({ reservationId, status, paymentStatu
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-1 w-56 bg-zinc-950 border border-zinc-800 rounded-xl shadow-2xl z-50 py-1.5 animate-in fade-in slide-in-from-top-2 duration-150">
+        <div className="absolute right-0 mt-1 w-56 bg-zinc-950 border border-zinc-800 rounded-lg shadow-2xl z-50 py-1.5 animate-in fade-in slide-in-from-top-2 duration-150">
           {showConfirm && (
             <button
-              onClick={() => handleUpdate({ status: "confirmed", paymentStatus: "paid" })}
+              onClick={() =>
+                handleUpdate({ status: "confirmed", paymentStatus: "paid" })
+              }
               className="w-full text-left px-4 py-2 text-sm text-zinc-300 hover:text-white hover:bg-zinc-900 flex items-center gap-2.5 transition-colors"
             >
               <CheckCircle className="w-4 h-4 text-primary" />
-              <span>Confirmar Pago de Seña</span>
+              <span>Confirmar reserva</span>
+            </button>
+          )}
+
+          {showMarkPaid && !showConfirm && (
+            <button
+              onClick={() => handleUpdate({ paymentStatus: "paid" })}
+              className="w-full text-left px-4 py-2 text-sm text-zinc-300 hover:text-white hover:bg-zinc-900 flex items-center gap-2.5 transition-colors"
+            >
+              <CircleDollarSign className="w-4 h-4 text-primary" />
+              <span>Marcar pago</span>
             </button>
           )}
 
           {showCancel && (
             <button
               onClick={() => {
-                if (confirm("¿Estás seguro de que deseas cancelar esta reserva?")) {
+                if (confirm("¿Estás seguro de que querés cancelar esta reserva?")) {
                   handleUpdate({ status: "cancelled" });
                 }
               }}
               className="w-full text-left px-4 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 flex items-center gap-2.5 transition-colors border-t border-zinc-900"
             >
               <Ban className="w-4 h-4" />
-              <span>Cancelar Reserva</span>
+              <span>Cancelar reserva</span>
             </button>
           )}
         </div>

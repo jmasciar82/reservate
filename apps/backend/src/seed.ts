@@ -1,9 +1,11 @@
+import 'dotenv/config';
 import mongoose from 'mongoose';
 import { ClubSchema } from './modules/clubs/schemas/club.schema';
 import { CourtSchema } from './modules/courts/schemas/court.schema';
 import { ReservationSchema } from './modules/reservations/schemas/reservation.schema';
 
-const MONGO_URI = 'mongodb://localhost:27017/reservate';
+const MONGO_URI =
+  process.env.MONGO_URI ?? 'mongodb://localhost:27017/reservate';
 
 async function seed() {
   console.log('Connecting to database...');
@@ -14,13 +16,11 @@ async function seed() {
   const CourtModel = mongoose.model('Court', CourtSchema);
   const ReservationModel = mongoose.model('Reservation', ReservationSchema);
 
-  // Clear existing collections
   console.log('Cleaning collections...');
   await ReservationModel.deleteMany({});
   await CourtModel.deleteMany({});
   await ClubModel.deleteMany({});
 
-  // 1. Create Clubs
   console.log('Creating clubs...');
   const club1 = await ClubModel.create({
     name: 'Club Central Paddle',
@@ -36,7 +36,6 @@ async function seed() {
     description: 'Complejo multideportivo frente al río.',
   });
 
-  // 2. Create Courts
   console.log('Creating courts...');
   const courts = [
     {
@@ -96,7 +95,7 @@ async function seed() {
   console.log('Disconnected.');
 }
 
-seed().catch(err => {
+seed().catch((err) => {
   console.error('Seeding failed:', err);
   process.exit(1);
 });

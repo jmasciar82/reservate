@@ -5,7 +5,9 @@ import { ClubsService } from './clubs.service';
 import { Club, ClubSchema } from './schemas/club.schema';
 
 @Module({
-  imports: [MongooseModule.forFeature([{ name: Club.name, schema: ClubSchema }])],
+  imports: [
+    MongooseModule.forFeature([{ name: Club.name, schema: ClubSchema }]),
+  ],
   controllers: [ClubsController],
   providers: [ClubsService],
   exports: [MongooseModule],

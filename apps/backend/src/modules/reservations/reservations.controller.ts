@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Patch, Body, Param } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Body,
+  Param,
+  Query,
+} from '@nestjs/common';
 import { ReservationsService } from './reservations.service';
 import { CreateReservationDto } from './dto/create-reservation.dto';
 import { UpdateReservationDto } from './dto/update-reservation.dto';
@@ -13,12 +21,18 @@ export class ReservationsController {
   }
 
   @Get()
-  async findAll() {
-    return this.reservationsService.findAll();
+  async findAll(
+    @Query('date') date?: string,
+    @Query('clubId') clubId?: string,
+  ) {
+    return this.reservationsService.findAll({ date, clubId });
   }
 
   @Patch(':id')
-  async update(@Param('id') id: string, @Body() updateReservationDto: UpdateReservationDto) {
+  async update(
+    @Param('id') id: string,
+    @Body() updateReservationDto: UpdateReservationDto,
+  ) {
     return this.reservationsService.update(id, updateReservationDto);
   }
 }

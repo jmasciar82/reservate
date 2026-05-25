@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Header } from "@/components/layout/Header";
+import { Sidebar } from "@/components/layout/Sidebar";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -17,9 +19,6 @@ export const metadata: Metadata = {
   description: "Sistema de gestión de reservas deportivas",
 };
 
-import { Sidebar } from "@/components/layout/Sidebar";
-import { Header } from "@/components/layout/Header";
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -30,7 +29,10 @@ export default function RootLayout({
       lang="es"
       className={`dark ${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex h-screen w-full bg-background text-foreground overflow-hidden" suppressHydrationWarning>
+      <body
+        className="min-h-full flex h-screen w-full bg-background text-foreground overflow-hidden"
+        suppressHydrationWarning
+      >
         <Sidebar />
         <div className="flex-1 flex flex-col h-full overflow-hidden relative">
           <Header />

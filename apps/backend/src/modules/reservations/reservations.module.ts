@@ -9,8 +9,8 @@ import { Court, CourtSchema } from '../courts/schemas/court.schema';
   imports: [
     MongooseModule.forFeature([
       { name: Reservation.name, schema: ReservationSchema },
-      { name: Court.name, schema: CourtSchema }
-    ])
+      { name: Court.name, schema: CourtSchema },
+    ]),
   ],
   controllers: [ReservationsController],
   providers: [ReservationsService],

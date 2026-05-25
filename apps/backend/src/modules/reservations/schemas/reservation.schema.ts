@@ -17,7 +17,10 @@ export class Reservation {
   @Prop({ required: true })
   endTime: Date;
 
-  @Prop({ default: 'pending', enum: ['pending', 'confirmed', 'cancelled', 'completed'] })
+  @Prop({
+    default: 'pending',
+    enum: ['pending', 'confirmed', 'cancelled', 'completed'],
+  })
   status: string;
 
   @Prop({ default: 0 })
