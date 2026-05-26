@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: reservate-backend
+    env: node
+    plan: free
+    buildCommand: npm install && npm run build -w backend
+    startCommand: node apps/backend/dist/main.js
+    envVars:
+      - key: PORT
+        value: 3001
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        placeholder: "Ingresá tu URI de MongoDB Atlas"
+      - key: JWT_SECRET
+        placeholder: "Ingresá una clave secreta para los tokens JWT de administrador"
+      - key: FRONTEND_URL
+        placeholder: "URL del Frontend en Vercel (ej: https://reservate.vercel.app)"
+      - key: NEXT_PUBLIC_API_URL
+        placeholder: "URL de este backend en Render (ej: https://reservate-backend.onrender.com)"
