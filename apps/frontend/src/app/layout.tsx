@@ -33,11 +33,7 @@ export default function RootLayout({
         className="min-h-full flex h-screen w-full bg-background text-foreground overflow-hidden"
         suppressHydrationWarning
       >
-        <Sidebar />
-        <div className="flex-1 flex flex-col h-full overflow-hidden relative">
-          <Header />
-          {children}
-        </div>
+        {children}
       </body>
     </html>
   );

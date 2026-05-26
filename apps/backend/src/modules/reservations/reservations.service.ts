@@ -87,6 +87,7 @@ export class ReservationsService {
 
     const createdReservation = new this.reservationModel({
       ...createReservationDto,
+      courtId: new Types.ObjectId(courtId),
       startTime: start,
       endTime: end,
       totalPrice,
@@ -153,6 +154,20 @@ export class ReservationsService {
       !PAYMENT_STATUSES.includes(updateReservationDto.paymentStatus)
     ) {
       throw new BadRequestException('El estado de pago no es válido.');
+    }
+
+    const existingReservation = await this.reservationModel.findById(id).exec();
+    if (!existingReservation) {
+      throw new BadRequestException('Reserva no encontrada.');
+    }
+
+    // Confirmación automática: si se registra el pago, se confirma la reserva
+    if (
+      updateReservationDto.paymentStatus === 'paid' &&
+      existingReservation.status !== 'cancelled' &&
+      (!updateReservationDto.status || updateReservationDto.status === 'pending')
+    ) {
+      updateReservationDto.status = 'confirmed';
     }
 
     return this.reservationModel

@@ -71,12 +71,16 @@ export class CourtsService {
       _id: { $nin: occupiedCourtIds },
     };
 
-    return this.courtModel
-      .find(
-        clubId
-          ? { ...baseQuery, clubId: new Types.ObjectId(clubId) }
-          : baseQuery,
-      )
-      .exec();
+    const query = clubId
+      ? { ...baseQuery, clubId: new Types.ObjectId(clubId) }
+      : baseQuery;
+
+    console.log("findAvailable params:", { startTime, endTime, clubId });
+    console.log("findAvailable query:", query);
+    
+    const courts = await this.courtModel.find(query).exec();
+    console.log("findAvailable courts found:", courts.length);
+    
+    return courts;
   }
 }

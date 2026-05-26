@@ -3,6 +3,8 @@ import mongoose from 'mongoose';
 import { ClubSchema } from './modules/clubs/schemas/club.schema';
 import { CourtSchema } from './modules/courts/schemas/court.schema';
 import { ReservationSchema } from './modules/reservations/schemas/reservation.schema';
+import { UserSchema } from './modules/users/schemas/user.schema';
+import * as bcrypt from 'bcrypt';
 
 const MONGO_URI =
   process.env.MONGO_URI ?? 'mongodb://localhost:27017/reservate';
@@ -16,10 +18,23 @@ async function seed() {
   const CourtModel = mongoose.model('Court', CourtSchema);
   const ReservationModel = mongoose.model('Reservation', ReservationSchema);
 
+  const UserModel = mongoose.model('User', UserSchema);
+
   console.log('Cleaning collections...');
   await ReservationModel.deleteMany({});
   await CourtModel.deleteMany({});
   await ClubModel.deleteMany({});
+  await UserModel.deleteMany({});
+
+  console.log('Creating admin user...');
+  const salt = await bcrypt.genSalt(10);
+  const passwordHash = await bcrypt.hash('admin123', salt);
+  await UserModel.create({
+    name: 'Admin',
+    email: 'admin@reservate.com',
+    passwordHash,
+    role: 'admin',
+  });
 
   console.log('Creating clubs...');
   const club1 = await ClubModel.create({

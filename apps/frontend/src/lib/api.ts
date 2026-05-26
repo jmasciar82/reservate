@@ -17,3 +17,37 @@ export function apiUrl(
 
   return url.toString();
 }
+
+export async function apiFetch(
+  path: string,
+  options: RequestInit = {},
+  params: Record<string, QueryValue> = {}
+) {
+  const url = apiUrl(path, params);
+  
+  // Try to get token from cookies-next which handles both client and server safely if configured right, 
+  // but next/headers is better for Server Components. 
+  // A safe approach for Next.js 13+ App router:
+  let token: string | undefined;
+  
+  if (typeof window === "undefined") {
+    // Server side
+    const { cookies } = await import("next/headers");
+    const cookieStore = await cookies();
+    token = cookieStore.get("token")?.value;
+  } else {
+    // Client side
+    const Cookies = (await import("js-cookie")).default;
+    token = Cookies.get("token");
+  }
+
+  const headers = new Headers(options.headers);
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+
+  return fetch(url, {
+    ...options,
+    headers,
+  });
+}

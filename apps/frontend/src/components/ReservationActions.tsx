@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Ban, CheckCircle, CircleDollarSign, MoreVertical } from "lucide-react";
-import { apiUrl } from "@/lib/api";
+import { apiFetch } from "@/lib/api";
 import type { PaymentStatus, ReservationStatus } from "@/lib/types";
 
 interface ReservationActionsProps {
@@ -39,7 +39,7 @@ export default function ReservationActions({
     setIsOpen(false);
 
     try {
-      const response = await fetch(apiUrl(`/reservations/${reservationId}`), {
+      const response = await apiFetch(`/reservations/${reservationId}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -90,13 +90,13 @@ export default function ReservationActions({
             </button>
           )}
 
-          {showMarkPaid && !showConfirm && (
+          {showMarkPaid && (
             <button
               onClick={() => handleUpdate({ paymentStatus: "paid" })}
               className="w-full text-left px-4 py-2 text-sm text-zinc-300 hover:text-white hover:bg-zinc-900 flex items-center gap-2.5 transition-colors"
             >
               <CircleDollarSign className="w-4 h-4 text-primary" />
-              <span>Marcar pago</span>
+              <span>Registrar pago (auto-confirma)</span>
             </button>
           )}
 

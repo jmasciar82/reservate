@@ -16,6 +16,21 @@ export class Club {
 
   @Prop()
   description: string;
+
+  @Prop({ default: true })
+  bookingEnabled: boolean;
+
+  @Prop({ default: 'percentage', enum: ['percentage', 'fixed', 'none'] })
+  depositType: string;
+
+  @Prop({ default: 30 })
+  depositValue: number;
+
+  @Prop({ required: false })
+  mpAccessToken?: string;
+
+  @Prop({ required: false })
+  mpPublicKey?: string;
 }
 
 export const ClubSchema = SchemaFactory.createForClass(Club);

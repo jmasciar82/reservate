@@ -6,6 +6,11 @@ import { AppService } from './app.service';
 import { ReservationsModule } from './modules/reservations/reservations.module';
 import { CourtsModule } from './modules/courts/courts.module';
 import { ClubsModule } from './modules/clubs/clubs.module';
+import { AuthModule } from './modules/auth/auth.module';
+import { UsersModule } from './modules/users/users.module';
+import { PublicModule } from './modules/public/public.module';
+import { WhatsappModule } from './modules/whatsapp/whatsapp.module';
+import { AnalyticsModule } from './modules/analytics/analytics.module';
 
 @Module({
   imports: [
@@ -24,6 +29,11 @@ import { ClubsModule } from './modules/clubs/clubs.module';
     ReservationsModule,
     CourtsModule,
     ClubsModule,
+    AuthModule,
+    UsersModule,
+    PublicModule,
+    WhatsappModule,
+    AnalyticsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

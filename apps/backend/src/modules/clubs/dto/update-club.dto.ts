@@ -3,4 +3,9 @@ export class UpdateClubDto {
   location?: string;
   sports?: string[];
   description?: string;
+  bookingEnabled?: boolean;
+  depositType?: string;
+  depositValue?: number;
+  mpAccessToken?: string;
+  mpPublicKey?: string;
 }

@@ -1,4 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import * as mongoose from 'mongoose';
 import { Document, Types } from 'mongoose';
 
 export type CourtDocument = Court & Document;
@@ -11,7 +12,7 @@ export class Court {
   @Prop({ required: true })
   sport: string; // e.g., 'padel'
 
-  @Prop({ type: Types.ObjectId, ref: 'Club', required: true })
+  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'Club', required: true })
   clubId: Types.ObjectId;
 
   @Prop({ default: true })

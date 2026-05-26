@@ -4,6 +4,11 @@ export interface Club {
   location?: string;
   sports?: string[];
   description?: string;
+  bookingEnabled?: boolean;
+  depositType?: "percentage" | "fixed" | "none";
+  depositValue?: number;
+  mpAccessToken?: string;
+  mpPublicKey?: string;
 }
 
 export interface Court {
@@ -14,6 +19,7 @@ export interface Court {
   isActive: boolean;
   isCovered: boolean;
   pricePerHour: number;
+  isAvailable?: boolean;
 }
 
 export type ReservationStatus =
@@ -27,10 +33,16 @@ export type PaymentStatus = "pending" | "paid";
 export interface Reservation {
   _id: string;
   courtId?: Court | null;
-  userId: string;
+  userId?: string;
   startTime: string;
   endTime: string;
   status: ReservationStatus;
   totalPrice: number;
   paymentStatus: PaymentStatus;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  phone?: string;
+  isPublic?: boolean;
+  depositAmount?: number;
 }

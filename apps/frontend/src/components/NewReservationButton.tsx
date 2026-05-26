@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Calendar, Clock, MapPin, User, X } from "lucide-react";
-import { apiUrl } from "@/lib/api";
+import { apiFetch } from "@/lib/api";
 import type { Court } from "@/lib/types";
 
 const PRESET_TIMES = [
@@ -39,11 +39,19 @@ const PRESET_TIMES = [
 interface NewReservationButtonProps {
   activeClubId: string;
   defaultDate: string;
+  presetCourtId?: string;
+  presetTime?: string;
+  presetDate?: string;
+  children?: React.ReactNode;
 }
 
 export default function NewReservationButton({
   activeClubId,
   defaultDate,
+  presetCourtId,
+  presetTime,
+  presetDate,
+  children,
 }: NewReservationButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [courts, setCourts] = useState<Court[]>([]);
@@ -58,6 +66,17 @@ export default function NewReservationButton({
     duration: "1.5",
     courtId: "",
   });
+
+  const handleOpen = () => {
+    setFormData({
+      playerName: "",
+      date: presetDate || defaultDate || formData.date,
+      time: presetTime || "",
+      duration: "1.5",
+      courtId: presetCourtId || "",
+    });
+    setIsOpen(true);
+  };
 
   const filteredTimes =
     formData.duration === "1.5"
@@ -94,13 +113,14 @@ export default function NewReservationButton({
       const end = new Date(start.getTime() + durationMs);
 
       try {
-        const response = await fetch(
-          apiUrl("/courts/available", {
+        const response = await apiFetch(
+          "/courts/available",
+          { signal: controller.signal },
+          {
             startTime: start.toISOString(),
             endTime: end.toISOString(),
             clubId: activeClubId,
-          }),
-          { signal: controller.signal },
+          }
         );
 
         if (!response.ok) {
@@ -157,7 +177,7 @@ export default function NewReservationButton({
       const durationMs = Number(formData.duration) * 60 * 60 * 1000;
       const endTime = new Date(startTime.getTime() + durationMs);
 
-      const response = await fetch(apiUrl("/reservations"), {
+      const response = await apiFetch("/reservations", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -196,19 +216,19 @@ export default function NewReservationButton({
 
   return (
     <>
-      <button
-        onClick={() => {
-          setFormData((prev) => ({
-            ...prev,
-            date: prev.date || defaultDate,
-          }));
-          setIsOpen(true);
-        }}
-        disabled={!activeClubId}
-        className="px-4 py-2 bg-primary text-primary-foreground font-semibold rounded-lg shadow-[0_0_15px_rgba(57,255,20,0.3)] hover:scale-[1.02] transition-transform disabled:opacity-50 disabled:pointer-events-none"
-      >
-        + Nueva reserva
-      </button>
+      {children ? (
+        <div onClick={handleOpen}>
+          {children}
+        </div>
+      ) : (
+        <button
+          onClick={handleOpen}
+          disabled={!activeClubId}
+          className="px-4 py-2 bg-primary text-primary-foreground font-semibold rounded-lg shadow-[0_0_15px_rgba(57,255,20,0.3)] hover:scale-[1.02] transition-transform disabled:opacity-50 disabled:pointer-events-none"
+        >
+          + Nueva reserva
+        </button>
+      )}
 
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">

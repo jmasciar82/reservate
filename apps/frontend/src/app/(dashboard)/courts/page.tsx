@@ -12,8 +12,10 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { apiUrl } from "@/lib/api";
+import { apiFetch } from "@/lib/api";
 import type { Club, Court } from "@/lib/types";
+import CourtCard from "@/components/CourtCard";
+import { useClub } from "@/providers/ClubProvider";
 
 type CourtFormData = {
   name: string;
@@ -34,7 +36,7 @@ const initialFormData: CourtFormData = {
 };
 
 async function fetchJson<T>(url: string): Promise<T> {
-  const response = await fetch(url);
+  const response = await apiFetch(url, { cache: "no-store" });
 
   if (!response.ok) {
     throw new Error(`Request failed with status ${response.status}`);
@@ -56,13 +58,19 @@ function sportLabel(sport: string) {
 
 export default function CourtsPage() {
   const [courts, setCourts] = useState<Court[]>([]);
-  const [clubs, setClubs] = useState<Club[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  const { activeClubId, clubs } = useClub();
   const [showForm, setShowForm] = useState(false);
   const [editingCourtId, setEditingCourtId] = useState<string | null>(null);
   const [formData, setFormData] = useState<CourtFormData>(initialFormData);
+
+  const filteredCourts = useMemo(
+    () => courts.filter((c) => c.clubId === activeClubId),
+    [courts, activeClubId]
+  );
 
   const clubMap = useMemo(
     () =>
@@ -78,18 +86,16 @@ export default function CourtsPage() {
 
     void (async () => {
       try {
-        const [courtsData, clubsData] = await Promise.all([
-          fetchJson<Court[]>(apiUrl("/courts")),
-          fetchJson<Club[]>(apiUrl("/clubs")),
+        const [courtsData] = await Promise.all([
+          fetchJson<Court[]>("/courts"),
         ]);
 
         if (cancelled) return;
 
         setCourts(courtsData);
-        setClubs(clubsData);
         setFormData((prev) => ({
           ...prev,
-          clubId: prev.clubId || clubsData[0]?._id || "",
+          clubId: activeClubId || "",
         }));
       } catch (loadError) {
         if (!cancelled) {
@@ -109,15 +115,20 @@ export default function CourtsPage() {
   }, []);
 
   const refreshCourts = async () => {
-    const data = await fetchJson<Court[]>(apiUrl("/courts"));
-    setCourts(data);
+    try {
+      const data = await fetchJson<Court[]>("/courts");
+      setCourts(data);
+    } catch (err) {
+      console.error("Error refreshing courts:", err);
+      setError("No se pudieron actualizar las canchas.");
+    }
   };
 
   const resetForm = () => {
     setEditingCourtId(null);
     setFormData({
       ...initialFormData,
-      clubId: clubs[0]?._id || "",
+      clubId: activeClubId || "",
     });
   };
 
@@ -128,10 +139,10 @@ export default function CourtsPage() {
 
     try {
       const url = editingCourtId
-        ? apiUrl(`/courts/${editingCourtId}`)
-        : apiUrl("/courts");
+        ? `/courts/${editingCourtId}`
+        : "/courts";
       const method = editingCourtId ? "PUT" : "POST";
-      const response = await fetch(url, {
+      const response = await apiFetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
@@ -177,7 +188,7 @@ export default function CourtsPage() {
     setError(null);
 
     try {
-      const response = await fetch(apiUrl(`/courts/${courtId}`), {
+      const response = await apiFetch(`/courts/${courtId}`, {
         method: "DELETE",
       });
 
@@ -251,25 +262,7 @@ export default function CourtsPage() {
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-zinc-400 mb-1">
-                  Club asociado
-                </label>
-                <select
-                  required
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-3 px-4 text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
-                  value={formData.clubId}
-                  onChange={(e) =>
-                    setFormData({ ...formData, clubId: e.target.value })
-                  }
-                >
-                  {clubs.map((club) => (
-                    <option key={club._id} value={club._id}>
-                      {club.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+
 
               <div>
                 <label className="block text-sm font-medium text-zinc-400 mb-1">
@@ -379,77 +372,14 @@ export default function CourtsPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-          {courts.map((court) => (
-            <div
+          {courts.filter(c => c.clubId === activeClubId).map((court) => (
+            <CourtCard
               key={court._id}
-              className="bg-zinc-900/50 border border-zinc-800 p-5 rounded-lg hover:border-zinc-700 transition-all group relative overflow-hidden flex flex-col justify-between min-h-56"
-            >
-              <div>
-                <div className="flex justify-between items-start gap-3">
-                  <div className="flex flex-col gap-0.5 min-w-0">
-                    <h3 className="text-xl font-bold group-hover:text-primary transition-colors truncate">
-                      {court.name}
-                    </h3>
-                    <span className="text-xs text-zinc-400">
-                      {sportLabel(court.sport)}
-                    </span>
-                    <span className="text-xs text-zinc-500 mt-1 flex items-center gap-1">
-                      <Building2 className="w-3 h-3" />
-                      {clubMap[court.clubId] ?? "Club deportivo"}
-                    </span>
-                  </div>
-
-                  <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
-                    {court.isActive ? (
-                      <span className="flex items-center text-[10px] font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20">
-                        <Check className="w-2.5 h-2.5 mr-1" /> Activa
-                      </span>
-                    ) : (
-                      <span className="flex items-center text-[10px] font-semibold text-zinc-500 bg-zinc-800 px-2 py-0.5 rounded-full border border-zinc-700">
-                        Inactiva
-                      </span>
-                    )}
-
-                    {court.isCovered ? (
-                      <span className="flex items-center text-[10px] font-semibold text-sky-400 bg-sky-400/10 px-2 py-0.5 rounded-full border border-sky-400/20">
-                        <Home className="w-2.5 h-2.5 mr-1" /> Techada
-                      </span>
-                    ) : (
-                      <span className="flex items-center text-[10px] font-semibold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
-                        <Sun className="w-2.5 h-2.5 mr-1" /> Descubierta
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                <div className="mt-4 flex items-center gap-1.5 text-zinc-300 bg-zinc-950/40 py-1.5 px-3 rounded-lg border border-zinc-800/40 w-fit">
-                  <DollarSign className="w-4 h-4 text-primary" />
-                  <span className="text-sm">
-                    <strong className="text-white font-bold">
-                      ${court.pricePerHour?.toLocaleString("es-AR")}
-                    </strong>{" "}
-                    / hora
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2 mt-4 pt-4 border-t border-zinc-800/50 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                <button
-                  onClick={() => handleEditClick(court)}
-                  className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-all"
-                  title="Editar cancha"
-                >
-                  <Pencil className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => handleDeleteClick(court._id)}
-                  className="p-2 text-zinc-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all"
-                  title="Eliminar cancha"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
+              court={court}
+              clubName={clubMap[court.clubId] ?? "Club deportivo"}
+              onEdit={handleEditClick}
+              onDelete={handleDeleteClick}
+            />
           ))}
         </div>
       )}

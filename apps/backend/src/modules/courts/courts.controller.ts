@@ -7,12 +7,16 @@ import {
   Body,
   Param,
   Query,
+  UseGuards,
 } from '@nestjs/common';
+import * as fs from 'fs';
 import { CourtsService } from './courts.service';
 import { CreateCourtDto } from './dto/create-court.dto';
 import { UpdateCourtDto } from './dto/update-court.dto';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('courts')
+@UseGuards(JwtAuthGuard)
 export class CourtsController {
   constructor(private readonly courtsService: CourtsService) {}
 
@@ -32,11 +36,20 @@ export class CourtsController {
     @Query('endTime') endTime: string,
     @Query('clubId') clubId?: string,
   ) {
-    return this.courtsService.findAvailable(
-      new Date(startTime),
-      new Date(endTime),
-      clubId,
-    );
+    const logFile = 'C:/Users/juanp/.gemini/antigravity/brain/0404d1e4-10e2-458d-95cd-b130662bc2c8/scratch/debug.log';
+    fs.appendFileSync(logFile, `findAvailable called: startTime=${startTime}, endTime=${endTime}, clubId=${clubId}\n`);
+    try {
+      const courts = await this.courtsService.findAvailable(
+        new Date(startTime),
+        new Date(endTime),
+        clubId,
+      );
+      fs.appendFileSync(logFile, `findAvailable returning ${courts.length} courts\n`);
+      return courts;
+    } catch (e: any) {
+      fs.appendFileSync(logFile, `findAvailable ERROR: ${e.message}\n`);
+      throw e;
+    }
   }
 
   @Put(':id')
