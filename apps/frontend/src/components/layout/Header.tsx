@@ -22,29 +22,32 @@ export function Header() {
   }, []);
 
   return (
-    <header className="h-16 flex items-center justify-between px-8 border-b border-border/50 bg-background/50 backdrop-blur-sm shrink-0 z-20">
-      <div className="flex items-center gap-6">
+    <header className="h-16 flex items-center justify-between px-8 border-b border-white/5 bg-zinc-950/20 backdrop-blur-md shrink-0 z-20 shadow-[0_4px_24px_rgba(0,0,0,0.15)] relative">
+      {/* Glossy overlay reflection */}
+      <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/5 to-transparent pointer-events-none" />
+
+      <div className="flex items-center gap-6 z-10">
         <div>
-          <p className="text-sm font-medium text-zinc-300">Administración diaria</p>
-          <p className="text-xs text-zinc-500">Reservas, canchas y clubes</p>
+          <p className="text-sm font-bold text-white tracking-wide">Administración diaria</p>
+          <p className="text-[11px] font-medium text-zinc-400">Reservas, canchas y sedes de tu club</p>
         </div>
 
         {clubs.length > 0 && (
           <div className="relative ml-4" ref={dropdownRef}>
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className="flex items-center gap-2 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded-lg px-4 py-2 transition-colors focus:outline-none focus:ring-1 focus:ring-primary"
+              className="flex items-center gap-2.5 bg-white/5 border border-white/10 hover:border-primary/45 rounded-xl px-4 py-2 transition-all duration-300 shadow-[0_2px_10px_rgba(0,0,0,0.2)] focus:outline-none focus:ring-2 focus:ring-primary/20 hover:bg-white/[0.08]"
             >
-              <Building2 className="w-4 h-4 text-primary" />
-              <span className="text-sm text-white font-medium">
+              <Building2 className="w-4 h-4 text-primary drop-shadow-[0_0_5px_rgba(57,255,20,0.4)]" />
+              <span className="text-sm text-zinc-100 font-bold tracking-wide">
                 {activeClub ? activeClub.name : "Seleccionar Sede"}
               </span>
-              <ChevronDown className={`w-4 h-4 text-zinc-500 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+              <ChevronDown className={`w-3.5 h-3.5 text-zinc-400 transition-all duration-300 ${isOpen ? "rotate-180 text-primary" : ""}`} />
             </button>
 
             {isOpen && (
-              <div className="absolute top-full left-0 mt-2 w-56 bg-zinc-900 border border-zinc-800 rounded-lg shadow-xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
-                <div className="py-1">
+              <div className="absolute top-full left-0 mt-2 w-56 bg-zinc-950/80 backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_15px_40px_rgba(0,0,0,0.5)] overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="py-1.5 px-1 space-y-1">
                   {clubs.map((club) => (
                     <button
                       key={club._id}
@@ -52,10 +55,10 @@ export function Header() {
                         setActiveClubId(club._id);
                         setIsOpen(false);
                       }}
-                      className={`w-full text-left px-4 py-2.5 text-sm transition-colors flex items-center gap-2 ${
+                      className={`w-full text-left px-3.5 py-2 text-xs rounded-xl transition-all duration-300 flex items-center gap-2 ${
                         club._id === activeClubId
-                          ? "bg-primary/10 text-primary font-medium"
-                          : "text-zinc-300 hover:bg-zinc-800 hover:text-white"
+                          ? "bg-primary/10 text-primary font-bold shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] border border-primary/20"
+                          : "text-zinc-300 hover:bg-white/5 hover:text-white border border-transparent"
                       }`}
                     >
                       <span className="truncate">{club.name}</span>
@@ -68,8 +71,8 @@ export function Header() {
         )}
       </div>
 
-      <div className="w-8 h-8 rounded-full bg-zinc-800 border border-zinc-700 overflow-hidden flex items-center justify-center">
-        <span className="text-xs font-bold">JP</span>
+      <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/30 overflow-hidden flex items-center justify-center cursor-pointer shadow-[0_0_10px_rgba(57,255,20,0.1)] hover:scale-105 transition-all duration-300 z-10">
+        <span className="text-xs font-black text-primary drop-shadow-[0_0_4px_rgba(57,255,20,0.3)]">JP</span>
       </div>
     </header>
   );

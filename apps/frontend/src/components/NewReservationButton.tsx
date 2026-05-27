@@ -318,18 +318,18 @@ export default function NewReservationButton({
             onClick={() => setIsOpen(false)}
           />
 
-          <div className="relative w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="px-6 py-4 border-b border-zinc-800 flex justify-between items-center bg-zinc-900/50">
-              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+          <div className="relative w-full max-w-md bg-zinc-950/85 backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-white/5 flex justify-between items-center bg-white/[0.02]">
+              <h2 className="text-xl font-black text-white flex items-center gap-2">
                 <span className="w-2 h-6 bg-primary rounded-full shadow-[0_0_8px_rgba(57,255,20,0.5)]" />
                 Nueva reserva
               </h2>
               <button
                 onClick={() => setIsOpen(false)}
-                className="text-zinc-400 hover:text-white transition-colors p-1 bg-zinc-800/50 hover:bg-zinc-800 rounded-lg"
+                className="text-zinc-400 hover:text-white transition-all duration-300 p-1.5 bg-white/5 hover:bg-white/10 rounded-lg border border-white/5"
                 title="Cerrar"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
@@ -350,7 +350,7 @@ export default function NewReservationButton({
                       playerName: e.target.value,
                     }))
                   }
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-white placeholder:text-zinc-600 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-zinc-505 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 hover:bg-white/[0.08] transition-all duration-300 font-medium"
                 />
               </div>
 
@@ -366,7 +366,7 @@ export default function NewReservationButton({
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, date: e.target.value }))
                   }
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all [color-scheme:dark]"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 hover:bg-white/[0.08] transition-all duration-300 [color-scheme:dark] font-medium"
                 />
               </div>
 
@@ -382,13 +382,13 @@ export default function NewReservationButton({
                     onChange={(e) =>
                       setFormData((prev) => ({ ...prev, time: e.target.value }))
                     }
-                    className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 hover:bg-white/[0.08] transition-all duration-300 font-semibold"
                   >
-                    <option value="" disabled>
+                    <option value="" disabled className="bg-zinc-950 text-white">
                       --:--
                     </option>
                     {filteredTimes.map((time) => (
-                      <option key={time} value={time}>
+                      <option key={time} value={time} className="bg-zinc-950 text-white">
                         {time} hs
                       </option>
                     ))}
@@ -414,7 +414,7 @@ export default function NewReservationButton({
                             : prev.time,
                       }));
                     }}
-                    className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 hover:bg-white/[0.08] transition-all duration-300 font-semibold"
                   >
                     <option value="1">1 hora</option>
                     <option value="1.5">1.5 horas</option>
@@ -437,21 +437,21 @@ export default function NewReservationButton({
                     }))
                   }
                   disabled={!isTimeSelectionReady || courtsLoading || courts.length === 0}
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 hover:bg-white/[0.08] transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed font-semibold"
                 >
                   {!isTimeSelectionReady ? (
-                    <option value="">Seleccioná fecha, hora y duración</option>
+                    <option value="" className="bg-zinc-950 text-white">Seleccioná fecha, hora y duración</option>
                   ) : courtsLoading ? (
-                    <option value="">Buscando canchas libres...</option>
+                    <option value="" className="bg-zinc-950 text-white">Buscando canchas libres...</option>
                   ) : courts.length === 0 ? (
-                    <option value="">No hay canchas libres en este horario</option>
+                    <option value="" className="bg-zinc-950 text-white">No hay canchas libres en este horario</option>
                   ) : (
                     <>
-                      <option value="" disabled>
+                      <option value="" disabled className="bg-zinc-950 text-white">
                         Seleccioná una cancha libre
                       </option>
                       {courts.map((court) => (
-                        <option key={court._id} value={court._id}>
+                        <option key={court._id} value={court._id} className="bg-zinc-950 text-white">
                           {court.name} ({court.sport}) -{" "}
                           {court.isCovered ? "Techada" : "Descubierta"}
                         </option>
@@ -462,9 +462,9 @@ export default function NewReservationButton({
               </div>
 
               {/* Turno Recurrente */}
-              <div className="space-y-3 bg-zinc-950/40 border border-zinc-800/60 rounded-lg p-4">
+              <div className="space-y-3 bg-white/[0.02] border border-white/5 rounded-xl p-4 shadow-inner">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-semibold text-zinc-300 flex items-center gap-2">
+                  <span className="text-sm font-bold text-zinc-200 flex items-center gap-2">
                     <span className="text-indigo-400">🔁</span> Turno Fijo Recurrente
                   </span>
                   <label className="relative inline-flex items-center cursor-pointer">
@@ -479,12 +479,12 @@ export default function NewReservationButton({
                       }
                       className="sr-only peer"
                     />
-                    <div className="w-11 h-6 bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-zinc-400 after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600 peer-checked:after:bg-white peer-checked:after:border-indigo-600"></div>
+                    <div className="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-zinc-400 after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-500 peer-checked:after:bg-white peer-checked:after:border-indigo-500 shadow-md"></div>
                   </label>
                 </div>
 
                 {formData.isRecurring && (
-                  <div className="space-y-1.5 pt-2 border-t border-zinc-900/60 animate-in fade-in slide-in-from-top-1 duration-150">
+                  <div className="space-y-1.5 pt-2 border-t border-white/5 animate-in fade-in slide-in-from-top-1 duration-150">
                     <label className="text-xs font-semibold text-zinc-400">
                       Semanas de repetición (Duración)
                     </label>
@@ -496,7 +496,7 @@ export default function NewReservationButton({
                           recurrenceWeeks: Number(e.target.value),
                         }))
                       }
-                      className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all text-sm"
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all duration-300 hover:bg-white/[0.08] text-sm font-semibold"
                     >
                       <option value="4">4 semanas (1 mes)</option>
                       <option value="8">8 semanas (2 meses)</option>
@@ -511,19 +511,19 @@ export default function NewReservationButton({
               </div>
 
               {isTimeSelectionReady && formData.time && (
-                <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 flex items-start gap-3">
-                  <span className="mt-1 w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_5px_rgba(57,255,20,0.8)] flex-shrink-0" />
-                  <p className="text-sm text-zinc-300 leading-relaxed">
+                <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 flex items-start gap-3 backdrop-blur-sm shadow-[0_4px_12px_rgba(57,255,20,0.02)] animate-in fade-in slide-in-from-top-1">
+                  <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_6px_rgba(57,255,20,0.8)] flex-shrink-0" />
+                  <p className="text-xs text-zinc-300 leading-relaxed font-medium">
                     El turno dura{" "}
-                    <strong className="text-white font-semibold">
+                    <strong className="text-white font-bold">
                       {formData.duration === "1" ? "1:00 hs" : "1:30 hs"}
                     </strong>
                     , empieza a las{" "}
-                    <strong className="text-white font-semibold">
+                    <strong className="text-white font-bold">
                       {formData.time} hs
                     </strong>{" "}
                     y termina a las{" "}
-                    <strong className="text-white font-semibold">
+                    <strong className="text-white font-bold">
                       {(() => {
                         const [h, m] = formData.time.split(":").map(Number);
                         const durationMinutes = Number(formData.duration) * 60;
@@ -544,7 +544,7 @@ export default function NewReservationButton({
               <button
                 type="submit"
                 disabled={loading || !formData.courtId}
-                className="w-full py-3.5 bg-primary text-primary-foreground font-bold rounded-lg shadow-[0_0_20px_rgba(57,255,20,0.2)] hover:shadow-[0_0_25px_rgba(57,255,20,0.4)] transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:pointer-events-none disabled:-translate-y-0 text-base"
+                className="w-full py-3.5 bg-primary text-primary-foreground font-black rounded-xl shadow-[0_4px_20px_rgba(57,255,20,0.25)] hover:shadow-[0_4px_25px_rgba(57,255,20,0.45)] hover:-translate-y-0.5 active:translate-y-0 active:shadow-[0_2px_10px_rgba(57,255,20,0.2)] disabled:opacity-40 disabled:pointer-events-none disabled:-translate-y-0 text-base transition-all duration-300 tracking-wide"
               >
                 {loading ? "Confirmando..." : "Confirmar reserva"}
               </button>
