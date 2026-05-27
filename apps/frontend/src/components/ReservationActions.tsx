@@ -10,6 +10,8 @@ interface ReservationActionsProps {
   reservationId: string;
   status: ReservationStatus;
   paymentStatus: PaymentStatus;
+  totalPrice?: number;
+  depositAmount?: number;
   isRecurring?: boolean;
   recurrenceGroupId?: string;
 }
@@ -18,6 +20,8 @@ export default function ReservationActions({
   reservationId,
   status,
   paymentStatus,
+  totalPrice = 0,
+  depositAmount = 0,
   isRecurring,
   recurrenceGroupId,
 }: ReservationActionsProps) {
@@ -40,6 +44,7 @@ export default function ReservationActions({
   const handleUpdate = async (payload: {
     status?: ReservationStatus;
     paymentStatus?: PaymentStatus;
+    depositAmount?: number;
     cancelSeries?: boolean;
   }) => {
     setIsOpen(false);
@@ -66,10 +71,12 @@ export default function ReservationActions({
   };
 
   const showConfirm = status === "pending";
-  const showMarkPaid = paymentStatus !== "paid" && status !== "cancelled";
   const showCancel = status !== "cancelled";
+  
+  const isPartiallyPaid = paymentStatus === "paid" && depositAmount > 0 && depositAmount < totalPrice;
+  const showPaymentActions = paymentStatus === "pending" && status !== "cancelled";
 
-  if (!showConfirm && !showMarkPaid && !showCancel) {
+  if (!showConfirm && !showPaymentActions && !isPartiallyPaid && !showCancel) {
     return <div className="w-9 h-9" />;
   }
 
@@ -84,26 +91,74 @@ export default function ReservationActions({
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-1 w-56 bg-zinc-950 border border-zinc-800 rounded-lg shadow-2xl z-50 py-1.5 animate-in fade-in slide-in-from-top-2 duration-150">
+        <div className="absolute right-0 mt-1 w-64 bg-zinc-950 border border-zinc-800 rounded-lg shadow-2xl z-50 py-1.5 animate-in fade-in slide-in-from-top-2 duration-150">
           {showConfirm && (
             <button
-              onClick={() =>
-                handleUpdate({ status: "confirmed", paymentStatus: "paid" })
-              }
+              onClick={() => handleUpdate({ status: "confirmed" })}
               className="w-full text-left px-4 py-2 text-sm text-zinc-300 hover:text-white hover:bg-zinc-900 flex items-center gap-2.5 transition-colors"
             >
-              <CheckCircle className="w-4 h-4 text-primary" />
-              <span>Confirmar reserva</span>
+              <CheckCircle className="w-4 h-4 text-zinc-400" />
+              <span>Confirmar (sin cobrar)</span>
             </button>
           )}
 
-          {showMarkPaid && (
+          {showPaymentActions && (
+            <>
+              <button
+                onClick={() => {
+                  const defaultDeposit = Math.round(totalPrice * 0.3);
+                  const amountStr = prompt(`Ingresá el monto de la seña pagada:`, String(defaultDeposit));
+                  if (amountStr === null) return;
+                  const amount = Number(amountStr);
+                  if (isNaN(amount) || amount <= 0) {
+                    alert("Por favor ingresá un monto válido.");
+                    return;
+                  }
+                  handleUpdate({
+                    status: "confirmed",
+                    paymentStatus: "paid",
+                    depositAmount: amount,
+                  });
+                }}
+                className="w-full text-left px-4 py-2 text-sm text-zinc-300 hover:text-white hover:bg-zinc-900 flex items-center gap-2.5 transition-colors border-t border-zinc-900"
+              >
+                <CircleDollarSign className="w-4 h-4 text-blue-400" />
+                <span>Registrar Pago de Seña</span>
+              </button>
+
+              <button
+                onClick={() => handleUpdate({
+                  status: "confirmed",
+                  paymentStatus: "paid",
+                  depositAmount: totalPrice,
+                })}
+                className="w-full text-left px-4 py-2 text-sm text-zinc-300 hover:text-white hover:bg-zinc-900 flex items-center gap-2.5 transition-colors"
+              >
+                <CircleDollarSign className="w-4 h-4 text-primary" />
+                <span>Registrar Pago Total</span>
+              </button>
+            </>
+          )}
+
+          {isPartiallyPaid && (
             <button
-              onClick={() => handleUpdate({ paymentStatus: "paid" })}
-              className="w-full text-left px-4 py-2 text-sm text-zinc-300 hover:text-white hover:bg-zinc-900 flex items-center gap-2.5 transition-colors"
+              onClick={() => {
+                const balance = totalPrice - depositAmount;
+                if (confirm(`¿Registrar cobro del saldo restante de $${balance.toLocaleString("es-AR")}?`)) {
+                  handleUpdate({
+                    status: "confirmed",
+                    paymentStatus: "paid",
+                    depositAmount: totalPrice,
+                  });
+                }
+              }}
+              className="w-full text-left px-4 py-2 text-sm text-zinc-300 hover:text-white hover:bg-zinc-900 flex items-center gap-2.5 transition-colors border-t border-zinc-900"
             >
-              <CircleDollarSign className="w-4 h-4 text-primary" />
-              <span>Registrar pago (auto-confirma)</span>
+              <CircleDollarSign className="w-4 h-4 text-primary animate-pulse" />
+              <div className="flex flex-col">
+                <span className="font-bold text-white">Cobrar Saldo Restante</span>
+                <span className="text-[10px] text-zinc-400">Resta cobrar: ${ (totalPrice - depositAmount).toLocaleString("es-AR") }</span>
+              </div>
             </button>
           )}
 

@@ -10,4 +10,5 @@ export class CreateReservationDto {
   isPublic?: boolean;
   isRecurring?: boolean;
   recurrenceWeeks?: number;
+  depositAmount?: number;
 }

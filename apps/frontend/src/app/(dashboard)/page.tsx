@@ -309,13 +309,20 @@ export default async function Dashboard({
                                       <Clock className="w-2.5 h-2.5" />
                                       {formatArtTimeStr(reservation.startTime)} - {formatArtTimeStr(reservation.endTime)}
                                     </span>
-                                    <span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded-full tracking-wider ${
-                                      reservation.paymentStatus === "paid"
-                                        ? "bg-green-500/10 text-green-400 border border-green-500/20 shadow-[0_0_8px_rgba(34,197,94,0.1)]"
-                                        : "bg-amber-500/10 text-amber-400 border border-amber-500/20 shadow-[0_0_8px_rgba(245,158,11,0.1)]"
-                                    }`}>
-                                      {reservation.paymentStatus === "paid" ? "PAGO" : "DEBE"}
-                                    </span>
+                                    {(() => {
+                                      const isPartiallyPaid = reservation.paymentStatus === "paid" && (reservation.depositAmount ?? 0) > 0 && (reservation.depositAmount ?? 0) < (reservation.totalPrice ?? 0);
+                                      return (
+                                        <span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded-full tracking-wider ${
+                                          isPartiallyPaid
+                                            ? "bg-blue-500/10 text-blue-400 border border-blue-500/20 shadow-[0_0_8px_rgba(59,130,246,0.1)]"
+                                            : reservation.paymentStatus === "paid"
+                                              ? "bg-green-500/10 text-green-400 border border-green-500/20 shadow-[0_0_8px_rgba(34,197,94,0.1)]"
+                                              : "bg-amber-500/10 text-amber-400 border border-amber-500/20 shadow-[0_0_8px_rgba(245,158,11,0.1)]"
+                                        }`}>
+                                          {isPartiallyPaid ? `SEÑA: $${(reservation.depositAmount ?? 0).toLocaleString("es-AR")}` : reservation.paymentStatus === "paid" ? "PAGO" : "DEBE"}
+                                        </span>
+                                      );
+                                    })()}
                                   </div>
                                   <h4 className="text-xs font-black text-white truncate mt-1.5 capitalize flex items-center gap-1.5 min-w-0">
                                     <span className="truncate">
@@ -329,6 +336,15 @@ export default async function Dashboard({
                                       </span>
                                     )}
                                   </h4>
+                                  {(() => {
+                                    const isPartiallyPaid = reservation.paymentStatus === "paid" && (reservation.depositAmount ?? 0) > 0 && (reservation.depositAmount ?? 0) < (reservation.totalPrice ?? 0);
+                                    const balance = (reservation.totalPrice ?? 0) - (reservation.depositAmount ?? 0);
+                                    return isPartiallyPaid ? (
+                                      <p className="text-[9px] text-zinc-400 mt-0.5 leading-none">
+                                        Resta: <strong className="text-white">${balance.toLocaleString("es-AR")}</strong>
+                                      </p>
+                                    ) : null;
+                                  })()}
                                 </div>
                                 <div className="flex items-center justify-between border-t border-white/5 pt-1.5 mt-1.5 relative z-10">
                                   <span className={`text-[9px] font-extrabold tracking-wider ${
@@ -344,6 +360,8 @@ export default async function Dashboard({
                                     reservationId={reservation._id}
                                     status={reservation.status}
                                     paymentStatus={reservation.paymentStatus}
+                                    totalPrice={reservation.totalPrice}
+                                    depositAmount={reservation.depositAmount}
                                     isRecurring={reservation.isRecurring}
                                     recurrenceGroupId={reservation.recurrenceGroupId}
                                   />
@@ -437,22 +455,41 @@ export default async function Dashboard({
                         {formatArtDateStr(reservation.startTime)} - {formatArtTimeStr(reservation.startTime)} hs
                       </span>
                       <span className="text-xs text-primary font-black mt-0.5 drop-shadow-[0_0_4px_rgba(57,255,20,0.2)]">
-                        ${reservation.totalPrice?.toLocaleString("es-AR") || "0"}
+                        ${(reservation.totalPrice ?? 0).toLocaleString("es-AR")}
                       </span>
+                      {(() => {
+                        const isPartiallyPaid = reservation.paymentStatus === "paid" && (reservation.depositAmount ?? 0) > 0 && (reservation.depositAmount ?? 0) < (reservation.totalPrice ?? 0);
+                        const balance = (reservation.totalPrice ?? 0) - (reservation.depositAmount ?? 0);
+                        return isPartiallyPaid ? (
+                          <div className="flex flex-col sm:items-end text-[10px] text-zinc-400 mt-1 leading-tight">
+                            <span>Seña: <strong className="text-zinc-200">${(reservation.depositAmount ?? 0).toLocaleString("es-AR")}</strong></span>
+                            <span>Resta: <strong className="text-white">${balance.toLocaleString("es-AR")}</strong></span>
+                          </div>
+                        ) : null;
+                      })()}
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2">
-                      <span
-                        className={`px-2.5 py-0.5 text-[9px] font-extrabold rounded-full tracking-wider shadow-sm ${
-                          reservation.paymentStatus === "paid"
-                            ? "bg-green-500/10 text-green-400 border border-green-500/20 shadow-[0_0_8px_rgba(34,197,94,0.1)]"
-                            : "bg-amber-500/10 text-amber-400 border border-amber-500/20 shadow-[0_0_8px_rgba(245,158,11,0.1)]"
-                        }`}
-                      >
-                        {reservation.paymentStatus === "paid"
-                          ? "PAGADO"
-                          : "PAGO PENDIENTE"}
-                      </span>
+                      {(() => {
+                        const isPartiallyPaid = reservation.paymentStatus === "paid" && (reservation.depositAmount ?? 0) > 0 && (reservation.depositAmount ?? 0) < (reservation.totalPrice ?? 0);
+                        return (
+                          <span
+                            className={`px-2.5 py-0.5 text-[9px] font-extrabold rounded-full tracking-wider shadow-sm ${
+                              isPartiallyPaid
+                                ? "bg-blue-500/10 text-blue-400 border border-blue-500/20 shadow-[0_0_8px_rgba(59,130,246,0.1)]"
+                                : reservation.paymentStatus === "paid"
+                                  ? "bg-green-500/10 text-green-400 border border-green-500/20 shadow-[0_0_8px_rgba(34,197,94,0.1)]"
+                                  : "bg-amber-500/10 text-amber-400 border border-amber-500/20 shadow-[0_0_8px_rgba(245,158,11,0.1)]"
+                            }`}
+                          >
+                            {isPartiallyPaid
+                              ? "SEÑADO"
+                              : reservation.paymentStatus === "paid"
+                                ? "PAGADO"
+                                : "PAGO PENDIENTE"}
+                          </span>
+                        );
+                      })()}
                       <span
                         className={`px-2.5 py-0.5 text-[9px] font-extrabold rounded-full tracking-wider shadow-sm ${
                           reservation.status === "confirmed"
@@ -472,6 +509,8 @@ export default async function Dashboard({
                       reservationId={reservation._id}
                       status={reservation.status}
                       paymentStatus={reservation.paymentStatus}
+                      totalPrice={reservation.totalPrice}
+                      depositAmount={reservation.depositAmount}
                       isRecurring={reservation.isRecurring}
                       recurrenceGroupId={reservation.recurrenceGroupId}
                     />

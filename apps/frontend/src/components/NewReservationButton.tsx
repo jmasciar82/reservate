@@ -112,6 +112,8 @@ export default function NewReservationButton({
     courtId: "",
     isRecurring: false,
     recurrenceWeeks: 4,
+    depositAmount: "",
+    isDepositPaid: false,
   });
 
   const handleOpen = () => {
@@ -123,6 +125,8 @@ export default function NewReservationButton({
       courtId: presetCourtId || "",
       isRecurring: false,
       recurrenceWeeks: 4,
+      depositAmount: "",
+      isDepositPaid: false,
     });
     setIsOpen(true);
   };
@@ -238,6 +242,8 @@ export default function NewReservationButton({
           endTime: endTime.toISOString(),
           isRecurring: formData.isRecurring,
           recurrenceWeeks: formData.isRecurring ? Number(formData.recurrenceWeeks) : undefined,
+          depositAmount: formData.depositAmount ? Number(formData.depositAmount) : 0,
+          paymentStatus: (formData.depositAmount && Number(formData.depositAmount) > 0 && formData.isDepositPaid) ? "paid" : "pending",
         }),
       });
 
@@ -251,6 +257,8 @@ export default function NewReservationButton({
           courtId: "",
           isRecurring: false,
           recurrenceWeeks: 4,
+          depositAmount: "",
+          isDepositPaid: false,
         });
         router.refresh();
       } else {
@@ -431,6 +439,55 @@ export default function NewReservationButton({
                     </>
                   )}
                 </select>
+              </div>
+
+              {/* Configurar Seña (Opcional) */}
+              <div className="space-y-3 bg-white/[0.02] border border-white/5 rounded-xl p-4 shadow-inner">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-bold text-zinc-200 flex items-center gap-2">
+                    <span className="text-primary">💰</span> Configurar Seña (Opcional)
+                  </span>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-3 pt-2 border-t border-white/5">
+                  <div className="space-y-1.5 col-span-2 sm:col-span-1">
+                    <label className="text-xs font-semibold text-zinc-400">
+                      Monto de Seña ($)
+                    </label>
+                    <input
+                      type="number"
+                      placeholder="Ej. 2000"
+                      value={formData.depositAmount}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          depositAmount: e.target.value,
+                        }))
+                      }
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white placeholder:text-zinc-600 focus:outline-none focus:border-primary text-sm font-semibold"
+                    />
+                  </div>
+                  
+                  {formData.depositAmount && Number(formData.depositAmount) > 0 ? (
+                    <div className="space-y-1.5 flex flex-col justify-end pb-1 col-span-2 sm:col-span-1 animate-in fade-in slide-in-from-top-1">
+                      <label className="relative inline-flex items-center cursor-pointer pb-2">
+                        <input
+                          type="checkbox"
+                          checked={formData.isDepositPaid}
+                          onChange={(e) =>
+                            setFormData((prev) => ({
+                              ...prev,
+                              isDepositPaid: e.target.checked,
+                            }))
+                          }
+                          className="sr-only peer"
+                        />
+                        <div className="w-9 h-5 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-zinc-400 after:border-zinc-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary peer-checked:after:bg-[#09090b] peer-checked:after:border-primary shadow-sm"></div>
+                        <span className="ml-2 text-xs font-bold text-zinc-300">¿Ya abonada?</span>
+                      </label>
+                    </div>
+                  ) : null}
+                </div>
               </div>
 
               {/* Turno Recurrente */}
