@@ -19,12 +19,22 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
     }),
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
-        uri:
-          configService.get<string>('MONGO_URI') ??
-          configService.get<string>('MONGODB_URI') ??
-          'mongodb://localhost:27017/reservate',
-      }),
+      useFactory: (configService: ConfigService) => {
+        const uri = configService.get<string>('MONGO_URI') ??
+                    configService.get<string>('MONGODB_URI');
+        
+        if (!uri) {
+          console.warn('⚠️ ALERTA DE PRODUCCION: No se detectó MONGO_URI ni MONGODB_URI en las variables de entorno de Render. Se usará el valor local por defecto.');
+        } else {
+          // Ocultar password por seguridad al loguear la URI
+          const sanitizedUri = uri.replace(/\/\/.*@/, '//****:****@');
+          console.log(`🔌 Base de datos configurada correctamente. Conectando a: ${sanitizedUri}`);
+        }
+
+        return {
+          uri: uri ?? 'mongodb://localhost:27017/reservate',
+        };
+      },
       inject: [ConfigService],
     }),
     ReservationsModule,
