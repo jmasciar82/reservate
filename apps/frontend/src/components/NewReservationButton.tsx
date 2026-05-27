@@ -155,7 +155,7 @@ export default function NewReservationButton({
 
       try {
         const response = await apiFetch(
-          "/courts/available",
+          "/public/courts/available",
           { signal: controller.signal },
           {
             startTime: start.toISOString(),
@@ -169,12 +169,13 @@ export default function NewReservationButton({
           return;
         }
 
-        const data = (await response.json()) as Court[];
-        setCourts(data);
+        const data = (await response.json()) as (Court & { isAvailable?: boolean })[];
+        const availableCourts = data.filter((c) => c.isAvailable !== false);
+        setCourts(availableCourts);
 
         if (
           formData.courtId &&
-          !data.some((court) => court._id === formData.courtId)
+          !availableCourts.some((court) => court._id === formData.courtId)
         ) {
           setFormData((prev) => ({ ...prev, courtId: "" }));
         }
@@ -298,7 +299,7 @@ export default function NewReservationButton({
   return (
     <>
       {children ? (
-        <div onClick={handleOpen}>
+        <div onClick={handleOpen} className="w-full h-full block">
           {children}
         </div>
       ) : (
