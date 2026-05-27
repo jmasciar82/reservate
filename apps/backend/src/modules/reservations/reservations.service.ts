@@ -149,7 +149,7 @@ export class ReservationsService {
     }
   }
 
-  async findAll(query?: ReservationQuery): Promise<Reservation[]> {
+  async findAll(query?: ReservationQuery): Promise<any[]> {
     let dateFilter = {};
 
     if (query?.date) {
@@ -179,11 +179,32 @@ export class ReservationsService {
       };
     }
 
-    return this.reservationModel
+    const reservations = await this.reservationModel
       .find({ ...dateFilter, ...clubFilter })
       .populate('courtId')
       .sort({ startTime: 1 })
       .exec();
+
+    // Agregar flag 'isLastOfSeries' para identificar el último día reservado por adelantado
+    const results = [];
+    for (const r of reservations) {
+      const plainObj = r.toObject() as any;
+      if (r.isRecurring && r.recurrenceGroupId && r.status !== 'cancelled') {
+        const futureExists = await this.reservationModel
+          .findOne({
+            recurrenceGroupId: r.recurrenceGroupId,
+            startTime: { $gt: r.startTime },
+            status: { $ne: 'cancelled' },
+          })
+          .exec();
+        plainObj.isLastOfSeries = !futureExists;
+      } else {
+        plainObj.isLastOfSeries = false;
+      }
+      results.push(plainObj);
+    }
+
+    return results;
   }
 
   async update(
@@ -243,6 +264,56 @@ export class ReservationsService {
         .exec();
 
       return this.reservationModel.findById(id).populate('courtId').exec();
+    }
+
+    // Pago en bloque para series recurrentes con 10% de descuento
+    if (
+      updateReservationDto.paymentStatus === 'paid' &&
+      existingReservation.isRecurring &&
+      existingReservation.recurrenceGroupId
+    ) {
+      const sortedGroup = await this.reservationModel
+        .find({
+          recurrenceGroupId: existingReservation.recurrenceGroupId,
+          status: { $ne: 'cancelled' },
+        })
+        .sort({ startTime: 1 })
+        .exec();
+
+      const index = sortedGroup.findIndex(
+        (r) => r._id.toString() === existingReservation._id.toString(),
+      );
+
+      if (index !== -1) {
+        const blockIndex = Math.floor(index / 4);
+        const startBlockIndex = blockIndex * 4;
+        const endBlockIndex = startBlockIndex + 4;
+        const blockReservations = sortedGroup.slice(startBlockIndex, endBlockIndex);
+
+        for (const res of blockReservations) {
+          const court = await this.courtModel.findById(res.courtId).exec();
+          if (court) {
+            const durationMs = res.endTime.getTime() - res.startTime.getTime();
+            const durationHours = durationMs / (1000 * 60 * 60);
+            const originalPrice = Math.round(durationHours * court.pricePerHour);
+            const discountedPrice = Math.round(originalPrice * 0.90); // 10% de descuento por mes completo
+
+            await this.reservationModel
+              .findByIdAndUpdate(res._id, {
+                status: 'confirmed',
+                paymentStatus: 'paid',
+                totalPrice: discountedPrice,
+                depositAmount: discountedPrice,
+              })
+              .exec();
+          }
+        }
+
+        return this.reservationModel
+          .findById(id)
+          .populate('courtId')
+          .exec();
+      }
     }
 
     return this.reservationModel

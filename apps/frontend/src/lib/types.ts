@@ -47,4 +47,5 @@ export interface Reservation {
   depositAmount?: number;
   isRecurring?: boolean;
   recurrenceGroupId?: string;
+  isLastOfSeries?: boolean;
 }

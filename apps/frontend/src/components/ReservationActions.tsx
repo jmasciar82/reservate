@@ -14,6 +14,7 @@ interface ReservationActionsProps {
   depositAmount?: number;
   isRecurring?: boolean;
   recurrenceGroupId?: string;
+  isLastOfSeries?: boolean;
 }
 
 export default function ReservationActions({
@@ -24,6 +25,7 @@ export default function ReservationActions({
   depositAmount = 0,
   isRecurring,
   recurrenceGroupId,
+  isLastOfSeries = false,
 }: ReservationActionsProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -145,15 +147,37 @@ export default function ReservationActions({
               </button>
 
               <button
-                onClick={() => handleUpdate({
-                  status: "confirmed",
-                  paymentStatus: "paid",
-                  depositAmount: totalPrice,
-                })}
+                onClick={() => {
+                  if (isRecurring) {
+                    const originalTotal = totalPrice * 4;
+                    const discountedTotal = Math.round(originalTotal * 0.9);
+                    const savings = originalTotal - discountedTotal;
+                    if (
+                      confirm(
+                        `¿Registrar Pago Total del bloque de 4 semanas con un 10% de descuento?\n\n` +
+                        `• Total normal (4 sem): $${originalTotal.toLocaleString("es-AR")}\n` +
+                        `• Total con 10% OFF: $${discountedTotal.toLocaleString("es-AR")}\n` +
+                        `• Ahorro: $${savings.toLocaleString("es-AR")}\n\n` +
+                        `Esta acción marcará las 4 semanas de este bloque mensual como pagadas con descuento.`
+                      )
+                    ) {
+                      handleUpdate({
+                        status: "confirmed",
+                        paymentStatus: "paid",
+                      });
+                    }
+                  } else {
+                    handleUpdate({
+                      status: "confirmed",
+                      paymentStatus: "paid",
+                      depositAmount: totalPrice,
+                    });
+                  }
+                }}
                 className="w-full text-left px-4 py-2 text-sm text-zinc-300 hover:text-white hover:bg-zinc-900 flex items-center gap-2.5 transition-colors"
               >
                 <CircleDollarSign className="w-4 h-4 text-primary" />
-                <span>Registrar Pago Total</span>
+                <span>Registrar Pago Total {isRecurring ? "(4 sem -10%)" : ""}</span>
               </button>
             </>
           )}
@@ -186,10 +210,21 @@ export default function ReservationActions({
                 setIsOpen(false);
                 setShowRenewModal(true);
               }}
-              className="w-full text-left px-4 py-2 text-sm text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10 flex items-center gap-2.5 transition-colors border-t border-zinc-900"
+              className={`w-full text-left px-4 py-2.5 text-sm font-bold flex items-center justify-between transition-colors border-t border-zinc-900 ${
+                isLastOfSeries
+                  ? "text-green-400 bg-green-500/5 hover:bg-green-500/10 hover:text-green-300"
+                  : "text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10"
+              }`}
             >
-              <RefreshCw className="w-4 h-4" />
-              <span>Renovar Turno Fijo (+4 sem)</span>
+              <div className="flex items-center gap-2.5">
+                <RefreshCw className={`w-4 h-4 ${isLastOfSeries ? "animate-spin duration-1000" : ""}`} />
+                <span>Renovar Turno Fijo (+4 sem)</span>
+              </div>
+              {isLastOfSeries && (
+                <span className="text-[9px] bg-green-500/20 text-green-300 px-1.5 py-0.5 rounded border border-green-500/30 animate-pulse font-black uppercase">
+                  Urgente
+                </span>
+              )}
             </button>
           )}
 

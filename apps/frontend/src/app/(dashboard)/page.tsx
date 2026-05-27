@@ -342,6 +342,11 @@ export default async function Dashboard({
                                         🔁 Fijo {reservation.paymentStatus === "pending" ? "⚠️" : ""}
                                       </span>
                                     )}
+                                    {reservation.isLastOfSeries && (
+                                      <span className="inline-flex items-center text-[8px] font-black text-green-400 bg-green-500/10 px-1.5 py-0.5 rounded border border-green-500/20 shrink-0 uppercase tracking-wide shadow-[0_0_8px_rgba(34,197,94,0.15)] animate-pulse" title="¡Último día reservado! Clic en los tres puntos para renovar por 4 semanas más.">
+                                        🚨 ÚLTIMO / RENOVAR
+                                      </span>
+                                    )}
                                   </h4>
                                   {(() => {
                                     const isPartiallyPaid = reservation.paymentStatus === "paid" && (reservation.depositAmount ?? 0) > 0 && (reservation.depositAmount ?? 0) < (reservation.totalPrice ?? 0);
@@ -371,6 +376,7 @@ export default async function Dashboard({
                                     depositAmount={reservation.depositAmount}
                                     isRecurring={reservation.isRecurring}
                                     recurrenceGroupId={reservation.recurrenceGroupId}
+                                    isLastOfSeries={reservation.isLastOfSeries}
                                   />
                                 </div>
                               </div>
@@ -444,6 +450,11 @@ export default async function Dashboard({
                             title={reservation.paymentStatus === "pending" ? "Turno Fijo - ¡Debe abonar el bloque de 4 semanas!" : "Turno Fijo Recurrente"}
                           >
                             🔁 Fijo {reservation.paymentStatus === "pending" ? "⚠️" : ""}
+                          </span>
+                        )}
+                        {reservation.isLastOfSeries && (
+                          <span className="inline-flex items-center text-[9px] font-black text-green-400 bg-green-500/10 px-2 py-0.5 rounded border border-green-500/20 shrink-0 uppercase tracking-wider shadow-[0_0_8px_rgba(34,197,94,0.15)] animate-pulse" title="¡Último día reservado! Clic en los tres puntos para renovar por 4 semanas más.">
+                            🚨 ÚLTIMO / RENOVAR
                           </span>
                         )}
                       </p>
@@ -527,6 +538,7 @@ export default async function Dashboard({
                       depositAmount={reservation.depositAmount}
                       isRecurring={reservation.isRecurring}
                       recurrenceGroupId={reservation.recurrenceGroupId}
+                      isLastOfSeries={reservation.isLastOfSeries}
                     />
                   </div>
                 </div>
