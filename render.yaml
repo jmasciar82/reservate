@@ -11,10 +11,11 @@ services:
       - key: NODE_ENV
         value: production
       - key: MONGODB_URI
-        placeholder: "Ingresá tu URI de MongoDB Atlas"
+        sync: false
       - key: JWT_SECRET
-        placeholder: "Ingresá una clave secreta para los tokens JWT de administrador"
+        generateValue: true
       - key: FRONTEND_URL
-        placeholder: "URL del Frontend en Vercel (ej: https://reservate.vercel.app)"
+        sync: false
       - key: NEXT_PUBLIC_API_URL
-        placeholder: "URL de este backend en Render (ej: https://reservate-backend.onrender.com)"
+        sync: false
+
