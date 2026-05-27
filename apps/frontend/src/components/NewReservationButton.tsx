@@ -65,6 +65,8 @@ export default function NewReservationButton({
     time: "",
     duration: "1.5",
     courtId: "",
+    isRecurring: false,
+    recurrenceWeeks: 4,
   });
 
   const handleOpen = () => {
@@ -74,6 +76,8 @@ export default function NewReservationButton({
       time: presetTime || "",
       duration: "1.5",
       courtId: presetCourtId || "",
+      isRecurring: false,
+      recurrenceWeeks: 4,
     });
     setIsOpen(true);
   };
@@ -187,6 +191,8 @@ export default function NewReservationButton({
           courtId: formData.courtId,
           startTime: startTime.toISOString(),
           endTime: endTime.toISOString(),
+          isRecurring: formData.isRecurring,
+          recurrenceWeeks: formData.isRecurring ? Number(formData.recurrenceWeeks) : undefined,
         }),
       });
 
@@ -198,6 +204,8 @@ export default function NewReservationButton({
           time: "",
           duration: "1.5",
           courtId: "",
+          isRecurring: false,
+          recurrenceWeeks: 4,
         });
         router.refresh();
       } else {
@@ -378,6 +386,55 @@ export default function NewReservationButton({
                     </>
                   )}
                 </select>
+              </div>
+
+              {/* Turno Recurrente */}
+              <div className="space-y-3 bg-zinc-950/40 border border-zinc-800/60 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-semibold text-zinc-300 flex items-center gap-2">
+                    <span className="text-indigo-400">🔁</span> Turno Fijo Recurrente
+                  </span>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.isRecurring}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          isRecurring: e.target.checked,
+                        }))
+                      }
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-zinc-400 after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600 peer-checked:after:bg-white peer-checked:after:border-indigo-600"></div>
+                  </label>
+                </div>
+
+                {formData.isRecurring && (
+                  <div className="space-y-1.5 pt-2 border-t border-zinc-900/60 animate-in fade-in slide-in-from-top-1 duration-150">
+                    <label className="text-xs font-semibold text-zinc-400">
+                      Semanas de repetición (Duración)
+                    </label>
+                    <select
+                      value={formData.recurrenceWeeks}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          recurrenceWeeks: Number(e.target.value),
+                        }))
+                      }
+                      className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all text-sm"
+                    >
+                      <option value="4">4 semanas (1 mes)</option>
+                      <option value="8">8 semanas (2 meses)</option>
+                      <option value="12">12 semanas (3 meses)</option>
+                      <option value="24">24 semanas (6 meses)</option>
+                    </select>
+                    <p className="text-[10px] text-zinc-500 italic mt-1 leading-relaxed">
+                      El sistema bloqueará el mismo día y horario durante la cantidad de semanas indicada, validando solapamientos.
+                    </p>
+                  </div>
+                )}
               </div>
 
               {isTimeSelectionReady && formData.time && (

@@ -8,4 +8,6 @@ export class CreateReservationDto {
   email?: string;
   phone?: string;
   isPublic?: boolean;
+  isRecurring?: boolean;
+  recurrenceWeeks?: number;
 }

@@ -278,10 +278,17 @@ export default async function Dashboard({
                                       {reservation.paymentStatus === "paid" ? "PAGO" : "DEBE"}
                                     </span>
                                   </div>
-                                  <h4 className="text-xs font-bold text-white truncate mt-1 capitalize">
-                                    {reservation.firstName
-                                      ? `${reservation.firstName} ${reservation.lastName}`
-                                      : (reservation.userId || "Jugador")}
+                                  <h4 className="text-xs font-bold text-white truncate mt-1 capitalize flex items-center gap-1.5 min-w-0">
+                                    <span className="truncate">
+                                      {reservation.firstName
+                                        ? `${reservation.firstName} ${reservation.lastName}`
+                                        : (reservation.userId || "Jugador")}
+                                    </span>
+                                    {reservation.isRecurring && (
+                                      <span className="inline-flex items-center text-[8px] font-bold text-indigo-400 bg-indigo-500/10 px-1.5 py-0.5 rounded border border-indigo-500/20 shrink-0 uppercase tracking-wide" title="Turno Fijo Recurrente">
+                                        🔁 Fijo
+                                      </span>
+                                    )}
                                   </h4>
                                 </div>
                                 <div className="flex items-center justify-between border-t border-zinc-800/30 pt-1.5 mt-1.5">
@@ -298,6 +305,8 @@ export default async function Dashboard({
                                     reservationId={reservation._id}
                                     status={reservation.status}
                                     paymentStatus={reservation.paymentStatus}
+                                    isRecurring={reservation.isRecurring}
+                                    recurrenceGroupId={reservation.recurrenceGroupId}
                                   />
                                 </div>
                               </div>
@@ -355,9 +364,16 @@ export default async function Dashboard({
                   <div className="flex items-center gap-4 min-w-0">
                     <div className="w-1.5 h-12 bg-primary rounded-full shadow-[0_0_8px_rgba(57,255,20,0.5)]" />
                     <div className="min-w-0">
-                      <p className="font-semibold text-white truncate">
-                        Reserva #{reservation._id.substring(0, 5)} -{" "}
-                        {reservation.courtId?.name ?? "Cancha"}
+                      <p className="font-semibold text-white truncate flex items-center gap-2">
+                        <span>
+                          Reserva #{reservation._id.substring(0, 5)} -{" "}
+                          {reservation.courtId?.name ?? "Cancha"}
+                        </span>
+                        {reservation.isRecurring && (
+                          <span className="inline-flex items-center text-[9px] font-extrabold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20 uppercase tracking-wider shrink-0">
+                            🔁 Fijo
+                          </span>
+                        )}
                       </p>
                       <p className="text-sm text-zinc-400">
                         Jugador:{" "}
@@ -425,6 +441,8 @@ export default async function Dashboard({
                       reservationId={reservation._id}
                       status={reservation.status}
                       paymentStatus={reservation.paymentStatus}
+                      isRecurring={reservation.isRecurring}
+                      recurrenceGroupId={reservation.recurrenceGroupId}
                     />
                   </div>
                 </div>

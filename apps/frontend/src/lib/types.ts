@@ -45,4 +45,6 @@ export interface Reservation {
   phone?: string;
   isPublic?: boolean;
   depositAmount?: number;
+  isRecurring?: boolean;
+  recurrenceGroupId?: string;
 }

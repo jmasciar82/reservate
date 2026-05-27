@@ -53,6 +53,12 @@ export class Reservation {
 
   @Prop({ required: false })
   paymentId?: string;
+
+  @Prop({ required: false })
+  recurrenceGroupId?: string;
+
+  @Prop({ default: false })
+  isRecurring: boolean;
 }
 
 export const ReservationSchema = SchemaFactory.createForClass(Reservation);

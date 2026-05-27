@@ -10,14 +10,19 @@ interface ReservationActionsProps {
   reservationId: string;
   status: ReservationStatus;
   paymentStatus: PaymentStatus;
+  isRecurring?: boolean;
+  recurrenceGroupId?: string;
 }
 
 export default function ReservationActions({
   reservationId,
   status,
   paymentStatus,
+  isRecurring,
+  recurrenceGroupId,
 }: ReservationActionsProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
@@ -35,8 +40,10 @@ export default function ReservationActions({
   const handleUpdate = async (payload: {
     status?: ReservationStatus;
     paymentStatus?: PaymentStatus;
+    cancelSeries?: boolean;
   }) => {
     setIsOpen(false);
+    setShowCancelModal(false);
 
     try {
       const response = await apiFetch(`/reservations/${reservationId}`, {
@@ -103,8 +110,13 @@ export default function ReservationActions({
           {showCancel && (
             <button
               onClick={() => {
-                if (confirm("¿Estás seguro de que querés cancelar esta reserva?")) {
-                  handleUpdate({ status: "cancelled" });
+                if (isRecurring && recurrenceGroupId) {
+                  setIsOpen(false);
+                  setShowCancelModal(true);
+                } else {
+                  if (confirm("¿Estás seguro de que querés cancelar esta reserva?")) {
+                    handleUpdate({ status: "cancelled" });
+                  }
                 }
               }}
               className="w-full text-left px-4 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 flex items-center gap-2.5 transition-colors border-t border-zinc-900"
@@ -113,6 +125,51 @@ export default function ReservationActions({
               <span>Cancelar reserva</span>
             </button>
           )}
+        </div>
+      )}
+
+      {showCancelModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200"
+            onClick={() => setShowCancelModal(false)}
+          />
+          <div className="relative w-full max-w-sm bg-zinc-950 border border-zinc-800/80 rounded-xl shadow-2xl p-6 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex flex-col items-center text-center space-y-4">
+              <div className="w-12 h-12 bg-red-500/10 text-red-400 border border-red-500/20 rounded-full flex items-center justify-center shadow-[0_0_15px_rgba(239,68,68,0.15)]">
+                <Ban className="w-6 h-6" />
+              </div>
+              <div className="space-y-1.5">
+                <h3 className="text-lg font-bold text-white">
+                  Cancelar Turno Recurrente
+                </h3>
+                <p className="text-sm text-zinc-400 leading-relaxed">
+                  Esta reserva forma parte de una serie recurrente semanal. ¿Cómo querés proceder con la cancelación?
+                </p>
+              </div>
+              
+              <div className="w-full space-y-2 pt-2">
+                <button
+                  onClick={() => handleUpdate({ status: "cancelled" })}
+                  className="w-full py-2.5 px-4 bg-zinc-900 hover:bg-zinc-800 text-zinc-200 hover:text-white font-medium rounded-lg border border-zinc-800 hover:border-zinc-700 transition-all text-sm shadow-md"
+                >
+                  Cancelar solo esta fecha
+                </button>
+                <button
+                  onClick={() => handleUpdate({ status: "cancelled", cancelSeries: true })}
+                  className="w-full py-2.5 px-4 bg-red-600 hover:bg-red-500 text-white font-bold rounded-lg transition-all text-sm shadow-[0_0_15px_rgba(239,68,68,0.15)] hover:scale-[1.01]"
+                >
+                  Cancelar toda la serie (esta y futuras)
+                </button>
+                <button
+                  onClick={() => setShowCancelModal(false)}
+                  className="w-full py-2 px-4 bg-transparent text-zinc-500 hover:text-zinc-300 transition-all text-xs font-semibold"
+                >
+                  Volver / Conservar turno
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
