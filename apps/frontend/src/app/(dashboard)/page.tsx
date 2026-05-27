@@ -331,8 +331,15 @@ export default async function Dashboard({
                                         : (reservation.userId || "Jugador")}
                                     </span>
                                     {reservation.isRecurring && (
-                                      <span className="inline-flex items-center text-[8px] font-extrabold text-indigo-400 bg-indigo-500/10 px-1.5 py-0.5 rounded border border-indigo-500/20 shrink-0 uppercase tracking-wide shadow-[0_0_8px_rgba(99,102,241,0.15)]" title="Turno Fijo Recurrente">
-                                        🔁 Fijo
+                                      <span 
+                                        className={`inline-flex items-center text-[8px] font-extrabold px-1.5 py-0.5 rounded border shrink-0 uppercase tracking-wide shadow-[0_0_8px_rgba(99,102,241,0.15)] ${
+                                          reservation.paymentStatus === "pending"
+                                            ? "text-amber-400 bg-amber-500/10 border-amber-500/20"
+                                            : "text-indigo-400 bg-indigo-500/10 border-indigo-500/20"
+                                        }`} 
+                                        title={reservation.paymentStatus === "pending" ? "Turno Fijo - ¡Debe abonar el bloque de 4 semanas!" : "Turno Fijo Recurrente"}
+                                      >
+                                        🔁 Fijo {reservation.paymentStatus === "pending" ? "⚠️" : ""}
                                       </span>
                                     )}
                                   </h4>
@@ -428,8 +435,15 @@ export default async function Dashboard({
                           {reservation.courtId?.name ?? "Cancha"}
                         </span>
                         {reservation.isRecurring && (
-                          <span className="inline-flex items-center text-[9px] font-extrabold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20 uppercase tracking-wider shrink-0 shadow-[0_0_8px_rgba(99,102,241,0.15)]">
-                            🔁 Fijo
+                          <span 
+                            className={`inline-flex items-center text-[9px] font-extrabold px-2 py-0.5 rounded border uppercase tracking-wider shrink-0 shadow-[0_0_8px_rgba(99,102,241,0.15)] ${
+                              reservation.paymentStatus === "pending"
+                                ? "text-amber-400 bg-amber-500/10 border-amber-500/20"
+                                : "text-indigo-400 bg-indigo-500/10 border-indigo-500/20"
+                            }`}
+                            title={reservation.paymentStatus === "pending" ? "Turno Fijo - ¡Debe abonar el bloque de 4 semanas!" : "Turno Fijo Recurrente"}
+                          >
+                            🔁 Fijo {reservation.paymentStatus === "pending" ? "⚠️" : ""}
                           </span>
                         )}
                       </p>

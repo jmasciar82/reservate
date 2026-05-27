@@ -441,55 +441,6 @@ export default function NewReservationButton({
                 </select>
               </div>
 
-              {/* Configurar Seña (Opcional) */}
-              <div className="space-y-3 bg-white/[0.02] border border-white/5 rounded-xl p-4 shadow-inner">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-bold text-zinc-200 flex items-center gap-2">
-                    <span className="text-primary">💰</span> Configurar Seña (Opcional)
-                  </span>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-3 pt-2 border-t border-white/5">
-                  <div className="space-y-1.5 col-span-2 sm:col-span-1">
-                    <label className="text-xs font-semibold text-zinc-400">
-                      Monto de Seña ($)
-                    </label>
-                    <input
-                      type="number"
-                      placeholder="Ej. 2000"
-                      value={formData.depositAmount}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          depositAmount: e.target.value,
-                        }))
-                      }
-                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white placeholder:text-zinc-600 focus:outline-none focus:border-primary text-sm font-semibold"
-                    />
-                  </div>
-                  
-                  {formData.depositAmount && Number(formData.depositAmount) > 0 ? (
-                    <div className="space-y-1.5 flex flex-col justify-end pb-1 col-span-2 sm:col-span-1 animate-in fade-in slide-in-from-top-1">
-                      <label className="relative inline-flex items-center cursor-pointer pb-2">
-                        <input
-                          type="checkbox"
-                          checked={formData.isDepositPaid}
-                          onChange={(e) =>
-                            setFormData((prev) => ({
-                              ...prev,
-                              isDepositPaid: e.target.checked,
-                            }))
-                          }
-                          className="sr-only peer"
-                        />
-                        <div className="w-9 h-5 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-zinc-400 after:border-zinc-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary peer-checked:after:bg-[#09090b] peer-checked:after:border-primary shadow-sm"></div>
-                        <span className="ml-2 text-xs font-bold text-zinc-300">¿Ya abonada?</span>
-                      </label>
-                    </div>
-                  ) : null}
-                </div>
-              </div>
-
               {/* Turno Recurrente */}
               <div className="space-y-3 bg-white/[0.02] border border-white/5 rounded-xl p-4 shadow-inner">
                 <div className="flex items-center justify-between">
@@ -514,26 +465,8 @@ export default function NewReservationButton({
 
                 {formData.isRecurring && (
                   <div className="space-y-1.5 pt-2 border-t border-white/5 animate-in fade-in slide-in-from-top-1 duration-150">
-                    <label className="text-xs font-semibold text-zinc-400">
-                      Semanas de repetición (Duración)
-                    </label>
-                    <select
-                      value={formData.recurrenceWeeks}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          recurrenceWeeks: Number(e.target.value),
-                        }))
-                      }
-                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all duration-300 hover:bg-white/[0.08] text-sm font-semibold"
-                    >
-                      <option value="4">4 semanas (1 mes)</option>
-                      <option value="8">8 semanas (2 meses)</option>
-                      <option value="12">12 semanas (3 meses)</option>
-                      <option value="24">24 semanas (6 meses)</option>
-                    </select>
-                    <p className="text-[10px] text-zinc-500 italic mt-1 leading-relaxed">
-                      El sistema bloqueará el mismo día y horario durante la cantidad de semanas indicada, validando solapamientos.
+                    <p className="text-[11px] text-zinc-400 leading-relaxed">
+                      Se creará un bloque de <strong className="text-white">4 semanas (1 mes)</strong>. Podrás renovarlo de forma indefinida y cobrar el próximo mes en un solo clic.
                     </p>
                   </div>
                 )}

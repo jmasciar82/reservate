@@ -250,4 +250,96 @@ export class ReservationsService {
       .populate('courtId')
       .exec();
   }
+
+  async renew(id: string): Promise<Reservation> {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('La reserva indicada no es válida.');
+    }
+
+    const reservation = await this.reservationModel.findById(id).exec();
+    if (!reservation) {
+      throw new NotFoundException('Reserva no encontrada.');
+    }
+
+    if (!reservation.isRecurring || !reservation.recurrenceGroupId) {
+      throw new BadRequestException('Esta reserva no forma parte de un turno fijo recurrente.');
+    }
+
+    // Buscar todas las reservas de este grupo ordenadas por fecha
+    const group = await this.reservationModel
+      .find({ recurrenceGroupId: reservation.recurrenceGroupId })
+      .sort({ startTime: 1 })
+      .exec();
+
+    if (group.length === 0) {
+      throw new NotFoundException('No se encontraron reservas para el turno fijo.');
+    }
+
+    const lastRes = group[group.length - 1];
+    const court = await this.courtModel.findById(lastRes.courtId).exec();
+    if (!court) {
+      throw new NotFoundException('La cancha especificada no existe.');
+    }
+
+    const conflicts: string[] = [];
+    const weeksToCreate: { start: Date; end: Date }[] = [];
+
+    const lastStart = new Date(lastRes.startTime);
+    const lastEnd = new Date(lastRes.endTime);
+    const durationMs = lastEnd.getTime() - lastStart.getTime();
+
+    // Generar las próximas 4 semanas (1 mes de renovación)
+    for (let i = 1; i <= 4; i++) {
+      const weekStart = new Date(lastStart.getTime() + i * 7 * 24 * 60 * 60 * 1000);
+      const weekEnd = new Date(weekStart.getTime() + durationMs);
+
+      const overlapping = await this.reservationModel
+        .findOne({
+          courtId: lastRes.courtId,
+          status: { $ne: 'cancelled' },
+          startTime: { $lt: weekEnd },
+          endTime: { $gt: weekStart },
+        })
+        .exec();
+
+      if (overlapping) {
+        const dateStr = weekStart.toLocaleDateString('es-AR', {
+          timeZone: 'America/Argentina/Buenos_Aires',
+        });
+        conflicts.push(`Semana ${i} (${dateStr})`);
+      } else {
+        weeksToCreate.push({ start: weekStart, end: weekEnd });
+      }
+    }
+
+    if (conflicts.length > 0) {
+      throw new ConflictException(
+        `Solapamientos detectados en: ${conflicts.join(', ')}. No se pudo renovar el turno fijo.`,
+      );
+    }
+
+    const durationHours = durationMs / (1000 * 60 * 60);
+    const totalPrice = Math.round(durationHours * court.pricePerHour);
+
+    const reservationsToSave = weeksToCreate.map((week) => {
+      return new this.reservationModel({
+        courtId: lastRes.courtId,
+        userId: lastRes.userId,
+        firstName: lastRes.firstName,
+        lastName: lastRes.lastName,
+        email: lastRes.email,
+        phone: lastRes.phone,
+        isPublic: lastRes.isPublic || false,
+        startTime: week.start,
+        endTime: week.end,
+        totalPrice,
+        paymentStatus: 'pending',
+        isRecurring: true,
+        recurrenceGroupId: lastRes.recurrenceGroupId,
+      });
+    });
+
+    const savedReservations = await this.reservationModel.insertMany(reservationsToSave);
+    return savedReservations[0];
+  }
 }

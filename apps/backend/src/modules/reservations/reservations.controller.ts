@@ -38,4 +38,9 @@ export class ReservationsController {
   ) {
     return this.reservationsService.update(id, updateReservationDto);
   }
+
+  @Post(':id/renew')
+  async renew(@Param('id') id: string) {
+    return this.reservationsService.renew(id);
+  }
 }
