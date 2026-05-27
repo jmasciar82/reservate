@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Ban, CheckCircle, CircleDollarSign, MoreVertical } from "lucide-react";
+import { Ban, CheckCircle, CircleDollarSign, MoreVertical, X } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import type { PaymentStatus, ReservationStatus } from "@/lib/types";
 
@@ -27,6 +27,8 @@ export default function ReservationActions({
 }: ReservationActionsProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showDepositModal, setShowDepositModal] = useState(false);
+  const [depositInputValue, setDepositInputValue] = useState("");
   const menuRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
@@ -49,6 +51,7 @@ export default function ReservationActions({
   }) => {
     setIsOpen(false);
     setShowCancelModal(false);
+    setShowDepositModal(false);
 
     try {
       const response = await apiFetch(`/reservations/${reservationId}`, {
@@ -107,18 +110,9 @@ export default function ReservationActions({
               <button
                 onClick={() => {
                   const defaultDeposit = Math.round(totalPrice * 0.3);
-                  const amountStr = prompt(`Ingresá el monto de la seña pagada:`, String(defaultDeposit));
-                  if (amountStr === null) return;
-                  const amount = Number(amountStr);
-                  if (isNaN(amount) || amount <= 0) {
-                    alert("Por favor ingresá un monto válido.");
-                    return;
-                  }
-                  handleUpdate({
-                    status: "confirmed",
-                    paymentStatus: "paid",
-                    depositAmount: amount,
-                  });
+                  setDepositInputValue(String(defaultDeposit));
+                  setIsOpen(false);
+                  setShowDepositModal(true);
                 }}
                 className="w-full text-left px-4 py-2 text-sm text-zinc-300 hover:text-white hover:bg-zinc-900 flex items-center gap-2.5 transition-colors border-t border-zinc-900"
               >
@@ -224,6 +218,83 @@ export default function ReservationActions({
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {showDepositModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+            onClick={() => setShowDepositModal(false)}
+          />
+          <div className="relative w-full max-w-sm bg-zinc-950/85 backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-white/5 flex justify-between items-center bg-white/[0.02]">
+              <h3 className="text-lg font-black text-white flex items-center gap-2">
+                <span className="w-2 h-5 bg-primary rounded-full shadow-[0_0_8px_rgba(57,255,20,0.5)]" />
+                Registrar Pago de Seña
+              </h3>
+              <button
+                onClick={() => setShowDepositModal(false)}
+                className="text-zinc-400 hover:text-white transition-all duration-300 p-1.5 bg-white/5 hover:bg-white/10 rounded-lg border border-white/5"
+                title="Cerrar"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const amount = Number(depositInputValue);
+                if (isNaN(amount) || amount <= 0 || amount > totalPrice) {
+                  alert(`Por favor ingresá un monto válido (máximo $${totalPrice.toLocaleString()}).`);
+                  return;
+                }
+                handleUpdate({
+                  status: "confirmed",
+                  paymentStatus: "paid",
+                  depositAmount: amount,
+                });
+                setShowDepositModal(false);
+              }}
+              className="p-6 space-y-5"
+            >
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-zinc-400 flex items-center gap-2">
+                  <CircleDollarSign className="w-4 h-4 text-primary" />
+                  Monto pagado como seña ($)
+                </label>
+                <input
+                  type="number"
+                  required
+                  placeholder="Ej. 2000"
+                  value={depositInputValue}
+                  onChange={(e) => setDepositInputValue(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-zinc-600 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 hover:bg-white/[0.08] transition-all duration-300 font-semibold text-lg"
+                  autoFocus
+                />
+                <p className="text-[11px] text-zinc-500 italic mt-1 leading-relaxed">
+                  El valor total de la reserva es de <strong className="text-zinc-300">${totalPrice.toLocaleString("es-AR")}</strong>.
+                </p>
+              </div>
+              
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowDepositModal(false)}
+                  className="flex-1 py-3 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 font-semibold rounded-xl border border-zinc-800 hover:border-zinc-700 transition-all text-sm"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-3 bg-primary text-primary-foreground font-black rounded-xl shadow-[0_4px_15px_rgba(57,255,20,0.25)] hover:shadow-[0_4px_20px_rgba(57,255,20,0.45)] transition-all text-sm"
+                >
+                  Registrar Pago
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
