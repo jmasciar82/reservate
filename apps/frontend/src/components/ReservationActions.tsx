@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Ban, CheckCircle, CircleDollarSign, MoreVertical, RefreshCw, X } from "lucide-react";
+import { Ban, CheckCircle, CircleDollarSign, MoreVertical, X } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import type { PaymentStatus, ReservationStatus } from "@/lib/types";
 
@@ -31,8 +31,6 @@ export default function ReservationActions({
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showDepositModal, setShowDepositModal] = useState(false);
   const [depositInputValue, setDepositInputValue] = useState("");
-  const [showRenewModal, setShowRenewModal] = useState(false);
-  const [isRenewing, setIsRenewing] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
@@ -74,28 +72,6 @@ export default function ReservationActions({
     } catch (error) {
       console.error("Error updating reservation:", error);
       alert("Error al actualizar la reserva.");
-    }
-  };
-
-  const handleRenew = async () => {
-    setIsRenewing(true);
-    try {
-      const response = await apiFetch(`/reservations/${reservationId}/renew`, {
-        method: "POST",
-      });
-
-      if (response.ok) {
-        setShowRenewModal(false);
-        router.refresh();
-      } else {
-        const errorData = await response.json().catch(() => ({}));
-        alert(errorData.message || "Error al renovar el turno fijo.");
-      }
-    } catch (error) {
-      console.error("Error renewing reservation:", error);
-      alert("Error de conexión al renovar el turno fijo.");
-    } finally {
-      setIsRenewing(false);
     }
   };
 
@@ -201,30 +177,6 @@ export default function ReservationActions({
                 <span className="font-bold text-white">Cobrar Saldo Restante</span>
                 <span className="text-[10px] text-zinc-400">Resta cobrar: ${ (totalPrice - depositAmount).toLocaleString("es-AR") }</span>
               </div>
-            </button>
-          )}
-
-          {isRecurring && recurrenceGroupId && status !== "cancelled" && (
-            <button
-              onClick={() => {
-                setIsOpen(false);
-                setShowRenewModal(true);
-              }}
-              className={`w-full text-left px-4 py-2.5 text-sm font-bold flex items-center justify-between transition-colors border-t border-zinc-900 ${
-                isLastOfSeries
-                  ? "text-green-400 bg-green-500/5 hover:bg-green-500/10 hover:text-green-300"
-                  : "text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10"
-              }`}
-            >
-              <div className="flex items-center gap-2.5">
-                <RefreshCw className={`w-4 h-4 ${isLastOfSeries ? "animate-spin duration-1000" : ""}`} />
-                <span>Renovar Turno Fijo (+4 sem)</span>
-              </div>
-              {isLastOfSeries && (
-                <span className="text-[9px] bg-green-500/20 text-green-300 px-1.5 py-0.5 rounded border border-green-500/30 animate-pulse font-black uppercase">
-                  Urgente
-                </span>
-              )}
             </button>
           )}
 
@@ -367,57 +319,6 @@ export default function ReservationActions({
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
-
-      {showRenewModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200"
-            onClick={() => !isRenewing && setShowRenewModal(false)}
-          />
-          <div className="relative w-full max-w-sm bg-zinc-950/90 backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] p-6 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex flex-col items-center text-center space-y-4">
-              <div className="w-12 h-12 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-full flex items-center justify-center shadow-[0_0_15px_rgba(99,102,241,0.15)]">
-                <RefreshCw className={`w-6 h-6 ${isRenewing ? "animate-spin" : ""}`} />
-              </div>
-              
-              <div className="space-y-2">
-                <h3 className="text-lg font-black text-white flex items-center justify-center gap-2">
-                  Renovar Turno Fijo
-                </h3>
-                <p className="text-xs text-zinc-400 leading-relaxed">
-                  Esta acción extenderá el turno fijo agregando exactamente <strong className="text-white font-bold">4 semanas más</strong> al final de la serie existente.
-                </p>
-                <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-3 text-left mt-3">
-                  <span className="text-[10px] font-extrabold text-amber-400 uppercase tracking-wider block mb-1">
-                    ⚠️ AVISO DE COBRO IMPORTANTE
-                  </span>
-                  <p className="text-[11px] text-zinc-300 leading-relaxed font-medium">
-                    Al llegar la 5° semana (inicio de este nuevo bloque), <strong className="text-amber-300">recordá cobrar el abono total de las 4 semanas siguientes</strong>. Las nuevas fechas se registrarán como pendientes de pago.
-                  </p>
-                </div>
-              </div>
-
-              <div className="w-full space-y-2 pt-2">
-                <button
-                  onClick={handleRenew}
-                  disabled={isRenewing}
-                  className="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-800 text-white font-bold rounded-xl transition-all text-sm shadow-[0_4px_15px_rgba(99,102,241,0.25)] hover:shadow-[0_4px_20px_rgba(99,102,241,0.45)] hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:pointer-events-none"
-                >
-                  {isRenewing ? "Renovando..." : "Confirmar y Renovar"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowRenewModal(false)}
-                  disabled={isRenewing}
-                  className="w-full py-2 px-4 bg-transparent text-zinc-500 hover:text-zinc-300 transition-all text-xs font-semibold"
-                >
-                  Volver / Cancelar
-                </button>
-              </div>
-            </div>
           </div>
         </div>
       )}
