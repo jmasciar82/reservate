@@ -22,6 +22,7 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
       useFactory: (configService: ConfigService) => ({
         uri:
           configService.get<string>('MONGO_URI') ??
+          configService.get<string>('MONGODB_URI') ??
           'mongodb://localhost:27017/reservate',
       }),
       inject: [ConfigService],
