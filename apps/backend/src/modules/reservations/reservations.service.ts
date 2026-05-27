@@ -309,6 +309,28 @@ export class ReservationsService {
           }
         }
 
+        // Verificar si este bloque que se acaba de pagar era el final de la serie activa.
+        // Si no existen reservas futuras activas después de la última reserva de este bloque,
+        // entonces renovamos automáticamente las siguientes 4 semanas en estado 'pending' (por adelantado).
+        const lastResOfBlock = blockReservations[blockReservations.length - 1];
+        const futureExists = await this.reservationModel
+          .findOne({
+            recurrenceGroupId: existingReservation.recurrenceGroupId,
+            startTime: { $gt: lastResOfBlock.startTime },
+            status: { $ne: 'cancelled' },
+          })
+          .exec();
+
+        if (!futureExists) {
+          try {
+            await this.renew(existingReservation._id.toString());
+          } catch (renewError: any) {
+            throw new ConflictException(
+              `Pago registrado correctamente con 10% de descuento. Sin embargo, la renovación automática de las siguientes 4 semanas falló por: ${renewError.message}`,
+            );
+          }
+        }
+
         return this.reservationModel
           .findById(id)
           .populate('courtId')
