@@ -27,15 +27,34 @@ function firstParam(value?: string | string[]) {
 }
 
 function todayInArgentina() {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Argentina/Buenos_Aires",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(new Date());
+  const now = new Date();
+  const art = new Date(now.getTime() - 3 * 3600 * 1000);
+  const yyyy = art.getUTCFullYear();
+  const mm = String(art.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(art.getUTCDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
 
-  const byType = Object.fromEntries(parts.map((part) => [part.type, part.value]));
-  return `${byType.year}-${byType.month}-${byType.day}`;
+function getArtTime(dateInput: Date | string) {
+  const d = new Date(dateInput);
+  const art = new Date(d.getTime() - 3 * 3600 * 1000);
+  return {
+    year: art.getUTCFullYear(),
+    month: art.getUTCMonth() + 1,
+    day: art.getUTCDate(),
+    hour: art.getUTCHours(),
+    minute: art.getUTCMinutes(),
+  };
+}
+
+function formatArtTimeStr(dateInput: Date | string) {
+  const { hour, minute } = getArtTime(dateInput);
+  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+}
+
+function formatArtDateStr(dateInput: Date | string) {
+  const { day, month } = getArtTime(dateInput);
+  return `${String(day).padStart(2, "0")}/${String(month).padStart(2, "0")}`;
 }
 
 async function getJson<T>(
@@ -260,20 +279,23 @@ export default async function Dashboard({
 
                     {/* Court Slots */}
                     {activeClubCourts.map((court) => {
-                      const slotStart = new Date(`${date}T${slot.label}:00`);
-                      const slotEnd = new Date(slotStart.getTime() + 30 * 60 * 1000);
-
                       // Overlapping reservation
                       const reservation = clubReservations.find((r) => {
                         if (r.courtId?._id !== court._id || r.status === "cancelled") return false;
-                        const rStart = new Date(r.startTime);
-                        const rEnd = new Date(r.endTime);
-                        return rStart < slotEnd && rEnd > slotStart;
+                        const rStart = getArtTime(r.startTime);
+                        const rEnd = getArtTime(r.endTime);
+                        
+                        const rStartMins = rStart.hour * 60 + rStart.minute;
+                        const rEndMins = rEnd.hour * 60 + rEnd.minute;
+                        const slotStartMins = slot.hour * 60 + slot.minute;
+                        const slotEndMins = slotStartMins + 30;
+
+                        return rStartMins < slotEndMins && rEndMins > slotStartMins;
                       });
 
                       if (reservation) {
-                        const rStart = new Date(reservation.startTime);
-                        const isStartSlot = rStart.getHours() === slot.hour && rStart.getMinutes() === slot.minute;
+                        const rStart = getArtTime(reservation.startTime);
+                        const isStartSlot = rStart.hour === slot.hour && rStart.minute === slot.minute;
 
                         return (
                           <div key={court._id} className="p-1 border-r border-b border-white/5 min-h-[65px] last:border-r-0">
@@ -285,13 +307,7 @@ export default async function Dashboard({
                                   <div className="flex justify-between items-start mb-1 gap-1.5">
                                     <span className="text-[9px] font-extrabold text-primary flex items-center gap-1 uppercase bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20 tracking-wider">
                                       <Clock className="w-2.5 h-2.5" />
-                                      {new Date(reservation.startTime).toLocaleTimeString("es-AR", {
-                                        hour: "2-digit",
-                                        minute: "2-digit",
-                                      })} - {new Date(reservation.endTime).toLocaleTimeString("es-AR", {
-                                        hour: "2-digit",
-                                        minute: "2-digit",
-                                      })}
+                                      {formatArtTimeStr(reservation.startTime)} - {formatArtTimeStr(reservation.endTime)}
                                     </span>
                                     <span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded-full tracking-wider ${
                                       reservation.paymentStatus === "paid"
@@ -418,16 +434,7 @@ export default async function Dashboard({
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end relative z-10">
                     <div className="flex flex-col sm:items-end">
                       <span className="text-xs font-bold text-white tracking-wide">
-                        {new Date(reservation.startTime).toLocaleDateString("es-AR", {
-                          day: "2-digit",
-                          month: "2-digit",
-                        })}{" "}
-                        -{" "}
-                        {new Date(reservation.startTime).toLocaleTimeString("es-AR", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}{" "}
-                        hs
+                        {formatArtDateStr(reservation.startTime)} - {formatArtTimeStr(reservation.startTime)} hs
                       </span>
                       <span className="text-xs text-primary font-black mt-0.5 drop-shadow-[0_0_4px_rgba(57,255,20,0.2)]">
                         ${reservation.totalPrice?.toLocaleString("es-AR") || "0"}

@@ -33,8 +33,8 @@ export default function LoginPage() {
 
       const data = await response.json();
       
-      // Guardar token en las cookies (válido por 7 días)
-      Cookies.set("token", data.access_token, { expires: 7 });
+      // Guardar token en las cookies (válido por 7 días en toda la app)
+      Cookies.set("token", data.access_token, { expires: 7, path: "/" });
       
       router.push("/");
       router.refresh();

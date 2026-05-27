@@ -36,6 +36,51 @@ const PRESET_TIMES = [
   "23:00",
 ];
 
+function parseArtDateTime(dateStr: string, timeStr: string): Date {
+  const dateParts = dateStr.split(/[-/]/);
+  const timeParts = timeStr.split(":");
+  
+  let year = 2026;
+  let monthIndex = 4; // Mayo (0-indexed)
+  let day = 27;
+  let hours = 0;
+  let minutes = 0;
+
+  if (dateParts.length === 3) {
+    if (dateParts[0].length === 4) {
+      // YYYY-MM-DD
+      year = Number(dateParts[0]);
+      monthIndex = Number(dateParts[1]) - 1;
+      day = Number(dateParts[2]);
+    } else {
+      const part0 = Number(dateParts[0]);
+      const part1 = Number(dateParts[1]);
+      const part2 = Number(dateParts[2]);
+      if (part0 > 12) {
+        // DD/MM/YYYY
+        year = part2;
+        monthIndex = part1 - 1;
+        day = part0;
+      } else {
+        // MM/DD/YYYY
+        year = part2;
+        monthIndex = part0 - 1;
+        day = part1;
+      }
+    }
+  }
+
+  if (timeParts.length >= 2) {
+    hours = Number(timeParts[0]);
+    minutes = Number(timeParts[1]);
+  }
+
+  // Argentina es UTC-3.
+  // UTC = ART + 3 horas.
+  const utcMs = Date.UTC(year, monthIndex, day, hours, minutes) + 3 * 3600 * 1000;
+  return new Date(utcMs);
+}
+
 interface NewReservationButtonProps {
   activeClubId: string;
   defaultDate: string;
@@ -52,7 +97,7 @@ export default function NewReservationButton({
   presetTime,
   presetDate,
   children,
-}: NewReservationButtonProps) {
+ }: NewReservationButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [courts, setCourts] = useState<Court[]>([]);
   const [loading, setLoading] = useState(false);
@@ -104,44 +149,7 @@ export default function NewReservationButton({
     void Promise.resolve().then(async () => {
       setCourtsLoading(true);
 
-      let start: Date;
-      try {
-        const dateParts = formData.date.split(/[-/]/);
-        const timeParts = formData.time.split(":");
-        
-        if (dateParts.length === 3 && timeParts.length >= 2) {
-          const hours = Number(timeParts[0]);
-          const minutes = Number(timeParts[1]);
-          
-          if (dateParts[0].length === 4) {
-            // YYYY-MM-DD
-            start = new Date(
-              Number(dateParts[0]),
-              Number(dateParts[1]) - 1,
-              Number(dateParts[2]),
-              hours,
-              minutes,
-            );
-          } else {
-            // MM/DD/YYYY o DD/MM/YYYY
-            const part0 = Number(dateParts[0]);
-            const part1 = Number(dateParts[1]);
-            const part2 = Number(dateParts[2]);
-            
-            if (part0 > 12) {
-              // DD/MM/YYYY
-              start = new Date(part2, part1 - 1, part0, hours, minutes);
-            } else {
-              // MM/DD/YYYY
-              start = new Date(part2, part0 - 1, part1, hours, minutes);
-            }
-          }
-        } else {
-          start = new Date(`${formData.date}T${formData.time}`);
-        }
-      } catch (e) {
-        start = new Date(`${formData.date}T${formData.time}`);
-      }
+      const start = parseArtDateTime(formData.date, formData.time);
 
       if (Number.isNaN(start.getTime())) {
         console.error("Invalid Date constructed:", formData.date, formData.time);
@@ -207,44 +215,7 @@ export default function NewReservationButton({
     setLoading(true);
 
     try {
-      let startTime: Date;
-      try {
-        const dateParts = formData.date.split(/[-/]/);
-        const timeParts = formData.time.split(":");
-        
-        if (dateParts.length === 3 && timeParts.length >= 2) {
-          const hours = Number(timeParts[0]);
-          const minutes = Number(timeParts[1]);
-          
-          if (dateParts[0].length === 4) {
-            // YYYY-MM-DD
-            startTime = new Date(
-              Number(dateParts[0]),
-              Number(dateParts[1]) - 1,
-              Number(dateParts[2]),
-              hours,
-              minutes,
-            );
-          } else {
-            // MM/DD/YYYY o DD/MM/YYYY
-            const part0 = Number(dateParts[0]);
-            const part1 = Number(dateParts[1]);
-            const part2 = Number(dateParts[2]);
-            
-            if (part0 > 12) {
-              // DD/MM/YYYY
-              startTime = new Date(part2, part1 - 1, part0, hours, minutes);
-            } else {
-              // MM/DD/YYYY
-              startTime = new Date(part2, part0 - 1, part1, hours, minutes);
-            }
-          }
-        } else {
-          startTime = new Date(`${formData.date}T${formData.time}`);
-        }
-      } catch (e) {
-        startTime = new Date(`${formData.date}T${formData.time}`);
-      }
+      const startTime = parseArtDateTime(formData.date, formData.time);
 
       if (Number.isNaN(startTime.getTime())) {
         alert("La fecha seleccionada no es válida.");
