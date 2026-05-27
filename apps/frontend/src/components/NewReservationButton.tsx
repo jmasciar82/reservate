@@ -104,15 +104,52 @@ export default function NewReservationButton({
     void Promise.resolve().then(async () => {
       setCourtsLoading(true);
 
-      const [year, month, day] = formData.date.split("-");
-      const [hours, minutes] = formData.time.split(":");
-      const start = new Date(
-        Number(year),
-        Number(month) - 1,
-        Number(day),
-        Number(hours),
-        Number(minutes),
-      );
+      let start: Date;
+      try {
+        const dateParts = formData.date.split(/[-/]/);
+        const timeParts = formData.time.split(":");
+        
+        if (dateParts.length === 3 && timeParts.length >= 2) {
+          const hours = Number(timeParts[0]);
+          const minutes = Number(timeParts[1]);
+          
+          if (dateParts[0].length === 4) {
+            // YYYY-MM-DD
+            start = new Date(
+              Number(dateParts[0]),
+              Number(dateParts[1]) - 1,
+              Number(dateParts[2]),
+              hours,
+              minutes,
+            );
+          } else {
+            // MM/DD/YYYY o DD/MM/YYYY
+            const part0 = Number(dateParts[0]);
+            const part1 = Number(dateParts[1]);
+            const part2 = Number(dateParts[2]);
+            
+            if (part0 > 12) {
+              // DD/MM/YYYY
+              start = new Date(part2, part1 - 1, part0, hours, minutes);
+            } else {
+              // MM/DD/YYYY
+              start = new Date(part2, part0 - 1, part1, hours, minutes);
+            }
+          }
+        } else {
+          start = new Date(`${formData.date}T${formData.time}`);
+        }
+      } catch (e) {
+        start = new Date(`${formData.date}T${formData.time}`);
+      }
+
+      if (Number.isNaN(start.getTime())) {
+        console.error("Invalid Date constructed:", formData.date, formData.time);
+        setCourts([]);
+        setCourtsLoading(false);
+        return;
+      }
+
       const durationMs = Number(formData.duration) * 60 * 60 * 1000;
       const end = new Date(start.getTime() + durationMs);
 
@@ -169,15 +206,51 @@ export default function NewReservationButton({
     setLoading(true);
 
     try {
-      const [year, month, day] = formData.date.split("-");
-      const [hours, minutes] = formData.time.split(":");
-      const startTime = new Date(
-        Number(year),
-        Number(month) - 1,
-        Number(day),
-        Number(hours),
-        Number(minutes),
-      );
+      let startTime: Date;
+      try {
+        const dateParts = formData.date.split(/[-/]/);
+        const timeParts = formData.time.split(":");
+        
+        if (dateParts.length === 3 && timeParts.length >= 2) {
+          const hours = Number(timeParts[0]);
+          const minutes = Number(timeParts[1]);
+          
+          if (dateParts[0].length === 4) {
+            // YYYY-MM-DD
+            startTime = new Date(
+              Number(dateParts[0]),
+              Number(dateParts[1]) - 1,
+              Number(dateParts[2]),
+              hours,
+              minutes,
+            );
+          } else {
+            // MM/DD/YYYY o DD/MM/YYYY
+            const part0 = Number(dateParts[0]);
+            const part1 = Number(dateParts[1]);
+            const part2 = Number(dateParts[2]);
+            
+            if (part0 > 12) {
+              // DD/MM/YYYY
+              startTime = new Date(part2, part1 - 1, part0, hours, minutes);
+            } else {
+              // MM/DD/YYYY
+              startTime = new Date(part2, part0 - 1, part1, hours, minutes);
+            }
+          }
+        } else {
+          startTime = new Date(`${formData.date}T${formData.time}`);
+        }
+      } catch (e) {
+        startTime = new Date(`${formData.date}T${formData.time}`);
+      }
+
+      if (Number.isNaN(startTime.getTime())) {
+        alert("La fecha seleccionada no es válida.");
+        setLoading(false);
+        return;
+      }
+
       const durationMs = Number(formData.duration) * 60 * 60 * 1000;
       const endTime = new Date(startTime.getTime() + durationMs);
 
