@@ -88,7 +88,12 @@ export default async function Dashboard({
   const clubCourts = courts.filter((court) => court.clubId === activeClubId);
   const activeClubCourts = clubCourts.filter((court) => court.isActive !== false);
 
-  const activeReservations = reservations.filter(
+  // Filtrar de forma explícita las reservas para que solo correspondan a la sede activa
+  const clubReservations = reservations.filter(
+    (r) => r.courtId && String(r.courtId.clubId) === String(activeClubId)
+  );
+
+  const activeReservations = clubReservations.filter(
     (reservation) => reservation.status !== "cancelled",
   );
   const occupiedCourtIds = new Set(
@@ -103,7 +108,7 @@ export default async function Dashboard({
     totalCourtsCount > 0
       ? `${Math.round((occupiedCourtsCount / totalCourtsCount) * 100)}%`
       : "0%";
-  const totalRevenue = reservations
+  const totalRevenue = clubReservations
     .filter(
       (reservation) =>
         reservation.paymentStatus === "paid" &&
@@ -130,7 +135,7 @@ export default async function Dashboard({
         {[
           {
             label: "Reservas",
-            value: reservations.length.toString(),
+            value: clubReservations.length.toString(),
             trend: "Fecha elegida",
             color: "text-primary",
           },
@@ -243,7 +248,7 @@ export default async function Dashboard({
                       const slotEnd = new Date(slotStart.getTime() + 30 * 60 * 1000);
 
                       // Overlapping reservation
-                      const reservation = reservations.find((r) => {
+                      const reservation = clubReservations.find((r) => {
                         if (r.courtId?._id !== court._id || r.status === "cancelled") return false;
                         const rStart = new Date(r.startTime);
                         const rEnd = new Date(r.endTime);
@@ -350,13 +355,13 @@ export default async function Dashboard({
         ) : (
           /* VISTA LISTA - STANDARD LIST VIEW */
           <div className="space-y-3">
-            {reservations.length === 0 ? (
+            {clubReservations.length === 0 ? (
               <div className="text-center py-10 text-zinc-500 border border-dashed border-zinc-800 rounded-lg">
                 <CalendarDays className="w-12 h-12 mx-auto mb-3 opacity-20" />
                 <p>No hay reservas programadas para esta selección.</p>
               </div>
             ) : (
-              reservations.map((reservation) => (
+              clubReservations.map((reservation) => (
                 <div
                   key={reservation._id}
                   className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between p-4 rounded-lg bg-zinc-900/50 border border-zinc-800/50 hover:border-zinc-700 transition-colors"
