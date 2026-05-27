@@ -195,7 +195,7 @@ export default async function Dashboard({
         ))}
       </div>
 
-      <div className="bg-white/[0.01] backdrop-blur-lg border border-white/5 rounded-2xl p-6 shadow-[0_12px_40px_rgba(0,0,0,0.25)] relative overflow-hidden">
+      <div className="bg-white/[0.015] border border-white/5 rounded-2xl p-6 shadow-[0_12px_40px_rgba(0,0,0,0.25)] relative overflow-hidden">
         {/* Subtle interior glow */}
         <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent pointer-events-none" />
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 pb-4 border-b border-white/5 relative z-10">
