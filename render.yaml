@@ -3,7 +3,7 @@ services:
     name: reservate-backend
     env: node
     plan: free
-    buildCommand: npm install && npm run build -w backend
+    buildCommand: npm install --include=dev && npm run build -w backend
     startCommand: node apps/backend/dist/src/main.js
     envVars:
       - key: PORT
