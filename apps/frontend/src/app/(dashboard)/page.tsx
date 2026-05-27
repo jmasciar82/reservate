@@ -300,7 +300,7 @@ export default async function Dashboard({
                         return (
                           <div key={court._id} className="p-1 border-r border-b border-white/5 min-h-[65px] last:border-r-0">
                             {isStartSlot ? (
-                              <div className="h-full bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-2.5 flex flex-col justify-between hover:border-primary/45 hover:bg-white/[0.08] transition-all duration-300 shadow-[0_4px_12px_rgba(0,0,0,0.15)] hover:shadow-[0_8px_20px_rgba(57,255,20,0.08)] group/res relative">
+                              <div className="h-full bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-2.5 flex flex-col justify-between hover:border-primary/45 hover:bg-white/[0.08] transition-all duration-300 shadow-[0_4px_12px_rgba(0,0,0,0.15)] hover:shadow-[0_8px_20px_rgba(57,255,20,0.08)] group/res relative hover:z-20">
                                 {/* Soft ambient background color inside slot */}
                                 <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none rounded-xl" />
                                 <div className="relative z-10">
@@ -398,7 +398,7 @@ export default async function Dashboard({
               clubReservations.map((reservation) => (
                 <div
                   key={reservation._id}
-                  className="relative group flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between p-5 rounded-2xl bg-white/[0.02] border border-white/5 hover:border-primary/30 transition-all duration-300 hover:shadow-[0_8px_30px_rgba(57,255,20,0.03)] hover:scale-[1.01]"
+                  className="relative group flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between p-5 rounded-2xl bg-white/[0.02] border border-white/5 hover:border-primary/30 transition-all duration-300 hover:shadow-[0_8px_30px_rgba(57,255,20,0.03)] hover:scale-[1.01] hover:z-20"
                 >
                   <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl pointer-events-none" />
                   <div className="flex items-center gap-4 min-w-0 relative z-10">
