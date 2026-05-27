@@ -2,6 +2,12 @@
 
 Panel operativo para administrar clubes deportivos, canchas y reservas.
 
+## 🚀 Despliegue en un clic
+
+Hacé clic en el siguiente botón para desplegar automáticamente el **Backend (NestJS)** en Render utilizando nuestra especificación de Blueprint (`render.yaml`):
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/jmasciar82/reservate)
+
 ## Requisitos
 
 - Node.js compatible con el `packageManager` del repo
