@@ -36,8 +36,18 @@ export default function ReservationActions({
   const [showBalanceModal, setShowBalanceModal] = useState(false);
   const [showEditNameModal, setShowEditNameModal] = useState(false);
   const [nameInputValue, setNameInputValue] = useState(playerName || "");
+  const [expandUp, setExpandUp] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+
+  const handleToggle = () => {
+    if (!isOpen && menuRef.current) {
+      const rect = menuRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      setExpandUp(spaceBelow < 280);
+    }
+    setIsOpen(!isOpen);
+  };
 
   useEffect(() => {
     setNameInputValue(playerName || "");
@@ -99,7 +109,7 @@ export default function ReservationActions({
   return (
     <div className="relative" ref={menuRef}>
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={handleToggle}
         className="p-2 text-zinc-500 hover:text-white hover:bg-zinc-800 rounded-lg transition-all"
         title="Acciones de reserva"
       >
@@ -107,7 +117,11 @@ export default function ReservationActions({
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-1 w-64 bg-zinc-950 border border-zinc-800 rounded-lg shadow-2xl z-50 py-1.5 animate-in fade-in slide-in-from-top-2 duration-150">
+        <div className={`absolute right-0 w-64 bg-zinc-950 border border-zinc-800 rounded-lg shadow-2xl z-50 py-1.5 animate-in fade-in duration-150 ${
+          expandUp 
+            ? "bottom-full mb-1 slide-in-from-bottom-2" 
+            : "top-full mt-1 slide-in-from-top-2"
+        }`}>
           {showConfirm && (
             <button
               onClick={() => handleUpdate({ status: "confirmed" })}
