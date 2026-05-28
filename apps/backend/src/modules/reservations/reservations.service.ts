@@ -44,6 +44,7 @@ export class ReservationsService {
 
   async create(
     createReservationDto: CreateReservationDto,
+    callerClubId?: string,
   ): Promise<Reservation> {
     const { courtId, startTime, endTime, isRecurring, recurrenceWeeks } = createReservationDto;
 
@@ -65,6 +66,10 @@ export class ReservationsService {
     const court = await this.courtModel.findById(courtId).exec();
     if (!court) {
       throw new NotFoundException('La cancha especificada no existe.');
+    }
+
+    if (callerClubId && court.clubId.toString() !== callerClubId) {
+      throw new BadRequestException('No tienes permiso para reservar en esta cancha.');
     }
 
     const durationHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
@@ -210,6 +215,7 @@ export class ReservationsService {
   async update(
     id: string,
     updateReservationDto: UpdateReservationDto,
+    callerClubId?: string,
   ): Promise<Reservation | null> {
     if (!Types.ObjectId.isValid(id)) {
       throw new BadRequestException('La reserva indicada no es válida.');
@@ -232,6 +238,13 @@ export class ReservationsService {
     const existingReservation = await this.reservationModel.findById(id).exec();
     if (!existingReservation) {
       throw new BadRequestException('Reserva no encontrada.');
+    }
+
+    if (callerClubId) {
+      const court = await this.courtModel.findById(existingReservation.courtId).exec();
+      if (!court || court.clubId.toString() !== callerClubId) {
+        throw new BadRequestException('No tienes permiso para actualizar esta reserva.');
+      }
     }
 
     if (updateReservationDto.userId !== undefined) {
@@ -367,7 +380,7 @@ export class ReservationsService {
       .exec();
   }
 
-  async renew(id: string): Promise<Reservation> {
+  async renew(id: string, callerClubId?: string): Promise<Reservation> {
     if (!Types.ObjectId.isValid(id)) {
       throw new BadRequestException('La reserva indicada no es válida.');
     }
@@ -375,6 +388,13 @@ export class ReservationsService {
     const reservation = await this.reservationModel.findById(id).exec();
     if (!reservation) {
       throw new NotFoundException('Reserva no encontrada.');
+    }
+
+    if (callerClubId) {
+      const court = await this.courtModel.findById(reservation.courtId).exec();
+      if (!court || court.clubId.toString() !== callerClubId) {
+        throw new BadRequestException('No tienes permiso para renovar esta reserva.');
+      }
     }
 
     if (!reservation.isRecurring || !reservation.recurrenceGroupId) {

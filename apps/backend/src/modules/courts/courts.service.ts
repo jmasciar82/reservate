@@ -22,8 +22,9 @@ export class CourtsService {
     return createdCourt.save();
   }
 
-  async findAll(): Promise<Court[]> {
-    return this.courtModel.find().exec();
+  async findAll(clubId?: string): Promise<Court[]> {
+    const filter = clubId ? { clubId: new Types.ObjectId(clubId) } : {};
+    return this.courtModel.find(filter).exec();
   }
 
   async update(

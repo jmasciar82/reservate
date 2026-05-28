@@ -51,6 +51,25 @@ async function seed() {
     description: 'Complejo multideportivo frente al río.',
   });
 
+  console.log('Creating club owners...');
+  const ownerPasswordHash = await bcrypt.hash('owner123', salt);
+  
+  await UserModel.create({
+    name: 'Dueño Central',
+    email: 'owner1@central.com',
+    passwordHash: ownerPasswordHash,
+    role: 'club_owner',
+    clubId: club1._id,
+  });
+
+  await UserModel.create({
+    name: 'Dueño San Isidro',
+    email: 'owner2@sanisidro.com',
+    passwordHash: ownerPasswordHash,
+    role: 'club_owner',
+    clubId: club2._id,
+  });
+
   console.log('Creating courts...');
   const courts = [
     {

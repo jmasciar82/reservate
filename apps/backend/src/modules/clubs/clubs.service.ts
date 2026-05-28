@@ -18,6 +18,13 @@ export class ClubsService {
     return this.clubModel.find().sort({ name: 1 }).exec();
   }
 
+  async findOne(id: string): Promise<Club | null> {
+    if (!Types.ObjectId.isValid(id)) {
+      return null;
+    }
+    return this.clubModel.findById(id).exec();
+  }
+
   async update(id: string, updateClubDto: UpdateClubDto): Promise<Club | null> {
     if (!Types.ObjectId.isValid(id)) {
       throw new BadRequestException('El club indicado no es válido.');

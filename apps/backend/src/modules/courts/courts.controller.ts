@@ -8,8 +8,9 @@ import {
   Param,
   Query,
   UseGuards,
+  Request,
+  ForbiddenException,
 } from '@nestjs/common';
-import * as fs from 'fs';
 import { CourtsService } from './courts.service';
 import { CreateCourtDto } from './dto/create-court.dto';
 import { UpdateCourtDto } from './dto/update-court.dto';
@@ -21,12 +22,23 @@ export class CourtsController {
   constructor(private readonly courtsService: CourtsService) {}
 
   @Post()
-  async create(@Body() createCourtDto: CreateCourtDto) {
+  async create(@Body() createCourtDto: CreateCourtDto, @Request() req: any) {
+    const user = req.user;
+    if (user.role !== 'admin') {
+      if (!user.clubId) {
+        throw new ForbiddenException('No tienes un club asociado para crear una cancha.');
+      }
+      createCourtDto.clubId = user.clubId;
+    }
     return this.courtsService.create(createCourtDto);
   }
 
   @Get()
-  async findAll() {
+  async findAll(@Request() req: any) {
+    const user = req.user;
+    if (user.role === 'club_owner' || user.role === 'staff') {
+      return this.courtsService.findAll(user.clubId);
+    }
     return this.courtsService.findAll();
   }
 
@@ -34,34 +46,49 @@ export class CourtsController {
   async findAvailable(
     @Query('startTime') startTime: string,
     @Query('endTime') endTime: string,
+    @Request() req: any,
     @Query('clubId') clubId?: string,
   ) {
-    const logFile = 'C:/Users/juanp/.gemini/antigravity/brain/0404d1e4-10e2-458d-95cd-b130662bc2c8/scratch/debug.log';
-    fs.appendFileSync(logFile, `findAvailable called: startTime=${startTime}, endTime=${endTime}, clubId=${clubId}\n`);
-    try {
-      const courts = await this.courtsService.findAvailable(
-        new Date(startTime),
-        new Date(endTime),
-        clubId,
-      );
-      fs.appendFileSync(logFile, `findAvailable returning ${courts.length} courts\n`);
-      return courts;
-    } catch (e: any) {
-      fs.appendFileSync(logFile, `findAvailable ERROR: ${e.message}\n`);
-      throw e;
+    const user = req.user;
+    let targetClubId = clubId;
+    if (user.role === 'club_owner' || user.role === 'staff') {
+      targetClubId = user.clubId;
     }
+    return this.courtsService.findAvailable(
+      new Date(startTime),
+      new Date(endTime),
+      targetClubId,
+    );
   }
 
   @Put(':id')
   async update(
     @Param('id') id: string,
     @Body() updateCourtDto: UpdateCourtDto,
+    @Request() req: any,
   ) {
+    const user = req.user;
+    if (user.role !== 'admin') {
+      const courts = await this.courtsService.findAll(user.clubId);
+      const belongs = courts.some((c: any) => c._id.toString() === id);
+      if (!belongs) {
+        throw new ForbiddenException('No tienes permiso para actualizar esta cancha.');
+      }
+      updateCourtDto.clubId = user.clubId;
+    }
     return this.courtsService.update(id, updateCourtDto);
   }
 
   @Delete(':id')
-  async remove(@Param('id') id: string) {
+  async remove(@Param('id') id: string, @Request() req: any) {
+    const user = req.user;
+    if (user.role !== 'admin') {
+      const courts = await this.courtsService.findAll(user.clubId);
+      const belongs = courts.some((c: any) => c._id.toString() === id);
+      if (!belongs) {
+        throw new ForbiddenException('No tienes permiso para eliminar esta cancha.');
+      }
+    }
     return this.courtsService.remove(id);
   }
 }

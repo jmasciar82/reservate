@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import * as mongoose from 'mongoose';
+import { Document, Types } from 'mongoose';
 
 export type UserDocument = User & Document;
 
@@ -19,6 +20,9 @@ export class User {
 
   @Prop({ default: 1 })
   skillLevel: number;
+
+  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'Club', required: false })
+  clubId?: Types.ObjectId;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

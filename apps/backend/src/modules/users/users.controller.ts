@@ -21,15 +21,19 @@ export class UsersController {
 
   @Get()
   async findAll(@Req() req: any) {
-    if (req.user.role !== 'admin') {
-      throw new ForbiddenException('No tienes permisos para realizar esta acción.');
+    const user = req.user;
+    if (user.role === 'admin') {
+      return this.usersService.findAll();
+    } else if (user.role === 'club_owner') {
+      return this.usersService.findAll(user.clubId);
     }
-    return this.usersService.findAll();
+    throw new ForbiddenException('No tienes permisos para realizar esta acción.');
   }
 
   @Post()
   async create(@Req() req: any, @Body() body: any) {
-    if (req.user.role !== 'admin') {
+    const caller = req.user;
+    if (caller.role !== 'admin' && caller.role !== 'club_owner') {
       throw new ForbiddenException('No tienes permisos para realizar esta acción.');
     }
 
@@ -38,29 +42,45 @@ export class UsersController {
       throw new BadRequestException('Todos los campos (nombre, email, contraseña) son obligatorios.');
     }
 
-    // Verificar si el email ya existe
     const existing = await this.usersService.findByEmail(email);
     if (existing) {
       throw new BadRequestException('El correo electrónico ya está registrado.');
     }
     
-    // Hash password securely
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
+
+    let targetRole = role || 'staff';
+    let targetClubId = body.clubId;
+
+    if (caller.role === 'club_owner') {
+      if (role !== 'staff' && role !== 'player') {
+        targetRole = 'staff';
+      }
+      targetClubId = caller.clubId;
+    }
 
     return this.usersService.create({
       name,
       email,
       passwordHash,
-      role: role || 'staff',
+      role: targetRole,
+      clubId: targetClubId,
     });
   }
 
   @Delete(':id')
   async remove(@Req() req: any, @Param('id') id: string) {
-    if (req.user.role !== 'admin') {
-      throw new ForbiddenException('No tienes permisos para realizar esta acción.');
+    const caller = req.user;
+    if (caller.role === 'admin') {
+      return this.usersService.remove(id);
+    } else if (caller.role === 'club_owner') {
+      const userToDelete = await this.usersService.findById(id);
+      if (!userToDelete || userToDelete.clubId?.toString() !== caller.clubId) {
+        throw new ForbiddenException('No tienes permisos para eliminar este usuario.');
+      }
+      return this.usersService.remove(id);
     }
-    return this.usersService.remove(id);
+    throw new ForbiddenException('No tienes permisos para realizar esta acción.');
   }
 }

@@ -16,8 +16,13 @@ export class UsersService {
     return createdUser.save();
   }
 
-  async findAll(): Promise<UserDocument[]> {
-    return this.userModel.find({}, { passwordHash: 0 }).exec();
+  async findById(id: string): Promise<UserDocument | null> {
+    return this.userModel.findById(id).exec();
+  }
+
+  async findAll(clubId?: string): Promise<UserDocument[]> {
+    const filter = clubId ? { clubId } : {};
+    return this.userModel.find(filter, { passwordHash: 0 }).exec();
   }
 
   async remove(id: string): Promise<UserDocument | null> {
