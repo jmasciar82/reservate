@@ -117,16 +117,21 @@ export default async function Dashboard({
   const clubCourts = courts.filter((court) => court.clubId === activeClubId);
   const activeClubCourts = clubCourts.filter((court) => court.isActive !== false);
 
-  // Filtrar de forma explícita las reservas para que solo correspondan a la sede activa
+  // 1. Filtrar las reservas de la sede activa
   const clubReservations = reservations.filter(
     (r) => r.courtId && String(r.courtId.clubId) === String(activeClubId)
   );
 
-  const activeReservations = clubReservations.filter(
-    (reservation) => reservation.status !== "cancelled",
-  );
+  // 2. Filtrar las reservas que se juegan HOY (para la grilla, lista, KPI de Reservas y ocupación)
+  const playingTodayReservations = clubReservations.filter((r) => {
+    if (r.status === "cancelled") return false;
+    const rDate = new Date(r.startTime);
+    const selDate = new Date(`${date}T00:00:00.000-03:00`);
+    return rDate.toDateString() === selDate.toDateString();
+  });
+
   const occupiedCourtIds = new Set(
-    activeReservations
+    playingTodayReservations
       .map((reservation) => reservation.courtId?._id)
       .filter(Boolean),
   );
@@ -137,13 +142,21 @@ export default async function Dashboard({
     totalCourtsCount > 0
       ? `${Math.round((occupiedCourtsCount / totalCourtsCount) * 100)}%`
       : "0%";
+
+  // 3. Calcular los ingresos cobrados (cobros realizados HOY)
   const totalRevenue = clubReservations
-    .filter(
-      (reservation) =>
-        reservation.paymentStatus === "paid" &&
-        reservation.status !== "cancelled",
-    )
+    .filter((reservation) => {
+      if (reservation.status === "cancelled") return false;
+      if (reservation.paymentStatus !== "paid") return false;
+      if (!reservation.paymentDate) return false;
+
+      // Comprobar si la fecha de cobro coincide con la fecha elegida
+      const pDate = new Date(reservation.paymentDate);
+      const selDate = new Date(`${date}T00:00:00.000-03:00`);
+      return pDate.toDateString() === selDate.toDateString();
+    })
     .reduce((sum, reservation) => sum + (reservation.totalPrice || 0), 0);
+
   const revenueStat = `$${totalRevenue.toLocaleString("es-AR")}`;
 
   return (
@@ -164,7 +177,7 @@ export default async function Dashboard({
         {[
           {
             label: "Reservas",
-            value: clubReservations.length.toString(),
+            value: playingTodayReservations.length.toString(),
             trend: "Fecha elegida",
             color: "text-primary",
           },
@@ -280,7 +293,7 @@ export default async function Dashboard({
                     {/* Court Slots */}
                     {activeClubCourts.map((court) => {
                       // Overlapping reservation
-                      const reservation = clubReservations.find((r) => {
+                      const reservation = playingTodayReservations.find((r) => {
                         if (r.courtId?._id !== court._id || r.status === "cancelled") return false;
                         const rStart = getArtTime(r.startTime);
                         const rEnd = getArtTime(r.endTime);
@@ -425,13 +438,13 @@ export default async function Dashboard({
         ) : (
           /* VISTA LISTA - STANDARD LIST VIEW */
           <div className="space-y-3 relative z-10">
-            {clubReservations.length === 0 ? (
+            {playingTodayReservations.length === 0 ? (
               <div className="text-center py-16 text-zinc-400 border border-dashed border-white/10 rounded-2xl bg-white/[0.01]">
                 <CalendarDays className="w-12 h-12 mx-auto mb-3 opacity-20" />
                 <p className="font-medium">No hay reservas programadas para esta selección.</p>
               </div>
             ) : (
-              clubReservations.map((reservation) => (
+              playingTodayReservations.map((reservation) => (
                 <div
                   key={reservation._id}
                   className="relative group flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between p-5 rounded-2xl bg-white/[0.02] border border-white/5 hover:border-primary/30 transition-all duration-300 hover:shadow-[0_8px_30px_rgba(57,255,20,0.03)] hover:scale-[1.01] hover:z-20"

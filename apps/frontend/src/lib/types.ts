@@ -48,4 +48,5 @@ export interface Reservation {
   isRecurring?: boolean;
   recurrenceGroupId?: string;
   isLastOfSeries?: boolean;
+  paymentDate?: string | Date;
 }

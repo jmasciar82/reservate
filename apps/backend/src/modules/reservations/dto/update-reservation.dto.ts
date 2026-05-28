@@ -6,4 +6,5 @@ export class UpdateReservationDto {
   userId?: string;
   firstName?: string;
   lastName?: string;
+  paymentDate?: Date;
 }

@@ -160,10 +160,20 @@ export class ReservationsService {
     if (query?.date) {
       const { start, end } = getArgentinaDayRange(query.date);
       dateFilter = {
-        startTime: {
-          $gte: start,
-          $lt: end,
-        },
+        $or: [
+          {
+            startTime: {
+              $gte: start,
+              $lt: end,
+            },
+          },
+          {
+            paymentDate: {
+              $gte: start,
+              $lt: end,
+            },
+          },
+        ],
       };
     }
 
@@ -238,6 +248,13 @@ export class ReservationsService {
     const existingReservation = await this.reservationModel.findById(id).exec();
     if (!existingReservation) {
       throw new BadRequestException('Reserva no encontrada.');
+    }
+
+    if (
+      updateReservationDto.paymentStatus === 'paid' &&
+      existingReservation.paymentStatus !== 'paid'
+    ) {
+      updateReservationDto.paymentDate = new Date();
     }
 
     if (callerClubId) {
@@ -340,6 +357,7 @@ export class ReservationsService {
                 paymentStatus: 'paid',
                 totalPrice: discountedPrice,
                 depositAmount: discountedPrice,
+                paymentDate: new Date(),
               })
               .exec();
           }

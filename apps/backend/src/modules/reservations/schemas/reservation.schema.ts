@@ -49,6 +49,9 @@ export class Reservation {
   paymentStatus: string;
 
   @Prop({ required: false })
+  paymentDate?: Date;
+
+  @Prop({ required: false })
   preferenceId?: string;
 
   @Prop({ required: false })
