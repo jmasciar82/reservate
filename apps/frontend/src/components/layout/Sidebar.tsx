@@ -1,12 +1,19 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarDays, LayoutDashboard, Settings, Trophy, BarChart3 } from "lucide-react";
+import { CalendarDays, LayoutDashboard, Settings, Trophy, BarChart3, Users } from "lucide-react";
+import { getClientUserRole } from "@/lib/api";
 
 export function Sidebar() {
   const pathname = usePathname();
   const isActive = (path: string) => pathname === path;
+  const [role, setRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    setRole(getClientUserRole());
+  }, []);
 
   return (
     <aside className="w-64 h-screen flex flex-col border-r border-white/5 bg-zinc-950/40 backdrop-blur-xl shrink-0 z-20 shadow-[4px_0_24px_rgba(0,0,0,0.3)] relative">
@@ -54,20 +61,35 @@ export function Sidebar() {
           <BarChart3 className={`w-5 h-5 mr-3 transition-colors ${isActive("/analytics") ? "text-primary" : "text-zinc-400 group-hover:text-white"}`} />
           Analíticas
         </Link>
+        {role === "admin" && (
+          <Link
+            href="/users"
+            className={`flex items-center px-4 py-3 rounded-xl font-bold transition-all duration-300 ${
+              isActive("/users")
+                ? "bg-primary/10 text-white shadow-[0_0_15px_rgba(57,255,20,0.05),inset_0_1px_1px_rgba(255,255,255,0.05)] border-l-2 border-primary"
+                : "text-zinc-400 hover:text-white hover:bg-white/5 border-l-2 border-transparent hover:translate-x-1"
+            }`}
+          >
+            <Users className={`w-5 h-5 mr-3 transition-colors ${isActive("/users") ? "text-primary" : "text-zinc-400 group-hover:text-white"}`} />
+            Usuarios
+          </Link>
+        )}
       </nav>
 
       <div className="p-4 border-t border-white/5 bg-white/[0.01] space-y-2.5 z-10">
-        <Link
-          href="/settings"
-          className={`flex items-center px-4 py-3 rounded-xl font-bold transition-all duration-300 ${
-            isActive("/settings")
-              ? "bg-primary/10 text-white shadow-[0_0_15px_rgba(57,255,20,0.05),inset_0_1px_1px_rgba(255,255,255,0.05)] border-l-2 border-primary"
-              : "text-zinc-400 hover:text-white hover:bg-white/5 border-l-2 border-transparent hover:translate-x-1"
-          }`}
-        >
-          <Settings className={`w-5 h-5 mr-3 transition-colors ${isActive("/settings") ? "text-primary" : "text-zinc-400 group-hover:text-white"}`} />
-          Configuración
-        </Link>
+        {role === "admin" && (
+          <Link
+            href="/settings"
+            className={`flex items-center px-4 py-3 rounded-xl font-bold transition-all duration-300 ${
+              isActive("/settings")
+                ? "bg-primary/10 text-white shadow-[0_0_15px_rgba(57,255,20,0.05),inset_0_1px_1px_rgba(255,255,255,0.05)] border-l-2 border-primary"
+                : "text-zinc-400 hover:text-white hover:bg-white/5 border-l-2 border-transparent hover:translate-x-1"
+            }`}
+          >
+            <Settings className={`w-5 h-5 mr-3 transition-colors ${isActive("/settings") ? "text-primary" : "text-zinc-400 group-hover:text-white"}`} />
+            Configuración
+          </Link>
+        )}
         <button
           onClick={() => {
             document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";

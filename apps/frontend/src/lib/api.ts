@@ -51,3 +51,32 @@ export async function apiFetch(
     headers,
   });
 }
+
+export function decodeJwt(token: string) {
+  try {
+    const base64Url = token.split(".")[1];
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split("")
+        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+        .join("")
+    );
+    return JSON.parse(jsonPayload);
+  } catch (e) {
+    return null;
+  }
+}
+
+export function getClientUserRole(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const Cookies = require("js-cookie");
+    const token = Cookies.get("token");
+    if (!token) return null;
+    const decoded = decodeJwt(token);
+    return decoded?.role ?? null;
+  } catch (err) {
+    return null;
+  }
+}

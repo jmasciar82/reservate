@@ -15,4 +15,12 @@ export class UsersService {
     const createdUser = new this.userModel(user);
     return createdUser.save();
   }
+
+  async findAll(): Promise<UserDocument[]> {
+    return this.userModel.find({}, { passwordHash: 0 }).exec();
+  }
+
+  async remove(id: string): Promise<UserDocument | null> {
+    return this.userModel.findByIdAndDelete(id).exec();
+  }
 }
