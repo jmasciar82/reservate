@@ -155,7 +155,12 @@ export default async function Dashboard({
       const selDate = new Date(`${date}T00:00:00.000-03:00`);
       return pDate.toDateString() === selDate.toDateString();
     })
-    .reduce((sum, reservation) => sum + (reservation.totalPrice || 0), 0);
+    .reduce((sum, reservation) => {
+      const amountPaid = (reservation.depositAmount && reservation.depositAmount > 0)
+        ? reservation.depositAmount
+        : (reservation.totalPrice || 0);
+      return sum + amountPaid;
+    }, 0);
 
   const revenueStat = `$${totalRevenue.toLocaleString("es-AR")}`;
 

@@ -7,4 +7,5 @@ export class UpdateReservationDto {
   firstName?: string;
   lastName?: string;
   paymentDate?: Date;
+  payBlock?: boolean;
 }

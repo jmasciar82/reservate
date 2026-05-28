@@ -11,4 +11,7 @@ export class CreateReservationDto {
   isRecurring?: boolean;
   recurrenceWeeks?: number;
   depositAmount?: number;
+  paymentStatus?: string;
+  paymentDate?: Date;
+  status?: string;
 }

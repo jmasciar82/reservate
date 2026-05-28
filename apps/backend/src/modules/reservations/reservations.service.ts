@@ -109,6 +109,7 @@ export class ReservationsService {
         );
       }
 
+      const isPaid = createReservationDto.paymentStatus === 'paid';
       const recurrenceGroupId = new Types.ObjectId().toString();
       const reservationsToSave = weeksToCreate.map((week) => {
         return new this.reservationModel({
@@ -117,7 +118,9 @@ export class ReservationsService {
           startTime: week.start,
           endTime: week.end,
           totalPrice,
-          paymentStatus: 'pending',
+          paymentStatus: isPaid ? 'paid' : 'pending',
+          paymentDate: isPaid ? new Date() : undefined,
+          status: isPaid ? 'confirmed' : (createReservationDto.status || 'pending'),
           isRecurring: true,
           recurrenceGroupId,
         });
@@ -141,13 +144,16 @@ export class ReservationsService {
         );
       }
 
+      const isPaid = createReservationDto.paymentStatus === 'paid';
       const createdReservation = new this.reservationModel({
         ...createReservationDto,
         courtId: new Types.ObjectId(courtId),
         startTime: start,
         endTime: end,
         totalPrice,
-        paymentStatus: 'pending',
+        paymentStatus: isPaid ? 'paid' : 'pending',
+        paymentDate: isPaid ? new Date() : undefined,
+        status: isPaid ? 'confirmed' : (createReservationDto.status || 'pending'),
       });
 
       return createdReservation.save();
@@ -252,7 +258,9 @@ export class ReservationsService {
 
     if (
       updateReservationDto.paymentStatus === 'paid' &&
-      existingReservation.paymentStatus !== 'paid'
+      (existingReservation.paymentStatus !== 'paid' ||
+        (updateReservationDto.depositAmount !== undefined &&
+          updateReservationDto.depositAmount !== existingReservation.depositAmount))
     ) {
       updateReservationDto.paymentDate = new Date();
     }
@@ -322,6 +330,7 @@ export class ReservationsService {
     // Pago en bloque para series recurrentes con 10% de descuento
     if (
       updateReservationDto.paymentStatus === 'paid' &&
+      updateReservationDto.payBlock === true &&
       existingReservation.isRecurring &&
       existingReservation.recurrenceGroupId
     ) {

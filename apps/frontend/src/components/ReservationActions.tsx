@@ -44,8 +44,16 @@ export default function ReservationActions({
     if (!isOpen && menuRef.current) {
       const rect = menuRef.current.getBoundingClientRect();
       const spaceBelow = window.innerHeight - rect.bottom;
-      // Solo desplegar hacia arriba si falta espacio abajo Y hay espacio suficiente arriba para evitar cortes
-      setExpandUp(spaceBelow < 280 && rect.top > 280);
+      
+      let spaceAboveWithinContainer = 999;
+      const scrollContainer = menuRef.current.closest('.overflow-x-auto');
+      if (scrollContainer) {
+        const containerRect = scrollContainer.getBoundingClientRect();
+        spaceAboveWithinContainer = rect.top - containerRect.top;
+      }
+
+      // Solo desplegar hacia arriba si falta espacio abajo Y hay espacio suficiente arriba en el viewport Y dentro del contenedor scrollable
+      setExpandUp(spaceBelow < 280 && rect.top > 280 && spaceAboveWithinContainer > 220);
     }
     setIsOpen(!isOpen);
   };
@@ -71,6 +79,7 @@ export default function ReservationActions({
     depositAmount?: number;
     cancelSeries?: boolean;
     userId?: string;
+    payBlock?: boolean;
   }) => {
     setIsOpen(false);
     setShowCancelModal(false);
@@ -108,7 +117,7 @@ export default function ReservationActions({
   }
 
   return (
-    <div className="relative" ref={menuRef}>
+    <div className={`relative ${isOpen ? "z-30" : ""}`} ref={menuRef}>
       <button
         onClick={handleToggle}
         className="p-2 text-zinc-500 hover:text-white hover:bg-zinc-800 rounded-lg transition-all"
@@ -166,6 +175,7 @@ export default function ReservationActions({
                       handleUpdate({
                         status: "confirmed",
                         paymentStatus: "paid",
+                        payBlock: true,
                       });
                     }
                   } else {
