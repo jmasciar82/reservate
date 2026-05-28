@@ -3,4 +3,7 @@ export class UpdateReservationDto {
   paymentStatus?: string;
   depositAmount?: number;
   cancelSeries?: boolean;
+  userId?: string;
+  firstName?: string;
+  lastName?: string;
 }

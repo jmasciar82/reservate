@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Ban, CheckCircle, CircleDollarSign, MoreVertical, X } from "lucide-react";
+import { Ban, CheckCircle, CircleDollarSign, Edit, MoreVertical, User, X } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import type { PaymentStatus, ReservationStatus } from "@/lib/types";
 
@@ -15,6 +15,7 @@ interface ReservationActionsProps {
   isRecurring?: boolean;
   recurrenceGroupId?: string;
   isLastOfSeries?: boolean;
+  playerName?: string;
 }
 
 export default function ReservationActions({
@@ -26,14 +27,21 @@ export default function ReservationActions({
   isRecurring,
   recurrenceGroupId,
   isLastOfSeries = false,
+  playerName = "",
 }: ReservationActionsProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showDepositModal, setShowDepositModal] = useState(false);
   const [depositInputValue, setDepositInputValue] = useState("");
   const [showBalanceModal, setShowBalanceModal] = useState(false);
+  const [showEditNameModal, setShowEditNameModal] = useState(false);
+  const [nameInputValue, setNameInputValue] = useState(playerName || "");
   const menuRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+
+  useEffect(() => {
+    setNameInputValue(playerName || "");
+  }, [playerName]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -51,10 +59,12 @@ export default function ReservationActions({
     paymentStatus?: PaymentStatus;
     depositAmount?: number;
     cancelSeries?: boolean;
+    userId?: string;
   }) => {
     setIsOpen(false);
     setShowCancelModal(false);
     setShowDepositModal(false);
+    setShowEditNameModal(false);
 
     try {
       const response = await apiFetch(`/reservations/${reservationId}`, {
@@ -172,6 +182,19 @@ export default function ReservationActions({
                 <span className="font-bold text-white">Cobrar Saldo Restante</span>
                 <span className="text-[10px] text-zinc-400">Resta cobrar: ${ (totalPrice - depositAmount).toLocaleString("es-AR") }</span>
               </div>
+            </button>
+          )}
+
+          {status !== "cancelled" && (
+            <button
+              onClick={() => {
+                setIsOpen(false);
+                setShowEditNameModal(true);
+              }}
+              className="w-full text-left px-4 py-2 text-sm text-zinc-300 hover:text-white hover:bg-zinc-900 flex items-center gap-2.5 transition-colors border-t border-zinc-900"
+            >
+              <Edit className="w-4 h-4 text-zinc-400" />
+              <span>Editar nombre</span>
             </button>
           )}
 
@@ -384,6 +407,84 @@ export default function ReservationActions({
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+      {showEditNameModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+            onClick={() => setShowEditNameModal(false)}
+          />
+          <div className="relative w-full max-w-sm bg-zinc-950/85 backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-white/5 flex justify-between items-center bg-white/[0.02]">
+              <h3 className="text-lg font-black text-white flex items-center gap-2">
+                <span className="w-2 h-5 bg-primary rounded-full shadow-[0_0_8px_rgba(57,255,20,0.5)]" />
+                Editar Jugador
+              </h3>
+              <button
+                onClick={() => setShowEditNameModal(false)}
+                className="text-zinc-400 hover:text-white transition-all duration-300 p-1.5 bg-white/5 hover:bg-white/10 rounded-lg border border-white/5"
+                title="Cerrar"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const trimmedValue = nameInputValue.trim();
+                if (!trimmedValue) {
+                  alert("Por favor ingresá un nombre válido.");
+                  return;
+                }
+                handleUpdate({
+                  userId: trimmedValue,
+                });
+              }}
+              className="p-6 space-y-5"
+            >
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-zinc-400 flex items-center gap-2">
+                  <User className="w-4 h-4 text-primary" />
+                  Nombre del jugador
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ej. Juan Pérez"
+                  value={nameInputValue}
+                  onChange={(e) => setNameInputValue(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-zinc-600 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 hover:bg-white/[0.08] transition-all duration-300 font-semibold text-base"
+                  autoFocus
+                />
+                {isRecurring && (
+                  <p className="text-[10px] text-zinc-500 bg-indigo-500/5 border border-indigo-500/10 rounded-lg p-2 mt-2 leading-relaxed flex items-start gap-1.5">
+                    <span className="text-indigo-400 shrink-0 font-extrabold text-[11px]">🔁</span>
+                    <span>
+                      Al ser un <strong>turno fijo recurrente</strong>, el nuevo nombre se aplicará automáticamente a esta reserva y a todas las futuras fechas de la serie.
+                    </span>
+                  </p>
+                )}
+              </div>
+              
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowEditNameModal(false)}
+                  className="flex-1 py-3 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 font-semibold rounded-xl border border-zinc-800 hover:border-zinc-700 transition-all text-sm"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-3 bg-primary text-primary-foreground font-black rounded-xl shadow-[0_4px_15px_rgba(57,255,20,0.25)] hover:shadow-[0_4px_20px_rgba(57,255,20,0.45)] transition-all text-sm"
+                >
+                  Guardar
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

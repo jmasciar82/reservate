@@ -234,6 +234,29 @@ export class ReservationsService {
       throw new BadRequestException('Reserva no encontrada.');
     }
 
+    if (updateReservationDto.userId !== undefined) {
+      updateReservationDto.firstName = '';
+      updateReservationDto.lastName = '';
+
+      if (existingReservation.isRecurring && existingReservation.recurrenceGroupId) {
+        await this.reservationModel
+          .updateMany(
+            {
+              recurrenceGroupId: existingReservation.recurrenceGroupId,
+              startTime: { $gte: existingReservation.startTime },
+            },
+            {
+              $set: {
+                userId: updateReservationDto.userId,
+                firstName: '',
+                lastName: '',
+              },
+            },
+          )
+          .exec();
+      }
+    }
+
     // Confirmación automática: si se registra el pago, se confirma la reserva
     if (
       updateReservationDto.paymentStatus === 'paid' &&

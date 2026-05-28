@@ -377,6 +377,11 @@ export default async function Dashboard({
                                     isRecurring={reservation.isRecurring}
                                     recurrenceGroupId={reservation.recurrenceGroupId}
                                     isLastOfSeries={reservation.isLastOfSeries}
+                                    playerName={
+                                      reservation.firstName
+                                        ? `${reservation.firstName} ${reservation.lastName}`
+                                        : (reservation.userId || "")
+                                    }
                                   />
                                 </div>
                               </div>
@@ -539,6 +544,11 @@ export default async function Dashboard({
                       isRecurring={reservation.isRecurring}
                       recurrenceGroupId={reservation.recurrenceGroupId}
                       isLastOfSeries={reservation.isLastOfSeries}
+                      playerName={
+                        reservation.firstName
+                          ? `${reservation.firstName} ${reservation.lastName}`
+                          : (reservation.userId || "")
+                      }
                     />
                   </div>
                 </div>
