@@ -1,4 +1,4 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards, Request } from '@nestjs/common';
 import { AnalyticsService } from './analytics.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
@@ -11,7 +11,13 @@ export class AnalyticsController {
   async getStats(
     @Query('clubId') clubId: string,
     @Query('range') range: string,
+    @Request() req: any,
   ) {
-    return this.analyticsService.getStats(clubId, range || '30d');
+    const user = req.user;
+    let targetClubId = clubId;
+    if (user.role === 'club_owner' || user.role === 'staff') {
+      targetClubId = user.clubId;
+    }
+    return this.analyticsService.getStats(targetClubId, range || '30d');
   }
 }
