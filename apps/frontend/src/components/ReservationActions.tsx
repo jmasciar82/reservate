@@ -204,8 +204,10 @@ export default function ReservationActions({
             >
               <CircleDollarSign className="w-4 h-4 text-primary animate-pulse" />
               <div className="flex flex-col">
-                <span className="font-bold text-white">Cobrar Saldo Restante</span>
-                <span className="text-[10px] text-zinc-400">Resta cobrar: ${ (totalPrice - depositAmount).toLocaleString("es-AR") }</span>
+                <span className="font-bold text-white">Cobrar Saldo Restante {isRecurring ? "(Bloque)" : ""}</span>
+                <span className="text-[10px] text-zinc-400">
+                  Resta cobrar: ${ ((totalPrice - depositAmount) * (isRecurring ? 4 : 1)).toLocaleString("es-AR") }
+                </span>
               </div>
             </button>
           )}
@@ -375,7 +377,7 @@ export default function ReservationActions({
             <div className="px-6 py-4 border-b border-white/5 flex justify-between items-center bg-white/[0.02]">
               <h3 className="text-lg font-black text-white flex items-center gap-2">
                 <span className="w-2 h-5 bg-primary rounded-full shadow-[0_0_8px_rgba(57,255,20,0.5)]" />
-                Cobrar Saldo Restante
+                {isRecurring ? "Cobrar Saldo Restante (Bloque)" : "Cobrar Saldo Restante"}
               </h3>
               <button
                 onClick={() => setShowBalanceModal(false)}
@@ -389,23 +391,25 @@ export default function ReservationActions({
             <div className="p-6 space-y-5">
               <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4 space-y-3">
                 <div className="flex justify-between text-xs font-semibold text-zinc-400">
-                  <span>Valor Total:</span>
-                  <span className="text-white">${totalPrice.toLocaleString("es-AR")}</span>
+                  <span>Valor Total {isRecurring ? "(4 sem)" : ""}:</span>
+                  <span className="text-white">${(totalPrice * (isRecurring ? 4 : 1)).toLocaleString("es-AR")}</span>
                 </div>
                 <div className="flex justify-between text-xs font-semibold text-zinc-400">
-                  <span>Seña Pagada:</span>
-                  <span className="text-blue-400">${depositAmount.toLocaleString("es-AR")}</span>
+                  <span>Seña Pagada {isRecurring ? "(4 sem)" : ""}:</span>
+                  <span className="text-blue-400">${(depositAmount * (isRecurring ? 4 : 1)).toLocaleString("es-AR")}</span>
                 </div>
                 <div className="border-t border-white/5 pt-2 flex justify-between text-sm font-bold text-zinc-200">
                   <span>Saldo Restante:</span>
                   <span className="text-primary text-base drop-shadow-[0_0_6px_rgba(57,255,20,0.3)]">
-                    ${(totalPrice - depositAmount).toLocaleString("es-AR")}
+                    ${((totalPrice - depositAmount) * (isRecurring ? 4 : 1)).toLocaleString("es-AR")}
                   </span>
                 </div>
               </div>
 
               <p className="text-xs text-zinc-400 text-center leading-relaxed font-semibold">
-                ¿Confirmás el cobro del saldo restante? La reserva quedará marcada como totalmente pagada.
+                {isRecurring 
+                  ? "¿Confirmás el cobro del saldo restante del bloque completo de 4 semanas? Todas las reservas de este mes quedarán marcadas como totalmente pagadas."
+                  : "¿Confirmás el cobro del saldo restante? La reserva quedará marcada como totalmente pagada."}
               </p>
               
               <div className="flex gap-3 pt-2">
@@ -422,7 +426,8 @@ export default function ReservationActions({
                     handleUpdate({
                       status: "confirmed",
                       paymentStatus: "paid",
-                      depositAmount: totalPrice,
+                      payBlock: isRecurring ? true : undefined,
+                      depositAmount: isRecurring ? undefined : totalPrice,
                     });
                     setShowBalanceModal(false);
                   }}
