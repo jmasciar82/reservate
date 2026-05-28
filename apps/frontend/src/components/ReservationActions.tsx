@@ -31,6 +31,7 @@ export default function ReservationActions({
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showDepositModal, setShowDepositModal] = useState(false);
   const [depositInputValue, setDepositInputValue] = useState("");
+  const [showBalanceModal, setShowBalanceModal] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
@@ -161,14 +162,8 @@ export default function ReservationActions({
           {isPartiallyPaid && (
             <button
               onClick={() => {
-                const balance = totalPrice - depositAmount;
-                if (confirm(`¿Registrar cobro del saldo restante de $${balance.toLocaleString("es-AR")}?`)) {
-                  handleUpdate({
-                    status: "confirmed",
-                    paymentStatus: "paid",
-                    depositAmount: totalPrice,
-                  });
-                }
+                setIsOpen(false);
+                setShowBalanceModal(true);
               }}
               className="w-full text-left px-4 py-2 text-sm text-zinc-300 hover:text-white hover:bg-zinc-900 flex items-center gap-2.5 transition-colors border-t border-zinc-900"
             >
@@ -319,6 +314,76 @@ export default function ReservationActions({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {showBalanceModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+            onClick={() => setShowBalanceModal(false)}
+          />
+          <div className="relative w-full max-w-sm bg-zinc-950/85 backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-white/5 flex justify-between items-center bg-white/[0.02]">
+              <h3 className="text-lg font-black text-white flex items-center gap-2">
+                <span className="w-2 h-5 bg-primary rounded-full shadow-[0_0_8px_rgba(57,255,20,0.5)]" />
+                Cobrar Saldo Restante
+              </h3>
+              <button
+                onClick={() => setShowBalanceModal(false)}
+                className="text-zinc-400 hover:text-white transition-all duration-300 p-1.5 bg-white/5 hover:bg-white/10 rounded-lg border border-white/5"
+                title="Cerrar"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-5">
+              <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4 space-y-3">
+                <div className="flex justify-between text-xs font-semibold text-zinc-400">
+                  <span>Valor Total:</span>
+                  <span className="text-white">${totalPrice.toLocaleString("es-AR")}</span>
+                </div>
+                <div className="flex justify-between text-xs font-semibold text-zinc-400">
+                  <span>Seña Pagada:</span>
+                  <span className="text-blue-400">${depositAmount.toLocaleString("es-AR")}</span>
+                </div>
+                <div className="border-t border-white/5 pt-2 flex justify-between text-sm font-bold text-zinc-200">
+                  <span>Saldo Restante:</span>
+                  <span className="text-primary text-base drop-shadow-[0_0_6px_rgba(57,255,20,0.3)]">
+                    ${(totalPrice - depositAmount).toLocaleString("es-AR")}
+                  </span>
+                </div>
+              </div>
+
+              <p className="text-xs text-zinc-400 text-center leading-relaxed font-semibold">
+                ¿Confirmás el cobro del saldo restante? La reserva quedará marcada como totalmente pagada.
+              </p>
+              
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowBalanceModal(false)}
+                  className="flex-1 py-3 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 font-semibold rounded-xl border border-zinc-800 hover:border-zinc-700 transition-all text-sm"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleUpdate({
+                      status: "confirmed",
+                      paymentStatus: "paid",
+                      depositAmount: totalPrice,
+                    });
+                    setShowBalanceModal(false);
+                  }}
+                  className="flex-1 py-3 bg-primary text-primary-foreground font-black rounded-xl shadow-[0_4px_15px_rgba(57,255,20,0.25)] hover:shadow-[0_4px_20px_rgba(57,255,20,0.45)] transition-all text-sm"
+                >
+                  Registrar Pago
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
