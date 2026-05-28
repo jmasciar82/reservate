@@ -148,10 +148,10 @@ export default async function Dashboard({
     .filter((reservation) => {
       if (reservation.status === "cancelled") return false;
       if (reservation.paymentStatus !== "paid") return false;
-      if (!reservation.paymentDate) return false;
 
-      // Comprobar si la fecha de cobro coincide con la fecha elegida
-      const pDate = new Date(reservation.paymentDate);
+      // Fallback: si no tiene paymentDate (datos semilla/viejos), usamos startTime
+      const pDateStr = reservation.paymentDate || reservation.startTime;
+      const pDate = new Date(pDateStr);
       const selDate = new Date(`${date}T00:00:00.000-03:00`);
       return pDate.toDateString() === selDate.toDateString();
     })
@@ -343,18 +343,22 @@ export default async function Dashboard({
                                         ? `${reservation.firstName} ${reservation.lastName}`
                                         : (reservation.userId || "Jugador")}
                                     </span>
-                                    {reservation.isRecurring && (
-                                      <span 
-                                        className={`inline-flex items-center text-[8px] font-extrabold px-1.5 py-0.5 rounded border shrink-0 uppercase tracking-wide shadow-[0_0_8px_rgba(99,102,241,0.15)] ${
-                                          reservation.paymentStatus === "pending"
-                                            ? "text-amber-400 bg-amber-500/10 border-amber-500/20"
-                                            : "text-indigo-400 bg-indigo-500/10 border-indigo-500/20"
-                                        }`} 
-                                        title={reservation.paymentStatus === "pending" ? "Turno Fijo - ¡Debe abonar el bloque de 4 semanas!" : "Turno Fijo Recurrente"}
-                                      >
-                                        🔁 Fijo {reservation.paymentStatus === "pending" ? "⚠️" : ""}
-                                      </span>
-                                    )}
+                                    {reservation.isRecurring && (() => {
+                                      const isPartiallyPaid = reservation.paymentStatus === "paid" && (reservation.depositAmount ?? 0) > 0 && (reservation.depositAmount ?? 0) < (reservation.totalPrice ?? 0);
+                                      const needsTotalPayment = reservation.paymentStatus === "pending" || isPartiallyPaid;
+                                      return (
+                                        <span 
+                                          className={`inline-flex items-center text-[8px] font-extrabold px-1.5 py-0.5 rounded border shrink-0 uppercase tracking-wide shadow-[0_0_8px_rgba(99,102,241,0.15)] ${
+                                            needsTotalPayment
+                                              ? "text-amber-400 bg-amber-500/10 border-amber-500/20"
+                                              : "text-indigo-400 bg-indigo-500/10 border-indigo-500/20"
+                                          }`} 
+                                          title={needsTotalPayment ? "Turno Fijo - ¡Falta abonar el saldo restante del bloque de 4 semanas!" : "Turno Fijo Recurrente"}
+                                        >
+                                          🔁 Fijo {needsTotalPayment ? "⚠️" : ""}
+                                        </span>
+                                      );
+                                    })()}
                                     {reservation.isLastOfSeries && (
                                       <span className="inline-flex items-center text-[8px] font-black text-green-400 bg-green-500/10 px-1.5 py-0.5 rounded border border-green-500/20 shrink-0 uppercase tracking-wide shadow-[0_0_8px_rgba(34,197,94,0.15)] animate-pulse" title="¡Último día reservado! Clic en los tres puntos para renovar por 4 semanas más.">
                                         🚨 ÚLTIMO / RENOVAR
@@ -458,18 +462,22 @@ export default async function Dashboard({
                           Reserva #{reservation._id.substring(0, 5)} -{" "}
                           {reservation.courtId?.name ?? "Cancha"}
                         </span>
-                        {reservation.isRecurring && (
-                          <span 
-                            className={`inline-flex items-center text-[9px] font-extrabold px-2 py-0.5 rounded border uppercase tracking-wider shrink-0 shadow-[0_0_8px_rgba(99,102,241,0.15)] ${
-                              reservation.paymentStatus === "pending"
-                                ? "text-amber-400 bg-amber-500/10 border-amber-500/20"
-                                : "text-indigo-400 bg-indigo-500/10 border-indigo-500/20"
-                            }`}
-                            title={reservation.paymentStatus === "pending" ? "Turno Fijo - ¡Debe abonar el bloque de 4 semanas!" : "Turno Fijo Recurrente"}
-                          >
-                            🔁 Fijo {reservation.paymentStatus === "pending" ? "⚠️" : ""}
-                          </span>
-                        )}
+                        {reservation.isRecurring && (() => {
+                          const isPartiallyPaid = reservation.paymentStatus === "paid" && (reservation.depositAmount ?? 0) > 0 && (reservation.depositAmount ?? 0) < (reservation.totalPrice ?? 0);
+                          const needsTotalPayment = reservation.paymentStatus === "pending" || isPartiallyPaid;
+                          return (
+                            <span 
+                              className={`inline-flex items-center text-[9px] font-extrabold px-2 py-0.5 rounded border uppercase tracking-wider shrink-0 shadow-[0_0_8px_rgba(99,102,241,0.15)] ${
+                                needsTotalPayment
+                                  ? "text-amber-400 bg-amber-500/10 border-amber-500/20"
+                                  : "text-indigo-400 bg-indigo-500/10 border-indigo-500/20"
+                              }`}
+                              title={needsTotalPayment ? "Turno Fijo - ¡Falta abonar el saldo restante del bloque de 4 semanas!" : "Turno Fijo Recurrente"}
+                            >
+                              🔁 Fijo {needsTotalPayment ? "⚠️" : ""}
+                            </span>
+                          );
+                        })()}
                         {reservation.isLastOfSeries && (
                           <span className="inline-flex items-center text-[9px] font-black text-green-400 bg-green-500/10 px-2 py-0.5 rounded border border-green-500/20 shrink-0 uppercase tracking-wider shadow-[0_0_8px_rgba(34,197,94,0.15)] animate-pulse" title="¡Último día reservado! Clic en los tres puntos para renovar por 4 semanas más.">
                             🚨 ÚLTIMO / RENOVAR

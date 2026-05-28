@@ -44,7 +44,8 @@ export default function ReservationActions({
     if (!isOpen && menuRef.current) {
       const rect = menuRef.current.getBoundingClientRect();
       const spaceBelow = window.innerHeight - rect.bottom;
-      setExpandUp(spaceBelow < 280);
+      // Solo desplegar hacia arriba si falta espacio abajo Y hay espacio suficiente arriba para evitar cortes
+      setExpandUp(spaceBelow < 280 && rect.top > 280);
     }
     setIsOpen(!isOpen);
   };
