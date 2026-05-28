@@ -396,8 +396,8 @@ export default function NewReservationButton({
                     }}
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 hover:bg-white/[0.08] transition-all duration-300 font-semibold"
                   >
-                    <option value="1">1 hora</option>
-                    <option value="1.5">1.5 horas</option>
+                    <option value="1" className="bg-zinc-950 text-white">1 hora</option>
+                    <option value="1.5" className="bg-zinc-950 text-white">1.5 horas</option>
                   </select>
                 </div>
               </div>
