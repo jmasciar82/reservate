@@ -125,9 +125,9 @@ export default async function Dashboard({
   // 2. Filtrar las reservas que se juegan HOY (para la grilla, lista, KPI de Reservas y ocupación)
   const playingTodayReservations = clubReservations.filter((r) => {
     if (r.status === "cancelled") return false;
-    const rDate = new Date(r.startTime);
-    const selDate = new Date(`${date}T00:00:00.000-03:00`);
-    return rDate.toDateString() === selDate.toDateString();
+    const { year, month, day } = getArtTime(r.startTime);
+    const rDateStr = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    return rDateStr === date;
   });
 
   const occupiedCourtIds = new Set(
@@ -151,9 +151,9 @@ export default async function Dashboard({
 
       // Fallback: si no tiene paymentDate (datos semilla/viejos), usamos startTime
       const pDateStr = reservation.paymentDate || reservation.startTime;
-      const pDate = new Date(pDateStr);
-      const selDate = new Date(`${date}T00:00:00.000-03:00`);
-      return pDate.toDateString() === selDate.toDateString();
+      const { year, month, day } = getArtTime(pDateStr);
+      const pDateStrFormatted = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+      return pDateStrFormatted === date;
     })
     .reduce((sum, reservation) => {
       const amountPaid = (reservation.depositAmount && reservation.depositAmount > 0)

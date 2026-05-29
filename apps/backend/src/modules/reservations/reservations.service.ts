@@ -111,16 +111,18 @@ export class ReservationsService {
 
       const isPaid = createReservationDto.paymentStatus === 'paid';
       const recurrenceGroupId = new Types.ObjectId().toString();
-      const reservationsToSave = weeksToCreate.map((week) => {
+      const reservationsToSave = weeksToCreate.map((week, idx) => {
+        const isFirst = idx === 0;
         return new this.reservationModel({
           ...createReservationDto,
           courtId: new Types.ObjectId(courtId),
           startTime: week.start,
           endTime: week.end,
           totalPrice,
-          paymentStatus: isPaid ? 'paid' : 'pending',
-          paymentDate: isPaid ? new Date() : undefined,
-          status: isPaid ? 'confirmed' : (createReservationDto.status || 'pending'),
+          paymentStatus: (isPaid && isFirst) ? 'paid' : 'pending',
+          paymentDate: (isPaid && isFirst) ? new Date() : undefined,
+          depositAmount: (isPaid && isFirst) ? (createReservationDto.depositAmount || 0) : 0,
+          status: (isPaid && isFirst) ? 'confirmed' : (createReservationDto.status || 'pending'),
           isRecurring: true,
           recurrenceGroupId,
         });

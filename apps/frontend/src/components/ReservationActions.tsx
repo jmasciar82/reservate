@@ -206,7 +206,7 @@ export default function ReservationActions({
               <div className="flex flex-col">
                 <span className="font-bold text-white">Cobrar Saldo Restante {isRecurring ? "(Bloque)" : ""}</span>
                 <span className="text-[10px] text-zinc-400">
-                  Resta cobrar: ${ ((totalPrice - depositAmount) * (isRecurring ? 4 : 1)).toLocaleString("es-AR") }
+                  Resta cobrar: ${ (totalPrice * (isRecurring ? 4 : 1) - depositAmount).toLocaleString("es-AR") }
                 </span>
               </div>
             </button>
@@ -395,13 +395,13 @@ export default function ReservationActions({
                   <span className="text-white">${(totalPrice * (isRecurring ? 4 : 1)).toLocaleString("es-AR")}</span>
                 </div>
                 <div className="flex justify-between text-xs font-semibold text-zinc-400">
-                  <span>Seña Pagada {isRecurring ? "(4 sem)" : ""}:</span>
-                  <span className="text-blue-400">${(depositAmount * (isRecurring ? 4 : 1)).toLocaleString("es-AR")}</span>
+                  <span>Seña Pagada:</span>
+                  <span className="text-blue-400">${depositAmount.toLocaleString("es-AR")}</span>
                 </div>
                 <div className="border-t border-white/5 pt-2 flex justify-between text-sm font-bold text-zinc-200">
                   <span>Saldo Restante:</span>
                   <span className="text-primary text-base drop-shadow-[0_0_6px_rgba(57,255,20,0.3)]">
-                    ${((totalPrice - depositAmount) * (isRecurring ? 4 : 1)).toLocaleString("es-AR")}
+                    ${(totalPrice * (isRecurring ? 4 : 1) - depositAmount).toLocaleString("es-AR")}
                   </span>
                 </div>
               </div>

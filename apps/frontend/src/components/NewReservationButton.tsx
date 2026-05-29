@@ -115,6 +115,7 @@ export default function NewReservationButton({
     depositAmount: "",
     isDepositPaid: false,
   });
+  const [paymentType, setPaymentType] = useState<string>("pending");
 
   const handleOpen = () => {
     setFormData({
@@ -128,6 +129,7 @@ export default function NewReservationButton({
       depositAmount: "",
       isDepositPaid: false,
     });
+    setPaymentType("pending");
     setIsOpen(true);
   };
 
@@ -137,6 +139,11 @@ export default function NewReservationButton({
       : PRESET_TIMES;
   const isTimeSelectionReady =
     Boolean(formData.date) && Boolean(formData.time) && Boolean(formData.duration);
+
+  const selectedCourt = courts.find((c) => c._id === formData.courtId);
+  const durationHours = Number(formData.duration);
+  const courtPrice = selectedCourt ? selectedCourt.pricePerHour : 0;
+  const calculatedTotalPrice = Math.round(durationHours * courtPrice);
 
   useEffect(() => {
     const shouldLoadCourts = isOpen && isTimeSelectionReady && activeClubId;
@@ -230,6 +237,17 @@ export default function NewReservationButton({
       const durationMs = Number(formData.duration) * 60 * 60 * 1000;
       const endTime = new Date(startTime.getTime() + durationMs);
 
+      let finalDepositAmount = 0;
+      let finalPaymentStatus = "pending";
+
+      if (paymentType === "deposit") {
+        finalDepositAmount = formData.depositAmount ? Number(formData.depositAmount) : 0;
+        finalPaymentStatus = "paid";
+      } else if (paymentType === "full") {
+        finalDepositAmount = calculatedTotalPrice;
+        finalPaymentStatus = "paid";
+      }
+
       const response = await apiFetch("/reservations", {
         method: "POST",
         headers: {
@@ -242,8 +260,8 @@ export default function NewReservationButton({
           endTime: endTime.toISOString(),
           isRecurring: formData.isRecurring,
           recurrenceWeeks: formData.isRecurring ? Number(formData.recurrenceWeeks) : undefined,
-          depositAmount: formData.depositAmount ? Number(formData.depositAmount) : 0,
-          paymentStatus: (formData.depositAmount && Number(formData.depositAmount) > 0 && formData.isDepositPaid) ? "paid" : "pending",
+          depositAmount: finalDepositAmount,
+          paymentStatus: finalPaymentStatus,
         }),
       });
 
@@ -260,6 +278,7 @@ export default function NewReservationButton({
           depositAmount: "",
           isDepositPaid: false,
         });
+        setPaymentType("pending");
         router.refresh();
       } else {
         const errorData = (await response.json().catch(() => ({}))) as {
@@ -440,6 +459,72 @@ export default function NewReservationButton({
                   )}
                 </select>
               </div>
+
+              {/* Estimación de Precio */}
+              {selectedCourt && (
+                <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4 space-y-2.5 shadow-inner">
+                  <div className="flex justify-between items-center text-xs font-semibold text-zinc-400">
+                    <span>Precio por hora:</span>
+                    <span className="text-white">${selectedCourt.pricePerHour.toLocaleString("es-AR")}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs font-bold text-zinc-300 border-t border-white/5 pt-2">
+                    <span>Valor estimado del turno:</span>
+                    <span className="text-primary text-sm font-black">${calculatedTotalPrice.toLocaleString("es-AR")}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Registro de Pago */}
+              {selectedCourt && (
+                <div className="space-y-3.5 bg-white/[0.02] border border-white/5 rounded-xl p-4 shadow-inner">
+                  <label className="text-sm font-bold text-zinc-200 flex items-center gap-2">
+                    💵 Registro de Pago
+                  </label>
+                  
+                  <div className="grid grid-cols-3 gap-1.5 p-1 bg-white/5 rounded-xl border border-white/5">
+                    {[
+                      { id: "pending", label: "Pendiente" },
+                      { id: "deposit", label: "Seña" },
+                      { id: "full", label: "Pago Total" },
+                    ].map((opt) => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => {
+                          setPaymentType(opt.id);
+                          if (opt.id === "deposit") {
+                            const defaultDeposit = Math.round(calculatedTotalPrice * 0.3);
+                            setFormData(prev => ({ ...prev, depositAmount: String(defaultDeposit) }));
+                          } else {
+                            setFormData(prev => ({ ...prev, depositAmount: "" }));
+                          }
+                        }}
+                        className={`py-2 text-xs font-extrabold rounded-lg transition-all duration-300 ${
+                          paymentType === opt.id
+                            ? "bg-primary text-[#09090b] shadow-[0_0_10px_rgba(57,255,20,0.3)]"
+                            : "text-zinc-400 hover:text-white hover:bg-white/5"
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {paymentType === "deposit" && (
+                    <div className="space-y-1.5 pt-2 animate-in fade-in slide-in-from-top-1 duration-150">
+                      <label className="text-xs font-bold text-zinc-400">Monto de la seña ($)</label>
+                      <input
+                        type="number"
+                        required
+                        placeholder="Ej. 5400"
+                        value={formData.depositAmount}
+                        onChange={(e) => setFormData(prev => ({ ...prev, depositAmount: e.target.value }))}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder:text-zinc-600 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 font-semibold"
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Turno Recurrente */}
               <div className="space-y-3 bg-white/[0.02] border border-white/5 rounded-xl p-4 shadow-inner">
