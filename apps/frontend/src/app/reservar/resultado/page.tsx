@@ -1,21 +1,50 @@
 "use client";
 
-import React, { Suspense } from "react";
+import React, { Suspense, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { CheckCircle2, XCircle, AlertTriangle, Calendar, Trophy, ChevronRight, CornerDownRight, CreditCard } from "lucide-react";
+import { apiFetch } from "@/lib/api";
 
 function ResultadoContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
-  const status = searchParams.get("status");
-  const reservationId = searchParams.get("reservation_id");
-  const paymentId = searchParams.get("payment_id");
+  // Capturar parámetros tanto personalizados como estándar de Mercado Pago
+  const mpStatus = searchParams.get("status") || searchParams.get("collection_status");
+  const reservationId = searchParams.get("reservation_id") || searchParams.get("external_reference");
+  const paymentId = searchParams.get("payment_id") || searchParams.get("collection_id");
   const isMock = searchParams.get("is_mock") === "true";
 
-  const isSuccess = status === "success" || status === "approved";
-  const isFailure = status === "failure" || status === "rejected";
-  const isPending = status === "pending" || status === "in_process";
+  const isSuccess = mpStatus === "success" || mpStatus === "approved";
+  const isFailure = mpStatus === "failure" || mpStatus === "rejected";
+  const isPending = mpStatus === "pending" || mpStatus === "in_process";
+
+  const hasCalled = useRef(false);
+
+  useEffect(() => {
+    if (reservationId && !isMock && !hasCalled.current) {
+      hasCalled.current = true;
+      const confirmPaymentOnBackend = async () => {
+        try {
+          const apiStatus = isSuccess ? "success" : isFailure ? "failure" : "pending";
+          const resolvedPaymentId = paymentId || `mp-real-${Date.now()}`;
+          
+          await apiFetch(`/public/reservations/${reservationId}/confirm`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              paymentId: resolvedPaymentId,
+              status: apiStatus,
+            }),
+          });
+        } catch (error) {
+          console.error("Error al confirmar el estado de la reserva en el servidor:", error);
+        }
+      };
+      
+      confirmPaymentOnBackend();
+    }
+  }, [reservationId, isMock, isSuccess, isFailure, paymentId]);
 
   return (
     <div className="min-h-screen w-full bg-[#09090b] text-[#fafafa] flex flex-col font-sans overflow-y-auto">

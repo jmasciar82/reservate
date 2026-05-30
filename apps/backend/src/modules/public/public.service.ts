@@ -6,7 +6,7 @@ import { Club, ClubDocument } from '../clubs/schemas/club.schema';
 import { Court, CourtDocument } from '../courts/schemas/court.schema';
 import { Reservation, ReservationDocument } from '../reservations/schemas/reservation.schema';
 import { CreateReservationDto } from '../reservations/dto/create-reservation.dto';
-import { MercadoPagoConfig, Preference } from 'mercadopago';
+import { MercadoPagoConfig, Preference, Payment } from 'mercadopago';
 import { NotificationsService } from '../notifications/notifications.service';
 import { WhatsappService } from '../whatsapp/whatsapp.service';
 
@@ -233,7 +233,7 @@ export class PublicService {
                 pending: `${frontendUrl}/reservar/resultado?status=pending&reservation_id=${savedReservation._id}`,
               },
               auto_return: 'approved',
-              notification_url: `${backendUrl}/public/payments/webhook`,
+              notification_url: `${backendUrl}/public/payments/webhook?reservation_id=${savedReservation._id}`,
               external_reference: savedReservation._id.toString(),
             },
           });
@@ -260,11 +260,55 @@ export class PublicService {
     };
   }
 
-  async handleWebhook(body: any) {
-    if (body.type === 'payment' || body.action === 'payment.created' || body.action === 'payment.updated') {
-      const paymentId = body.data?.id;
+  async handleWebhook(body: any, reservationId?: string) {
+    const isPaymentAction = 
+      body.type === 'payment' || 
+      body.action === 'payment.created' || 
+      body.action === 'payment.updated';
+
+    if (isPaymentAction) {
+      const paymentId = body.data?.id || body.id;
       if (!paymentId) return { received: true };
-      console.log(`Webhook de pago recibido: ID ${paymentId}`);
+      console.log(`Webhook de pago recibido: ID ${paymentId} para la reserva ${reservationId}`);
+
+      if (reservationId) {
+        try {
+          const reservation = await this.reservationModel.findById(reservationId).exec();
+          if (reservation) {
+            // Obtener la cancha y el club para ver las credenciales
+            const court = await this.courtModel.findById(reservation.courtId).populate('clubId').exec();
+            const club = court?.clubId as any;
+
+            let clubMpClient = this.mpClient;
+            let isMock = this.isMockMode;
+
+            if (club && club.mpAccessToken && club.mpAccessToken.trim() !== '' && club.mpAccessToken !== 'placeholder') {
+              try {
+                clubMpClient = new MercadoPagoConfig({ accessToken: club.mpAccessToken.trim() });
+                isMock = false;
+              } catch (err) {
+                console.error(`Error al inicializar token de la sede ${club.name} para el webhook:`, err);
+              }
+            }
+
+            if (!isMock && clubMpClient) {
+              const payment = new Payment(clubMpClient);
+              const paymentData = await payment.get({ id: String(paymentId) });
+              const mpStatus = paymentData.status;
+
+              console.log(`Estado del pago ${paymentId} obtenido de Mercado Pago para la reserva ${reservationId}: ${mpStatus}`);
+
+              if (mpStatus === 'approved') {
+                await this.confirmReservation(reservationId, String(paymentId), 'success');
+              } else if (mpStatus === 'rejected' || mpStatus === 'cancelled') {
+                await this.confirmReservation(reservationId, String(paymentId), 'failure');
+              }
+            }
+          }
+        } catch (err) {
+          console.error(`Error al procesar webhook de pago ${paymentId} para la reserva ${reservationId}:`, err);
+        }
+      }
     }
     return { received: true };
   }

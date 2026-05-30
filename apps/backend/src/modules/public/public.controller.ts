@@ -26,8 +26,11 @@ export class PublicController {
   }
 
   @Post('payments/webhook')
-  async handleWebhook(@Body() body: any) {
-    return this.publicService.handleWebhook(body);
+  async handleWebhook(
+    @Body() body: any,
+    @Query('reservation_id') reservationId?: string,
+  ) {
+    return this.publicService.handleWebhook(body, reservationId);
   }
 
   @Post('reservations/:id/confirm')
