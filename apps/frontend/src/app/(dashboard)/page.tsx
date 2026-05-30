@@ -146,7 +146,6 @@ export default async function Dashboard({
   // 3. Calcular los ingresos cobrados (cobros realizados HOY)
   const totalRevenue = clubReservations
     .filter((reservation) => {
-      if (reservation.status === "cancelled") return false;
       if (reservation.paymentStatus !== "paid") return false;
 
       // Fallback: si no tiene paymentDate (datos semilla/viejos), usamos startTime
@@ -436,6 +435,7 @@ export default async function Dashboard({
                                           ? `${reservation.firstName} ${reservation.lastName}`
                                           : (reservation.userId || "")
                                       }
+                                      startTime={reservation.startTime}
                                     />
                                   </div>
                                 ) : null}
@@ -527,6 +527,7 @@ export default async function Dashboard({
                                         ? `${reservation.firstName} ${reservation.lastName}`
                                         : (reservation.userId || "")
                                     }
+                                    startTime={reservation.startTime}
                                   />
                                 </div>
                               </div>
@@ -687,6 +688,7 @@ export default async function Dashboard({
                           ? `${reservation.firstName} ${reservation.lastName}`
                           : (reservation.userId || "")
                       }
+                      startTime={reservation.startTime}
                     />
                   </div>
                 </div>

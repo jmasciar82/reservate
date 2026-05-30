@@ -353,6 +353,17 @@ export class ReservationsService {
       updateReservationDto.status = 'confirmed';
     }
 
+    // No se permite cancelar reservas que ya comenzaron o pasaron de horario
+    if (updateReservationDto.status === 'cancelled') {
+      const now = new Date();
+      const startTime = new Date(existingReservation.startTime);
+      if (startTime < now) {
+        throw new BadRequestException(
+          'No se puede cancelar una reserva que ya ha comenzado o cuya fecha/hora de inicio ya ha pasado.',
+        );
+      }
+    }
+
     // Cancelación en cascada para series recurrentes
     if (
       updateReservationDto.status === 'cancelled' &&

@@ -16,6 +16,7 @@ interface ReservationActionsProps {
   recurrenceGroupId?: string;
   isLastOfSeries?: boolean;
   playerName?: string;
+  startTime?: string;
 }
 
 export default function ReservationActions({
@@ -28,6 +29,7 @@ export default function ReservationActions({
   recurrenceGroupId,
   isLastOfSeries = false,
   playerName = "",
+  startTime,
 }: ReservationActionsProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -119,8 +121,9 @@ export default function ReservationActions({
     }
   };
 
+  const isPast = startTime ? new Date(startTime) < new Date() : false;
   const showConfirm = status === "pending";
-  const showCancel = status !== "cancelled";
+  const showCancel = status !== "cancelled" && !isPast;
   
   const isPartiallyPaid = paymentStatus === "paid" && depositAmount > 0 && depositAmount < totalPrice;
   const showPaymentActions = paymentStatus === "pending" && status !== "cancelled";
