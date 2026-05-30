@@ -313,14 +313,36 @@ export default async function Dashboard({
 
                       if (reservation) {
                         const rStart = getArtTime(reservation.startTime);
+                        const rEnd = getArtTime(reservation.endTime);
+                        
+                        const rStartMins = rStart.hour * 60 + rStart.minute;
+                        const rEndMins = rEnd.hour * 60 + rEnd.minute;
+                        const slotStartMins = slot.hour * 60 + slot.minute;
+                        const slotEndMins = slotStartMins + 30;
+
                         const isStartSlot = rStart.hour === slot.hour && rStart.minute === slot.minute;
+                        const isEndSlot = slotEndMins === rEndMins;
+                        const isIntermediateSlot = !isStartSlot && !isEndSlot;
 
                         return (
-                          <div key={court._id} className="p-1 border-r border-b border-white/5 min-h-[65px] last:border-r-0">
+                          <div
+                            key={court._id}
+                            className={`p-1 border-r border-white/5 min-h-[65px] last:border-r-0 ${
+                              isStartSlot
+                                ? "pb-0 border-b-0"
+                                : isIntermediateSlot
+                                  ? "py-0 border-b-0"
+                                  : "pt-0 border-b border-white/5"
+                            }`}
+                          >
                             {isStartSlot ? (
-                              <div className="h-full bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-2.5 flex flex-col justify-between hover:border-primary/45 hover:bg-white/[0.08] transition-all duration-300 shadow-[0_4px_12px_rgba(0,0,0,0.15)] hover:shadow-[0_8px_20px_rgba(57,255,20,0.08)] group/res relative hover:z-20">
+                              <div className={`h-full bg-white/5 backdrop-blur-sm border border-white/10 p-2.5 flex flex-col justify-between hover:border-primary/45 hover:bg-white/[0.08] transition-all duration-300 shadow-[0_4px_12px_rgba(0,0,0,0.15)] hover:shadow-[0_8px_20px_rgba(57,255,20,0.08)] group/res relative hover:z-20 ${
+                                isEndSlot 
+                                  ? "rounded-xl" 
+                                  : "rounded-t-xl rounded-b-none border-b-0 pb-1"
+                              }`}>
                                 {/* Soft ambient background color inside slot */}
-                                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none rounded-xl" />
+                                <div className={`absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none ${isEndSlot ? "rounded-xl" : "rounded-t-xl rounded-b-none"}`} />
                                 <div className="relative z-10">
                                   <div className="flex justify-between items-start mb-1 gap-1.5">
                                     <span className="text-[9px] font-extrabold text-primary flex items-center gap-1 uppercase bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20 tracking-wider">
@@ -380,43 +402,65 @@ export default async function Dashboard({
                                     ) : null;
                                   })()}
                                 </div>
-                                <div className="flex items-center justify-between border-t border-white/5 pt-1.5 mt-1.5 relative z-10">
-                                  <span className={`text-[9px] font-extrabold tracking-wider ${
-                                    reservation.status === "confirmed"
-                                      ? "text-primary drop-shadow-[0_0_5px_rgba(57,255,20,0.3)]"
-                                      : reservation.status === "completed"
-                                        ? "text-blue-400"
-                                        : "text-zinc-400"
-                                  }`}>
-                                    {statusLabel(reservation.status)}
-                                  </span>
-                                  <ReservationActions
-                                    reservationId={reservation._id}
-                                    status={reservation.status}
-                                    paymentStatus={reservation.paymentStatus}
-                                    totalPrice={reservation.totalPrice}
-                                    depositAmount={reservation.depositAmount}
-                                    isRecurring={reservation.isRecurring}
-                                    recurrenceGroupId={reservation.recurrenceGroupId}
-                                    isLastOfSeries={reservation.isLastOfSeries}
-                                    playerName={
-                                      reservation.firstName
-                                        ? `${reservation.firstName} ${reservation.lastName}`
-                                        : (reservation.userId || "")
-                                    }
-                                  />
-                                </div>
+                                {isEndSlot ? (
+                                  <div className="flex items-center justify-between border-t border-white/5 pt-1.5 mt-1.5 relative z-10">
+                                    <span className={`text-[9px] font-extrabold tracking-wider ${
+                                      reservation.status === "confirmed"
+                                        ? "text-primary drop-shadow-[0_0_5px_rgba(57,255,20,0.3)]"
+                                        : reservation.status === "completed"
+                                          ? "text-blue-400"
+                                          : "text-zinc-400"
+                                    }`}>
+                                      {statusLabel(reservation.status)}
+                                    </span>
+                                    <ReservationActions
+                                      reservationId={reservation._id}
+                                      status={reservation.status}
+                                      paymentStatus={reservation.paymentStatus}
+                                      totalPrice={reservation.totalPrice}
+                                      depositAmount={reservation.depositAmount}
+                                      isRecurring={reservation.isRecurring}
+                                      recurrenceGroupId={reservation.recurrenceGroupId}
+                                      isLastOfSeries={reservation.isLastOfSeries}
+                                      playerName={
+                                        reservation.firstName
+                                          ? `${reservation.firstName} ${reservation.lastName}`
+                                          : (reservation.userId || "")
+                                      }
+                                    />
+                                  </div>
+                                ) : null}
+                              </div>
+                            ) : isIntermediateSlot ? (
+                              <div className="h-full bg-white/5 backdrop-blur-sm border-x border-white/10 rounded-none px-2.5 py-1 flex items-center justify-center relative group/res hover:bg-white/[0.08] transition-all duration-300">
+                                <div className="w-1.5 h-3 rounded-full bg-primary/20 group-hover/res:bg-primary/45 transition-colors" />
                               </div>
                             ) : (
-                              <div className="h-full bg-white/[0.01] border border-dashed border-white/5 rounded-xl p-2.5 flex items-center justify-center select-none italic min-h-[48px] gap-2">
-                                <span className="text-zinc-500 font-extrabold uppercase tracking-wider text-[8px] flex items-center gap-1">
-                                  <Clock className="w-2.5 h-2.5 text-zinc-500" /> Sigue:
+                              <div className="h-full bg-white/5 backdrop-blur-sm border-x border-b border-white/10 rounded-b-xl rounded-t-none px-2.5 py-1 pb-2.5 flex items-end justify-between relative group/res hover:bg-white/[0.08] transition-all duration-300 shadow-[0_4px_12px_rgba(0,0,0,0.15)]">
+                                <span className={`text-[9px] font-extrabold tracking-wider ${
+                                  reservation.status === "confirmed"
+                                    ? "text-primary drop-shadow-[0_0_5px_rgba(57,255,20,0.3)]"
+                                    : reservation.status === "completed"
+                                      ? "text-blue-400"
+                                      : "text-zinc-400"
+                                }`}>
+                                  {statusLabel(reservation.status)}
                                 </span>
-                                <span className="text-zinc-300 not-italic font-bold truncate max-w-[120px] text-[11px] capitalize">
-                                  {reservation.firstName
-                                    ? `${reservation.firstName} ${reservation.lastName}`
-                                    : (reservation.userId || "Jugador")}
-                                </span>
+                                <ReservationActions
+                                  reservationId={reservation._id}
+                                  status={reservation.status}
+                                  paymentStatus={reservation.paymentStatus}
+                                  totalPrice={reservation.totalPrice}
+                                  depositAmount={reservation.depositAmount}
+                                  isRecurring={reservation.isRecurring}
+                                  recurrenceGroupId={reservation.recurrenceGroupId}
+                                  isLastOfSeries={reservation.isLastOfSeries}
+                                  playerName={
+                                    reservation.firstName
+                                      ? `${reservation.firstName} ${reservation.lastName}`
+                                      : (reservation.userId || "")
+                                  }
+                                />
                               </div>
                             )}
                           </div>
