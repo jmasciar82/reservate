@@ -244,7 +244,9 @@ export default function NewReservationButton({
         finalDepositAmount = formData.depositAmount ? Number(formData.depositAmount) : 0;
         finalPaymentStatus = "paid";
       } else if (paymentType === "full") {
-        finalDepositAmount = calculatedTotalPrice;
+        finalDepositAmount = formData.isRecurring
+          ? Math.round(calculatedTotalPrice * Number(formData.recurrenceWeeks || 4) * 0.90)
+          : calculatedTotalPrice;
         finalPaymentStatus = "paid";
       }
 
@@ -471,6 +473,18 @@ export default function NewReservationButton({
                     <span>Valor estimado del turno:</span>
                     <span className="text-primary text-sm font-black">${calculatedTotalPrice.toLocaleString("es-AR")}</span>
                   </div>
+                  {formData.isRecurring && (
+                    <div className="flex flex-col gap-1 border-t border-white/5 pt-2.5">
+                      <div className="flex justify-between items-center text-xs font-semibold text-zinc-400">
+                        <span>Total normal ({Number(formData.recurrenceWeeks || 4)} sem):</span>
+                        <span className="line-through text-zinc-505">${(calculatedTotalPrice * Number(formData.recurrenceWeeks || 4)).toLocaleString("es-AR")}</span>
+                      </div>
+                      <div className="flex justify-between items-center text-xs font-bold text-indigo-300">
+                        <span className="flex items-center gap-1">🏷️ Total con 10% OFF:</span>
+                        <span className="text-indigo-400 text-sm font-black">${Math.round(calculatedTotalPrice * Number(formData.recurrenceWeeks || 4) * 0.90).toLocaleString("es-AR")}</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 

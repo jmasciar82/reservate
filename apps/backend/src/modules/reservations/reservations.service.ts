@@ -111,21 +111,45 @@ export class ReservationsService {
 
       const isPaid = createReservationDto.paymentStatus === 'paid';
       const recurrenceGroupId = new Types.ObjectId().toString();
+      
+      // Detect if it is a block payment (Full Payment for all weeks) at creation
+      const isBlockPayment = isPaid && 
+        createReservationDto.depositAmount && 
+        createReservationDto.depositAmount >= Math.round(totalPrice * recurrenceWeeksCount * 0.85);
+
       const reservationsToSave = weeksToCreate.map((week, idx) => {
         const isFirst = idx === 0;
-        return new this.reservationModel({
-          ...createReservationDto,
-          courtId: new Types.ObjectId(courtId),
-          startTime: week.start,
-          endTime: week.end,
-          totalPrice,
-          paymentStatus: (isPaid && isFirst) ? 'paid' : 'pending',
-          paymentDate: (isPaid && isFirst) ? new Date() : undefined,
-          depositAmount: (isPaid && isFirst) ? (createReservationDto.depositAmount || 0) : 0,
-          status: (isPaid && isFirst) ? 'confirmed' : (createReservationDto.status || 'pending'),
-          isRecurring: true,
-          recurrenceGroupId,
-        });
+
+        if (isBlockPayment) {
+          const discountedPrice = Math.round(totalPrice * 0.90);
+          return new this.reservationModel({
+            ...createReservationDto,
+            courtId: new Types.ObjectId(courtId),
+            startTime: week.start,
+            endTime: week.end,
+            totalPrice: discountedPrice,
+            paymentStatus: 'paid',
+            paymentDate: new Date(),
+            depositAmount: discountedPrice,
+            status: 'confirmed',
+            isRecurring: true,
+            recurrenceGroupId,
+          });
+        } else {
+          return new this.reservationModel({
+            ...createReservationDto,
+            courtId: new Types.ObjectId(courtId),
+            startTime: week.start,
+            endTime: week.end,
+            totalPrice,
+            paymentStatus: (isPaid && isFirst) ? 'paid' : 'pending',
+            paymentDate: (isPaid && isFirst) ? new Date() : undefined,
+            depositAmount: (isPaid && isFirst) ? (createReservationDto.depositAmount || 0) : 0,
+            status: (isPaid && isFirst) ? 'confirmed' : (createReservationDto.status || 'pending'),
+            isRecurring: true,
+            recurrenceGroupId,
+          });
+        }
       });
 
       const savedReservations = await this.reservationModel.insertMany(reservationsToSave);
