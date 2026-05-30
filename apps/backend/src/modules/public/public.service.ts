@@ -37,11 +37,31 @@ export class PublicService {
     }
   }
 
+  private async cleanAbandonedReservations(): Promise<void> {
+    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+    const result = await this.reservationModel.updateMany(
+      {
+        isPublic: true,
+        status: 'pending',
+        paymentStatus: 'pending',
+        createdAt: { $lt: tenMinutesAgo },
+      },
+      {
+        $set: { status: 'cancelled' },
+      }
+    ).exec();
+
+    if (result.modifiedCount > 0) {
+      console.log(`🧹 Auto-limpieza: Se cancelaron ${result.modifiedCount} reservas públicas abandonadas.`);
+    }
+  }
+
   async getClubs(): Promise<Club[]> {
     return this.clubModel.find().exec();
   }
 
   async getAvailableCourts(startTime: string, endTime: string, clubId?: string): Promise<any[]> {
+    await this.cleanAbandonedReservations();
     const start = new Date(startTime);
     const end = new Date(endTime);
 
@@ -80,6 +100,7 @@ export class PublicService {
   }
 
   async createPublicReservation(dto: CreateReservationDto) {
+    await this.cleanAbandonedReservations();
     const { courtId, startTime, endTime, firstName, lastName, email, phone } = dto;
 
     if (!courtId || !startTime || !endTime || !firstName || !lastName || !email) {
