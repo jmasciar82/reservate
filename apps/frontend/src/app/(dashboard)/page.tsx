@@ -348,14 +348,14 @@ export default async function Dashboard({
                                 <div className={`absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none ${isEndSlot ? "rounded-xl" : "rounded-t-xl rounded-b-none"}`} />
                                 <div className="relative z-10 flex-1 flex flex-col justify-between h-full w-full">
                                   <div className="flex justify-between items-start mb-1 gap-1.5">
-                                    <span className="text-[9px] font-extrabold text-primary flex items-center gap-1 uppercase bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20 tracking-wider">
-                                      <Clock className="w-2.5 h-2.5" />
+                                    <span className="text-[10px] font-black text-primary flex items-center gap-1 uppercase bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20 tracking-wider">
+                                      <Clock className="w-3 h-3" />
                                       {formatArtTimeStr(reservation.startTime)} - {formatArtTimeStr(reservation.endTime)}
                                     </span>
                                     {(() => {
                                       const isPartiallyPaid = reservation.paymentStatus === "paid" && (reservation.depositAmount ?? 0) > 0 && (reservation.depositAmount ?? 0) < (reservation.totalPrice ?? 0);
                                       return (
-                                        <span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded-full tracking-wider ${
+                                        <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-full tracking-wider ${
                                           isPartiallyPaid
                                             ? "bg-blue-500/10 text-blue-400 border border-blue-500/20 shadow-[0_0_8px_rgba(59,130,246,0.1)]"
                                             : reservation.paymentStatus === "paid"
@@ -371,7 +371,7 @@ export default async function Dashboard({
                                   {/* Renders Name in Start Slot only if it's a short 1-slot or 2-slot reservation */}
                                   {totalSlots <= 2 && (
                                     <div className="mt-2.5">
-                                      <h4 className="text-xs font-black text-white truncate capitalize flex items-center gap-1.5 min-w-0">
+                                      <h4 className="text-sm font-black text-white truncate capitalize flex items-center gap-1.5 min-w-0">
                                         <span className="truncate">
                                           {reservation.firstName
                                             ? `${reservation.firstName} ${reservation.lastName}`
@@ -382,7 +382,7 @@ export default async function Dashboard({
                                           const needsTotalPayment = reservation.paymentStatus === "pending" || isPartiallyPaid;
                                           return (
                                             <span 
-                                              className={`inline-flex items-center text-[8px] font-extrabold px-1.5 py-0.5 rounded border shrink-0 uppercase tracking-wide shadow-[0_0_8px_rgba(99,102,241,0.15)] ${
+                                              className={`inline-flex items-center text-[9px] font-black px-1.5 py-0.5 rounded border shrink-0 uppercase tracking-wide shadow-[0_0_8px_rgba(99,102,241,0.15)] ${
                                                 needsTotalPayment
                                                   ? "text-amber-400 bg-amber-500/10 border-amber-500/20"
                                                   : "text-indigo-400 bg-indigo-500/10 border-indigo-500/20"
@@ -394,7 +394,7 @@ export default async function Dashboard({
                                           );
                                         })()}
                                         {reservation.isLastOfSeries && (
-                                          <span className="inline-flex items-center text-[8px] font-black text-green-400 bg-green-500/10 px-1.5 py-0.5 rounded border border-green-500/20 shrink-0 uppercase tracking-wide shadow-[0_0_8px_rgba(34,197,94,0.15)] animate-pulse" title="¡Último día reservado! Clic en los tres puntos para renovar por 4 semanas más.">
+                                          <span className="inline-flex items-center text-[9px] font-black text-green-400 bg-green-500/10 px-1.5 py-0.5 rounded border border-green-500/20 shrink-0 uppercase tracking-wide shadow-[0_0_8px_rgba(34,197,94,0.15)] animate-pulse" title="¡Último día reservado! Clic en los tres puntos para renovar por 4 semanas más.">
                                             🚨 ÚLTIMO / RENOVAR
                                           </span>
                                         )}
@@ -403,7 +403,7 @@ export default async function Dashboard({
                                         const isPartiallyPaid = reservation.paymentStatus === "paid" && (reservation.depositAmount ?? 0) > 0 && (reservation.depositAmount ?? 0) < (reservation.totalPrice ?? 0);
                                         const balance = (reservation.totalPrice ?? 0) - (reservation.depositAmount ?? 0);
                                         return (totalSlots === 1 && isPartiallyPaid) ? (
-                                          <p className="text-[9px] text-zinc-400 mt-1 leading-none">
+                                          <p className="text-xs text-zinc-400 mt-1 leading-none">
                                             Resta: <strong className="text-white">${balance.toLocaleString("es-AR")}</strong>
                                           </p>
                                         ) : null;
@@ -413,7 +413,7 @@ export default async function Dashboard({
                                 </div>
                                 {isEndSlot ? (
                                   <div className="flex items-center justify-between border-t border-white/5 pt-1.5 mt-1.5 relative z-10 w-full">
-                                    <span className={`text-[9px] font-extrabold tracking-wider ${
+                                    <span className={`text-[10px] font-black tracking-wider ${
                                       reservation.status === "confirmed"
                                         ? "text-primary drop-shadow-[0_0_5px_rgba(57,255,20,0.3)]"
                                         : reservation.status === "completed"
@@ -445,7 +445,7 @@ export default async function Dashboard({
                                 {isSecondSlot && totalSlots >= 3 ? (
                                   /* Render Name & turn details beautifully centered in the middle slot of tall cards */
                                   <div className="text-center w-full animate-in fade-in zoom-in-95 duration-200">
-                                    <h4 className="text-sm font-black text-white capitalize flex items-center justify-center gap-1.5 w-full">
+                                    <h4 className="text-base font-black text-white capitalize flex items-center justify-center gap-1.5 w-full">
                                       <span className="truncate max-w-[150px]">
                                         {reservation.firstName
                                           ? `${reservation.firstName} ${reservation.lastName}`
@@ -456,7 +456,7 @@ export default async function Dashboard({
                                         const needsTotalPayment = reservation.paymentStatus === "pending" || isPartiallyPaid;
                                         return (
                                           <span 
-                                            className={`inline-flex items-center text-[8px] font-extrabold px-1.5 py-0.5 rounded border shrink-0 uppercase tracking-wide shadow-[0_0_8px_rgba(99,102,241,0.15)] ${
+                                            className={`inline-flex items-center text-[9px] font-black px-1.5 py-0.5 rounded border shrink-0 uppercase tracking-wide shadow-[0_0_8px_rgba(99,102,241,0.15)] ${
                                               needsTotalPayment
                                                 ? "text-amber-400 bg-amber-500/10 border-amber-500/20"
                                                 : "text-indigo-400 bg-indigo-500/10 border-indigo-500/20"
@@ -483,19 +483,19 @@ export default async function Dashboard({
                                     
                                     if (isPartiallyPaid) {
                                       return (
-                                        <p className="text-[11px] text-zinc-300 font-bold bg-white/5 px-3 py-1 rounded-lg border border-white/5 shadow-inner">
+                                        <p className="text-xs text-zinc-300 font-bold bg-white/5 px-3 py-1 rounded-lg border border-white/5 shadow-inner">
                                           Resta: <strong className="text-white font-extrabold">${balance.toLocaleString("es-AR")}</strong>
                                         </p>
                                       );
                                     } else if (reservation.paymentStatus === "pending") {
                                       return (
-                                        <p className="text-[11px] text-amber-300 font-bold bg-amber-500/5 px-3 py-1 rounded-lg border border-amber-500/10 shadow-inner">
+                                        <p className="text-xs text-amber-300 font-bold bg-amber-500/5 px-3 py-1 rounded-lg border border-amber-500/10 shadow-inner">
                                           Total: <strong className="text-white font-extrabold">${reservation.totalPrice.toLocaleString("es-AR")}</strong>
                                         </p>
                                       );
                                     } else {
                                       return (
-                                        <p className="text-[11px] text-green-300 font-bold bg-green-500/5 px-3 py-1 rounded-lg border border-green-500/10 shadow-inner">
+                                        <p className="text-xs text-green-300 font-bold bg-green-500/5 px-3 py-1 rounded-lg border border-green-500/10 shadow-inner">
                                           Total Pagado: <strong className="text-white font-extrabold">${reservation.totalPrice.toLocaleString("es-AR")}</strong>
                                         </p>
                                       );
@@ -504,7 +504,7 @@ export default async function Dashboard({
                                 </div>
 
                                 <div className="flex items-center justify-between border-t border-white/5 pt-1.5 mt-1.5 relative z-10 w-full shrink-0">
-                                  <span className={`text-[9px] font-extrabold tracking-wider ${
+                                  <span className={`text-[10px] font-black tracking-wider ${
                                     reservation.status === "confirmed"
                                       ? "text-primary drop-shadow-[0_0_5px_rgba(57,255,20,0.3)]"
                                       : reservation.status === "completed"
