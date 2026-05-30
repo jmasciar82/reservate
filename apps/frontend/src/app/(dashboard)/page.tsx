@@ -276,14 +276,14 @@ export default async function Dashboard({
                 {/* Grid Rows */}
                 {(() => {
                   const timeSlots = [];
-                  for (let h = 8; h <= 22; h++) {
+                  for (let h = 8; h <= 23; h++) {
                     timeSlots.push({ hour: h, minute: 0, label: `${String(h).padStart(2, "0")}:00` });
-                    if (h < 22) {
+                    if (h < 23) {
                       timeSlots.push({ hour: h, minute: 30, label: `${String(h).padStart(2, "0")}:30` });
                     }
                   }
                   return timeSlots;
-                })().map((slot) => (
+                })().map((slot, slotIndex) => (
                   <div
                     key={slot.label}
                     className="grid hover:bg-white/[0.01] transition-colors"
@@ -338,11 +338,14 @@ export default async function Dashboard({
                             }`}
                           >
                             {isStartSlot ? (
-                              <div className={`h-full bg-white/5 backdrop-blur-sm border border-white/10 p-2.5 flex flex-col justify-between hover:border-primary/45 hover:bg-white/[0.08] transition-all duration-300 shadow-[0_4px_12px_rgba(0,0,0,0.15)] hover:shadow-[0_8px_20px_rgba(57,255,20,0.08)] group/res relative hover:z-20 ${
-                                isEndSlot 
-                                  ? "rounded-xl" 
-                                  : "rounded-t-xl rounded-b-none border-b-0 pb-1"
-                              }`}>
+                              <div 
+                                className={`h-full bg-white/5 backdrop-blur-sm border border-white/10 p-2.5 flex flex-col justify-between hover:border-primary/45 hover:bg-white/[0.08] transition-all duration-300 shadow-[0_4px_12px_rgba(0,0,0,0.15)] hover:shadow-[0_8px_20px_rgba(57,255,20,0.08)] group/res relative hover:z-20 ${
+                                  isEndSlot 
+                                    ? "rounded-xl" 
+                                    : "rounded-t-xl rounded-b-none border-b-0 pb-1"
+                                }`}
+                                style={{ zIndex: 50 - slotIndex }}
+                              >
                                 {/* Soft ambient background color inside slot */}
                                 <div className={`absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none ${isEndSlot ? "rounded-xl" : "rounded-t-xl rounded-b-none"}`} />
                                 <div className="relative z-10 flex-1 flex flex-col justify-between h-full w-full">
@@ -441,7 +444,10 @@ export default async function Dashboard({
                                 ) : null}
                               </div>
                             ) : isIntermediateSlot ? (
-                              <div className="h-full bg-white/5 backdrop-blur-sm border-x border-white/10 rounded-none px-2.5 py-1.5 flex flex-col items-center justify-center relative group/res hover:bg-white/[0.08] transition-all duration-300">
+                              <div 
+                                className="h-full bg-white/5 backdrop-blur-sm border-x border-white/10 rounded-none px-2.5 py-1.5 flex flex-col items-center justify-center relative group/res hover:bg-white/[0.08] transition-all duration-300"
+                                style={{ zIndex: 50 - slotIndex }}
+                              >
                                 {isSecondSlot && totalSlots >= 3 ? (
                                   /* Render Name & turn details beautifully centered in the middle slot of tall cards */
                                   <div className="text-center w-full animate-in fade-in zoom-in-95 duration-200">
@@ -474,7 +480,10 @@ export default async function Dashboard({
                                 )}
                               </div>
                             ) : (
-                              <div className="h-full bg-white/5 backdrop-blur-sm border-x border-b border-white/10 rounded-b-xl rounded-t-none px-2.5 py-2.5 flex flex-col justify-between relative group/res hover:bg-white/[0.08] transition-all duration-300 shadow-[0_4px_12px_rgba(0,0,0,0.15)]">
+                              <div 
+                                className="h-full bg-white/5 backdrop-blur-sm border-x border-b border-white/10 rounded-b-xl rounded-t-none px-2.5 py-2.5 flex flex-col justify-between relative group/res hover:bg-white/[0.08] transition-all duration-300 shadow-[0_4px_12px_rgba(0,0,0,0.15)]"
+                                style={{ zIndex: 50 - slotIndex }}
+                              >
                                 {/* Balance (Resta: $...) rendered beautifully in the upper part of the bottom slot */}
                                 <div className="text-center w-full flex flex-col items-center justify-center flex-1">
                                   {(() => {

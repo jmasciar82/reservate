@@ -37,6 +37,7 @@ export default function ReservationActions({
   const [depositInputValue, setDepositInputValue] = useState("");
   const [showBalanceModal, setShowBalanceModal] = useState(false);
   const [showEditNameModal, setShowEditNameModal] = useState(false);
+  const [showSingleCancelModal, setShowSingleCancelModal] = useState(false);
   const [nameInputValue, setNameInputValue] = useState(playerName || "");
   const [expandUp, setExpandUp] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -248,9 +249,8 @@ export default function ReservationActions({
                   setIsOpen(false);
                   setShowCancelModal(true);
                 } else {
-                  if (confirm("¿Estás seguro de que querés cancelar esta reserva?")) {
-                    handleUpdate({ status: "cancelled" });
-                  }
+                  setIsOpen(false);
+                  setShowSingleCancelModal(true);
                 }
               }}
               className="w-full text-left px-4 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 flex items-center gap-2.5 transition-colors border-t border-zinc-900"
@@ -531,6 +531,58 @@ export default function ReservationActions({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {showSingleCancelModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+            onClick={() => setShowSingleCancelModal(false)}
+          />
+          <div className="relative w-full max-w-sm bg-zinc-950/85 backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-white/5 flex justify-between items-center bg-white/[0.02]">
+              <h3 className="text-lg font-black text-white flex items-center gap-2">
+                <span className="w-2 h-5 bg-red-500 rounded-full shadow-[0_0_8px_rgba(239,68,68,0.5)]" />
+                Cancelar Reserva
+              </h3>
+              <button
+                onClick={() => setShowSingleCancelModal(false)}
+                className="text-zinc-400 hover:text-white transition-all duration-300 p-1.5 bg-white/5 hover:bg-white/10 rounded-lg border border-white/5"
+                title="Cerrar"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-5">
+              <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4 space-y-3">
+                <p className="text-sm text-zinc-400 leading-relaxed text-center font-medium">
+                  ¿Estás seguro de que querés cancelar esta reserva? Esta acción no se puede deshacer.
+                </p>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowSingleCancelModal(false)}
+                  className="flex-1 py-3 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 font-semibold rounded-xl border border-zinc-800 hover:border-zinc-700 transition-all text-sm"
+                >
+                  Volver / Conservar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleUpdate({ status: "cancelled" });
+                    setShowSingleCancelModal(false);
+                  }}
+                  className="flex-1 py-3 bg-red-600 hover:bg-red-500 text-white font-black rounded-xl shadow-[0_4px_15px_rgba(239,68,68,0.25)] hover:shadow-[0_4px_20px_rgba(239,68,68,0.45)] transition-all text-sm"
+                >
+                  Sí, Cancelar
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
