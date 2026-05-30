@@ -324,6 +324,9 @@ export default async function Dashboard({
                         const isEndSlot = slotEndMins === rEndMins;
                         const isIntermediateSlot = !isStartSlot && !isEndSlot;
 
+                        const totalSlots = Math.round((rEndMins - rStartMins) / 30);
+                        const isSecondSlot = slotStartMins === rStartMins + 30;
+
                         return (
                           <div
                             key={court._id}
@@ -343,7 +346,7 @@ export default async function Dashboard({
                               }`}>
                                 {/* Soft ambient background color inside slot */}
                                 <div className={`absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none ${isEndSlot ? "rounded-xl" : "rounded-t-xl rounded-b-none"}`} />
-                                <div className="relative z-10">
+                                <div className="relative z-10 flex-1 flex flex-col justify-between h-full w-full">
                                   <div className="flex justify-between items-start mb-1 gap-1.5">
                                     <span className="text-[9px] font-extrabold text-primary flex items-center gap-1 uppercase bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20 tracking-wider">
                                       <Clock className="w-2.5 h-2.5" />
@@ -364,46 +367,52 @@ export default async function Dashboard({
                                       );
                                     })()}
                                   </div>
-                                  <h4 className="text-xs font-black text-white truncate mt-1.5 capitalize flex items-center gap-1.5 min-w-0">
-                                    <span className="truncate">
-                                      {reservation.firstName
-                                        ? `${reservation.firstName} ${reservation.lastName}`
-                                        : (reservation.userId || "Jugador")}
-                                    </span>
-                                    {reservation.isRecurring && (() => {
-                                      const isPartiallyPaid = reservation.paymentStatus === "paid" && (reservation.depositAmount ?? 0) > 0 && (reservation.depositAmount ?? 0) < (reservation.totalPrice ?? 0);
-                                      const needsTotalPayment = reservation.paymentStatus === "pending" || isPartiallyPaid;
-                                      return (
-                                        <span 
-                                          className={`inline-flex items-center text-[8px] font-extrabold px-1.5 py-0.5 rounded border shrink-0 uppercase tracking-wide shadow-[0_0_8px_rgba(99,102,241,0.15)] ${
-                                            needsTotalPayment
-                                              ? "text-amber-400 bg-amber-500/10 border-amber-500/20"
-                                              : "text-indigo-400 bg-indigo-500/10 border-indigo-500/20"
-                                          }`} 
-                                          title={needsTotalPayment ? "Turno Fijo - ¡Falta abonar el saldo restante del bloque de 4 semanas!" : "Turno Fijo Recurrente"}
-                                        >
-                                          🔁 Fijo {needsTotalPayment ? "⚠️" : ""}
+
+                                  {/* Renders Name in Start Slot only if it's a short 1-slot or 2-slot reservation */}
+                                  {totalSlots <= 2 && (
+                                    <div className="mt-2.5">
+                                      <h4 className="text-xs font-black text-white truncate capitalize flex items-center gap-1.5 min-w-0">
+                                        <span className="truncate">
+                                          {reservation.firstName
+                                            ? `${reservation.firstName} ${reservation.lastName}`
+                                            : (reservation.userId || "Jugador")}
                                         </span>
-                                      );
-                                    })()}
-                                    {reservation.isLastOfSeries && (
-                                      <span className="inline-flex items-center text-[8px] font-black text-green-400 bg-green-500/10 px-1.5 py-0.5 rounded border border-green-500/20 shrink-0 uppercase tracking-wide shadow-[0_0_8px_rgba(34,197,94,0.15)] animate-pulse" title="¡Último día reservado! Clic en los tres puntos para renovar por 4 semanas más.">
-                                        🚨 ÚLTIMO / RENOVAR
-                                      </span>
-                                    )}
-                                  </h4>
-                                  {(() => {
-                                    const isPartiallyPaid = reservation.paymentStatus === "paid" && (reservation.depositAmount ?? 0) > 0 && (reservation.depositAmount ?? 0) < (reservation.totalPrice ?? 0);
-                                    const balance = (reservation.totalPrice ?? 0) - (reservation.depositAmount ?? 0);
-                                    return isPartiallyPaid ? (
-                                      <p className="text-[9px] text-zinc-400 mt-0.5 leading-none">
-                                        Resta: <strong className="text-white">${balance.toLocaleString("es-AR")}</strong>
-                                      </p>
-                                    ) : null;
-                                  })()}
+                                        {reservation.isRecurring && (() => {
+                                          const isPartiallyPaid = reservation.paymentStatus === "paid" && (reservation.depositAmount ?? 0) > 0 && (reservation.depositAmount ?? 0) < (reservation.totalPrice ?? 0);
+                                          const needsTotalPayment = reservation.paymentStatus === "pending" || isPartiallyPaid;
+                                          return (
+                                            <span 
+                                              className={`inline-flex items-center text-[8px] font-extrabold px-1.5 py-0.5 rounded border shrink-0 uppercase tracking-wide shadow-[0_0_8px_rgba(99,102,241,0.15)] ${
+                                                needsTotalPayment
+                                                  ? "text-amber-400 bg-amber-500/10 border-amber-500/20"
+                                                  : "text-indigo-400 bg-indigo-500/10 border-indigo-500/20"
+                                              }`} 
+                                              title={needsTotalPayment ? "Turno Fijo - ¡Falta abonar el saldo restante del bloque de 4 semanas!" : "Turno Fijo Recurrente"}
+                                            >
+                                              🔁 Fijo {needsTotalPayment ? "⚠️" : ""}
+                                            </span>
+                                          );
+                                        })()}
+                                        {reservation.isLastOfSeries && (
+                                          <span className="inline-flex items-center text-[8px] font-black text-green-400 bg-green-500/10 px-1.5 py-0.5 rounded border border-green-500/20 shrink-0 uppercase tracking-wide shadow-[0_0_8px_rgba(34,197,94,0.15)] animate-pulse" title="¡Último día reservado! Clic en los tres puntos para renovar por 4 semanas más.">
+                                            🚨 ÚLTIMO / RENOVAR
+                                          </span>
+                                        )}
+                                      </h4>
+                                      {(() => {
+                                        const isPartiallyPaid = reservation.paymentStatus === "paid" && (reservation.depositAmount ?? 0) > 0 && (reservation.depositAmount ?? 0) < (reservation.totalPrice ?? 0);
+                                        const balance = (reservation.totalPrice ?? 0) - (reservation.depositAmount ?? 0);
+                                        return (totalSlots === 1 && isPartiallyPaid) ? (
+                                          <p className="text-[9px] text-zinc-400 mt-1 leading-none">
+                                            Resta: <strong className="text-white">${balance.toLocaleString("es-AR")}</strong>
+                                          </p>
+                                        ) : null;
+                                      })()}
+                                    </div>
+                                  )}
                                 </div>
                                 {isEndSlot ? (
-                                  <div className="flex items-center justify-between border-t border-white/5 pt-1.5 mt-1.5 relative z-10">
+                                  <div className="flex items-center justify-between border-t border-white/5 pt-1.5 mt-1.5 relative z-10 w-full">
                                     <span className={`text-[9px] font-extrabold tracking-wider ${
                                       reservation.status === "confirmed"
                                         ? "text-primary drop-shadow-[0_0_5px_rgba(57,255,20,0.3)]"
@@ -432,35 +441,94 @@ export default async function Dashboard({
                                 ) : null}
                               </div>
                             ) : isIntermediateSlot ? (
-                              <div className="h-full bg-white/5 backdrop-blur-sm border-x border-white/10 rounded-none px-2.5 py-1 flex items-center justify-center relative group/res hover:bg-white/[0.08] transition-all duration-300">
-                                <div className="w-1.5 h-3 rounded-full bg-primary/20 group-hover/res:bg-primary/45 transition-colors" />
+                              <div className="h-full bg-white/5 backdrop-blur-sm border-x border-white/10 rounded-none px-2.5 py-1.5 flex flex-col items-center justify-center relative group/res hover:bg-white/[0.08] transition-all duration-300">
+                                {isSecondSlot && totalSlots >= 3 ? (
+                                  /* Render Name & turn details beautifully centered in the middle slot of tall cards */
+                                  <div className="text-center w-full animate-in fade-in zoom-in-95 duration-200">
+                                    <h4 className="text-sm font-black text-white capitalize flex items-center justify-center gap-1.5 w-full">
+                                      <span className="truncate max-w-[150px]">
+                                        {reservation.firstName
+                                          ? `${reservation.firstName} ${reservation.lastName}`
+                                          : (reservation.userId || "Jugador")}
+                                      </span>
+                                      {reservation.isRecurring && (() => {
+                                        const isPartiallyPaid = reservation.paymentStatus === "paid" && (reservation.depositAmount ?? 0) > 0 && (reservation.depositAmount ?? 0) < (reservation.totalPrice ?? 0);
+                                        const needsTotalPayment = reservation.paymentStatus === "pending" || isPartiallyPaid;
+                                        return (
+                                          <span 
+                                            className={`inline-flex items-center text-[8px] font-extrabold px-1.5 py-0.5 rounded border shrink-0 uppercase tracking-wide shadow-[0_0_8px_rgba(99,102,241,0.15)] ${
+                                              needsTotalPayment
+                                                ? "text-amber-400 bg-amber-500/10 border-amber-500/20"
+                                                : "text-indigo-400 bg-indigo-500/10 border-indigo-500/20"
+                                            }`} 
+                                          >
+                                            🔁 Fijo
+                                          </span>
+                                        );
+                                      })()}
+                                    </h4>
+                                  </div>
+                                ) : (
+                                  /* Clean modern visual pulse connector for other intermediate rows */
+                                  <div className="w-1.5 h-3 rounded-full bg-primary/20 group-hover/res:bg-primary/45 transition-colors" />
+                                )}
                               </div>
                             ) : (
-                              <div className="h-full bg-white/5 backdrop-blur-sm border-x border-b border-white/10 rounded-b-xl rounded-t-none px-2.5 py-1 pb-2.5 flex items-end justify-between relative group/res hover:bg-white/[0.08] transition-all duration-300 shadow-[0_4px_12px_rgba(0,0,0,0.15)]">
-                                <span className={`text-[9px] font-extrabold tracking-wider ${
-                                  reservation.status === "confirmed"
-                                    ? "text-primary drop-shadow-[0_0_5px_rgba(57,255,20,0.3)]"
-                                    : reservation.status === "completed"
-                                      ? "text-blue-400"
-                                      : "text-zinc-400"
-                                }`}>
-                                  {statusLabel(reservation.status)}
-                                </span>
-                                <ReservationActions
-                                  reservationId={reservation._id}
-                                  status={reservation.status}
-                                  paymentStatus={reservation.paymentStatus}
-                                  totalPrice={reservation.totalPrice}
-                                  depositAmount={reservation.depositAmount}
-                                  isRecurring={reservation.isRecurring}
-                                  recurrenceGroupId={reservation.recurrenceGroupId}
-                                  isLastOfSeries={reservation.isLastOfSeries}
-                                  playerName={
-                                    reservation.firstName
-                                      ? `${reservation.firstName} ${reservation.lastName}`
-                                      : (reservation.userId || "")
-                                  }
-                                />
+                              <div className="h-full bg-white/5 backdrop-blur-sm border-x border-b border-white/10 rounded-b-xl rounded-t-none px-2.5 py-2.5 flex flex-col justify-between relative group/res hover:bg-white/[0.08] transition-all duration-300 shadow-[0_4px_12px_rgba(0,0,0,0.15)]">
+                                {/* Balance (Resta: $...) rendered beautifully in the upper part of the bottom slot */}
+                                <div className="text-center w-full flex flex-col items-center justify-center flex-1">
+                                  {(() => {
+                                    const isPartiallyPaid = reservation.paymentStatus === "paid" && (reservation.depositAmount ?? 0) > 0 && (reservation.depositAmount ?? 0) < (reservation.totalPrice ?? 0);
+                                    const balance = (reservation.totalPrice ?? 0) - (reservation.depositAmount ?? 0);
+                                    
+                                    if (isPartiallyPaid) {
+                                      return (
+                                        <p className="text-[11px] text-zinc-300 font-bold bg-white/5 px-3 py-1 rounded-lg border border-white/5 shadow-inner">
+                                          Resta: <strong className="text-white font-extrabold">${balance.toLocaleString("es-AR")}</strong>
+                                        </p>
+                                      );
+                                    } else if (reservation.paymentStatus === "pending") {
+                                      return (
+                                        <p className="text-[11px] text-amber-300 font-bold bg-amber-500/5 px-3 py-1 rounded-lg border border-amber-500/10 shadow-inner">
+                                          Total: <strong className="text-white font-extrabold">${reservation.totalPrice.toLocaleString("es-AR")}</strong>
+                                        </p>
+                                      );
+                                    } else {
+                                      return (
+                                        <p className="text-[11px] text-green-300 font-bold bg-green-500/5 px-3 py-1 rounded-lg border border-green-500/10 shadow-inner">
+                                          Total Pagado: <strong className="text-white font-extrabold">${reservation.totalPrice.toLocaleString("es-AR")}</strong>
+                                        </p>
+                                      );
+                                    }
+                                  })()}
+                                </div>
+
+                                <div className="flex items-center justify-between border-t border-white/5 pt-1.5 mt-1.5 relative z-10 w-full shrink-0">
+                                  <span className={`text-[9px] font-extrabold tracking-wider ${
+                                    reservation.status === "confirmed"
+                                      ? "text-primary drop-shadow-[0_0_5px_rgba(57,255,20,0.3)]"
+                                      : reservation.status === "completed"
+                                        ? "text-blue-400"
+                                        : "text-zinc-400"
+                                  }`}>
+                                    {statusLabel(reservation.status)}
+                                  </span>
+                                  <ReservationActions
+                                    reservationId={reservation._id}
+                                    status={reservation.status}
+                                    paymentStatus={reservation.paymentStatus}
+                                    totalPrice={reservation.totalPrice}
+                                    depositAmount={reservation.depositAmount}
+                                    isRecurring={reservation.isRecurring}
+                                    recurrenceGroupId={reservation.recurrenceGroupId}
+                                    isLastOfSeries={reservation.isLastOfSeries}
+                                    playerName={
+                                      reservation.firstName
+                                        ? `${reservation.firstName} ${reservation.lastName}`
+                                        : (reservation.userId || "")
+                                    }
+                                  />
+                                </div>
                               </div>
                             )}
                           </div>
