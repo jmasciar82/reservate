@@ -1,11 +1,11 @@
 "use client";
 
 import { useClub } from "@/providers/ClubProvider";
-import { Building2, ChevronDown } from "lucide-react";
+import { Building2, ChevronDown, Menu } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 
 export function Header() {
-  const { clubs, activeClubId, setActiveClubId } = useClub();
+  const { clubs, activeClubId, setActiveClubId, isSidebarOpen, setIsSidebarOpen } = useClub();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -22,12 +22,21 @@ export function Header() {
   }, []);
 
   return (
-    <header className="h-16 flex items-center justify-between px-8 border-b border-white/5 bg-zinc-950/20 backdrop-blur-md shrink-0 z-20 shadow-[0_4px_24px_rgba(0,0,0,0.15)] relative">
+    <header className="h-16 flex items-center justify-between px-4 md:px-8 border-b border-white/5 bg-zinc-950/20 backdrop-blur-md shrink-0 z-20 shadow-[0_4px_24px_rgba(0,0,0,0.15)] relative">
       {/* Glossy overlay reflection */}
       <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/5 to-transparent pointer-events-none" />
 
-      <div className="flex items-center gap-6 z-10">
-        <div>
+      <div className="flex items-center gap-3 md:gap-6 z-10">
+        {/* Hamburger Menu for Mobile */}
+        <button
+          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+          className="p-2 rounded-xl bg-white/5 border border-white/10 text-zinc-100 hover:text-primary hover:border-primary/45 md:hidden transition-all duration-300 focus:outline-none"
+          aria-label="Abrir menú"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+
+        <div className="hidden sm:block">
           <p className="text-sm font-bold text-white tracking-wide">Administración diaria</p>
           <p className="text-[11px] font-medium text-zinc-400">Reservas, canchas y sedes de tu club</p>
         </div>

@@ -11,6 +11,8 @@ interface ClubContextType {
   activeClub: Club | null;
   setActiveClubId: (id: string) => void;
   refreshClubs: () => Promise<void>;
+  isSidebarOpen: boolean;
+  setIsSidebarOpen: (open: boolean) => void;
 }
 
 const ClubContext = createContext<ClubContextType | undefined>(undefined);
@@ -26,6 +28,7 @@ export function ClubProvider({
 }) {
   const router = useRouter();
   const [clubs, setClubs] = useState<Club[]>(initialClubs);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   
   // Use initial active club or fallback to first club
   const defaultClubId = initialActiveClubId || (initialClubs.length > 0 ? initialClubs[0]._id : null);
@@ -68,6 +71,8 @@ export function ClubProvider({
         activeClub,
         setActiveClubId,
         refreshClubs,
+        isSidebarOpen,
+        setIsSidebarOpen,
       }}
     >
       {children}

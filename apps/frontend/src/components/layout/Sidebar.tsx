@@ -5,9 +5,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { CalendarDays, LayoutDashboard, Settings, Trophy, BarChart3, Users } from "lucide-react";
 import { getClientUserRole } from "@/lib/api";
+import { useClub } from "@/providers/ClubProvider";
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { isSidebarOpen, setIsSidebarOpen } = useClub();
   const isActive = (path: string) => pathname === path;
   const [role, setRole] = useState<string | null>(null);
 
@@ -15,17 +17,34 @@ export function Sidebar() {
     setRole(getClientUserRole());
   }, []);
 
-  return (
-    <aside className="w-64 h-screen flex flex-col border-r border-white/5 bg-zinc-950/40 backdrop-blur-xl shrink-0 z-20 shadow-[4px_0_24px_rgba(0,0,0,0.3)] relative">
-      {/* Glossy overlay reflection */}
-      <div className="absolute inset-0 bg-gradient-to-b from-white/[0.02] to-transparent pointer-events-none" />
+  useEffect(() => {
+    setIsSidebarOpen(false);
+  }, [pathname]);
 
-      <div className="flex items-center h-16 px-6 border-b border-white/5 bg-white/[0.01] z-10">
-        <Trophy className="w-6 h-6 text-primary mr-2.5 drop-shadow-[0_0_8px_rgba(57,255,20,0.5)]" />
-        <span className="text-lg font-black tracking-widest bg-gradient-to-r from-white via-zinc-200 to-primary bg-clip-text text-transparent drop-shadow-[0_0_10px_rgba(57,255,20,0.15)]">
-          RESERVATE
-        </span>
-      </div>
+  return (
+    <>
+      {/* Backdrop overlay for mobile */}
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden transition-all duration-300"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
+      <aside
+        className={`fixed inset-y-0 left-0 w-64 h-screen flex flex-col border-r border-white/5 bg-zinc-950/95 md:bg-zinc-950/40 backdrop-blur-xl shrink-0 z-50 md:z-20 shadow-[4px_0_24px_rgba(0,0,0,0.5)] md:shadow-[4px_0_24px_rgba(0,0,0,0.3)] transition-transform duration-300 ease-in-out md:static md:translate-x-0 ${
+          isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        {/* Glossy overlay reflection */}
+        <div className="absolute inset-0 bg-gradient-to-b from-white/[0.02] to-transparent pointer-events-none" />
+
+        <div className="flex items-center h-16 px-6 border-b border-white/5 bg-white/[0.01] z-10">
+          <Trophy className="w-6 h-6 text-primary mr-2.5 drop-shadow-[0_0_8px_rgba(57,255,20,0.5)]" />
+          <span className="text-lg font-black tracking-widest bg-gradient-to-r from-white via-zinc-200 to-primary bg-clip-text text-transparent drop-shadow-[0_0_10px_rgba(57,255,20,0.15)]">
+            RESERVATE
+          </span>
+        </div>
 
       <nav className="flex-1 py-6 px-4 space-y-2.5 overflow-y-auto z-10">
         <Link
@@ -102,5 +121,6 @@ export function Sidebar() {
         </button>
       </div>
     </aside>
+    </>
   );
 }
