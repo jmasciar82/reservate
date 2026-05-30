@@ -10,6 +10,7 @@ export class CreateReservationDto {
   isPublic?: boolean;
   isRecurring?: boolean;
   recurrenceWeeks?: number;
+  payBlock?: boolean;
   depositAmount?: number;
   paymentStatus?: string;
   paymentDate?: Date;

@@ -262,6 +262,7 @@ export default function NewReservationButton({
           endTime: endTime.toISOString(),
           isRecurring: formData.isRecurring,
           recurrenceWeeks: formData.isRecurring ? Number(formData.recurrenceWeeks) : undefined,
+          payBlock: formData.isRecurring && paymentType === "full" ? true : undefined,
           depositAmount: finalDepositAmount,
           paymentStatus: finalPaymentStatus,
         }),

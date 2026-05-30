@@ -113,9 +113,12 @@ export class ReservationsService {
       const recurrenceGroupId = new Types.ObjectId().toString();
       
       // Detect if it is a block payment (Full Payment for all weeks) at creation
-      const isBlockPayment = isPaid && 
-        createReservationDto.depositAmount && 
-        createReservationDto.depositAmount >= Math.round(totalPrice * recurrenceWeeksCount * 0.85);
+      const isBlockPayment = isPaid && (
+        createReservationDto.payBlock === true || (
+          createReservationDto.depositAmount !== undefined && 
+          Number(createReservationDto.depositAmount) >= Math.round(totalPrice * recurrenceWeeksCount * 0.85)
+        )
+      );
 
       const reservationsToSave = weeksToCreate.map((week, idx) => {
         const isFirst = idx === 0;
@@ -153,6 +156,17 @@ export class ReservationsService {
       });
 
       const savedReservations = await this.reservationModel.insertMany(reservationsToSave);
+
+      if (isBlockPayment && savedReservations.length > 0) {
+        try {
+          await this.renew(savedReservations[0]._id.toString());
+        } catch (renewError: any) {
+          throw new ConflictException(
+            `Turno fijo creado y pagado correctamente con 10% de descuento. Sin embargo, la reserva automática de las siguientes 4 semanas falló por: ${renewError.message}`,
+          );
+        }
+      }
+
       return savedReservations[0];
     } else {
       const overlapping = await this.reservationModel
