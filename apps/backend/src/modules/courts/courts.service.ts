@@ -22,9 +22,23 @@ export class CourtsService {
     return createdCourt.save();
   }
 
-  async findAll(clubId?: string): Promise<Court[]> {
-    const filter = clubId ? { clubId: new Types.ObjectId(clubId) } : {};
+  async findAll(clubId?: string | string[]): Promise<Court[]> {
+    let filter = {};
+    if (clubId) {
+      if (Array.isArray(clubId)) {
+        filter = { clubId: { $in: clubId.map((id) => new Types.ObjectId(id)) } };
+      } else {
+        filter = { clubId: new Types.ObjectId(clubId) };
+      }
+    }
     return this.courtModel.find(filter).exec();
+  }
+
+  async findOne(id: string): Promise<Court | null> {
+    if (!Types.ObjectId.isValid(id)) {
+      return null;
+    }
+    return this.courtModel.findById(id).exec();
   }
 
   async update(

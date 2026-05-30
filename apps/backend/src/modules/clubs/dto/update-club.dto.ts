@@ -8,4 +8,5 @@ export class UpdateClubDto {
   depositValue?: number;
   mpAccessToken?: string;
   mpPublicKey?: string;
+  tenantId?: string;
 }

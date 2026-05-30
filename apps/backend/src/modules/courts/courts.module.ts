@@ -8,14 +8,18 @@ import {
   ReservationSchema,
 } from '../reservations/schemas/reservation.schema';
 
+import { ClubsModule } from '../clubs/clubs.module';
+
 @Module({
   imports: [
     MongooseModule.forFeature([
       { name: Court.name, schema: CourtSchema },
       { name: Reservation.name, schema: ReservationSchema },
     ]),
+    ClubsModule,
   ],
   controllers: [CourtsController],
   providers: [CourtsService],
+  exports: [MongooseModule, CourtsService],
 })
 export class CourtsModule {}

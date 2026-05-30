@@ -4,6 +4,7 @@ import { ClubSchema } from './modules/clubs/schemas/club.schema';
 import { CourtSchema } from './modules/courts/schemas/court.schema';
 import { ReservationSchema } from './modules/reservations/schemas/reservation.schema';
 import { UserSchema } from './modules/users/schemas/user.schema';
+import { TenantSchema } from './modules/tenants/schemas/tenant.schema';
 import * as bcrypt from 'bcrypt';
 
 const MONGO_URI =
@@ -17,14 +18,21 @@ async function seed() {
   const ClubModel = mongoose.model('Club', ClubSchema);
   const CourtModel = mongoose.model('Court', CourtSchema);
   const ReservationModel = mongoose.model('Reservation', ReservationSchema);
-
   const UserModel = mongoose.model('User', UserSchema);
+  const TenantModel = mongoose.model('Tenant', TenantSchema);
 
   console.log('Cleaning collections...');
   await ReservationModel.deleteMany({});
   await CourtModel.deleteMany({});
   await ClubModel.deleteMany({});
   await UserModel.deleteMany({});
+  await TenantModel.deleteMany({});
+
+  console.log('Creating default tenant...');
+  const tenant = await TenantModel.create({
+    name: 'Franquicia Reservate Central',
+    isActive: true,
+  });
 
   console.log('Creating admin user...');
   const salt = await bcrypt.genSalt(10);
@@ -42,6 +50,7 @@ async function seed() {
     location: 'Av. Corrientes 1234, CABA',
     sports: ['padel', 'tennis'],
     description: 'El mejor club del centro con canchas profesionales.',
+    tenantId: tenant._id,
   });
 
   const club2 = await ClubModel.create({
@@ -49,6 +58,7 @@ async function seed() {
     location: 'Av. Libertador 8000, San Isidro',
     sports: ['padel', 'football'],
     description: 'Complejo multideportivo frente al río.',
+    tenantId: tenant._id,
   });
 
   console.log('Creating club owners...');
@@ -60,6 +70,7 @@ async function seed() {
     passwordHash: ownerPasswordHash,
     role: 'club_owner',
     clubId: club1._id,
+    tenantId: tenant._id,
   });
 
   await UserModel.create({
@@ -68,6 +79,7 @@ async function seed() {
     passwordHash: ownerPasswordHash,
     role: 'club_owner',
     clubId: club2._id,
+    tenantId: tenant._id,
   });
 
   console.log('Creating courts...');

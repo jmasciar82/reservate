@@ -5,12 +5,15 @@ import { AnalyticsController } from './analytics.controller';
 import { Reservation, ReservationSchema } from '../reservations/schemas/reservation.schema';
 import { Court, CourtSchema } from '../courts/schemas/court.schema';
 
+import { ClubsModule } from '../clubs/clubs.module';
+
 @Module({
   imports: [
     MongooseModule.forFeature([
       { name: Reservation.name, schema: ReservationSchema },
       { name: Court.name, schema: CourtSchema },
     ]),
+    ClubsModule,
   ],
   controllers: [AnalyticsController],
   providers: [AnalyticsService],

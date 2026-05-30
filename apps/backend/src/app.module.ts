@@ -11,7 +11,8 @@ import { UsersModule } from './modules/users/users.module';
 import { PublicModule } from './modules/public/public.module';
 import { WhatsappModule } from './modules/whatsapp/whatsapp.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
-
+import { TenantsModule } from './modules/tenants/tenants.module';
+ 
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -30,7 +31,7 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
           const sanitizedUri = uri.replace(/\/\/.*@/, '//****:****@');
           console.log(`🔌 Base de datos configurada correctamente. Conectando a: ${sanitizedUri}`);
         }
-
+ 
         return {
           uri: uri ?? 'mongodb://localhost:27017/reservate',
         };
@@ -45,6 +46,7 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
     PublicModule,
     WhatsappModule,
     AnalyticsModule,
+    TenantsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

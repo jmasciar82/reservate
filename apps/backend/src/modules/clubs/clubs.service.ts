@@ -10,12 +10,26 @@ export class ClubsService {
   constructor(@InjectModel(Club.name) private clubModel: Model<ClubDocument>) {}
 
   async create(createClubDto: CreateClubDto): Promise<Club> {
-    const created = new this.clubModel(createClubDto);
+    const { tenantId, ...rest } = createClubDto;
+    const created = new this.clubModel({
+      ...rest,
+      tenantId: tenantId ? new Types.ObjectId(tenantId) : undefined,
+    });
     return created.save();
   }
 
   async findAll(): Promise<Club[]> {
     return this.clubModel.find().sort({ name: 1 }).exec();
+  }
+
+  async findByTenant(tenantId: string): Promise<Club[]> {
+    if (!Types.ObjectId.isValid(tenantId)) {
+      return [];
+    }
+    return this.clubModel
+      .find({ tenantId: new Types.ObjectId(tenantId) })
+      .sort({ name: 1 })
+      .exec();
   }
 
   async findOne(id: string): Promise<Club | null> {

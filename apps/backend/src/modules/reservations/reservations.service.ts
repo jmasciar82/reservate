@@ -16,7 +16,7 @@ const PAYMENT_STATUSES = ['pending', 'paid'];
 
 interface ReservationQuery {
   date?: string;
-  clubId?: string;
+  clubId?: string | string[];
 }
 
 function getArgentinaDayRange(date: string) {
@@ -188,18 +188,27 @@ export class ReservationsService {
     let clubFilter = {};
 
     if (query?.clubId) {
-      if (!Types.ObjectId.isValid(query.clubId)) {
-        throw new BadRequestException('El club indicado no es válido.');
+      if (Array.isArray(query.clubId)) {
+        const validClubIds = query.clubId.filter((id) => Types.ObjectId.isValid(id));
+        const courtIds = await this.courtModel
+          .find({ clubId: { $in: validClubIds.map((id) => new Types.ObjectId(id)) } })
+          .distinct('_id')
+          .exec();
+        clubFilter = {
+          courtId: { $in: courtIds },
+        };
+      } else {
+        if (!Types.ObjectId.isValid(query.clubId)) {
+          throw new BadRequestException('El club indicado no es válido.');
+        }
+        const courtIds = await this.courtModel
+          .find({ clubId: new Types.ObjectId(query.clubId) })
+          .distinct('_id')
+          .exec();
+        clubFilter = {
+          courtId: { $in: courtIds },
+        };
       }
-
-      const courtIds = await this.courtModel
-        .find({ clubId: new Types.ObjectId(query.clubId) })
-        .distinct('_id')
-        .exec();
-
-      clubFilter = {
-        courtId: { $in: courtIds },
-      };
     }
 
     const reservations = await this.reservationModel
@@ -506,5 +515,12 @@ export class ReservationsService {
 
     const savedReservations = await this.reservationModel.insertMany(reservationsToSave);
     return savedReservations[0];
+  }
+
+  async findOne(id: string): Promise<Reservation | null> {
+    if (!Types.ObjectId.isValid(id)) {
+      return null;
+    }
+    return this.reservationModel.findById(id).populate('courtId').exec();
   }
 }

@@ -1,14 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { UserPlus, Shield, User, Mail, Trash2, Key, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { UserPlus, Shield, User, Mail, Trash2, Key, X, Building2 } from "lucide-react";
 import { apiFetch, getClientUserRole } from "@/lib/api";
+import { useClub } from "@/providers/ClubProvider";
 
 interface UserProfile {
   _id: string;
   name: string;
   email: string;
   role: "admin" | "staff" | "player" | "club_owner";
+  clubId?: string;
 }
 
 export default function UsersPage() {
@@ -19,11 +21,23 @@ export default function UsersPage() {
   const [showModal, setShowModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   
+  const { clubs } = useClub();
+
+  const clubMap = useMemo(
+    () =>
+      clubs.reduce<Record<string, string>>((acc, club) => {
+        acc[club._id] = club.name;
+        return acc;
+      }, {}),
+    [clubs],
+  );
+
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: "",
     role: "staff",
+    clubId: "",
   });
 
   useEffect(() => {
@@ -31,7 +45,7 @@ export default function UsersPage() {
     setRole(userRole);
     setCheckingRole(false);
     
-    if (userRole === "admin") {
+    if (userRole === "admin" || userRole === "club_owner") {
       fetchUsers();
     }
   }, []);
@@ -67,7 +81,7 @@ export default function UsersPage() {
 
       if (response.ok) {
         setShowModal(false);
-        setFormData({ name: "", email: "", password: "", role: "staff" });
+        setFormData({ name: "", email: "", password: "", role: "staff", clubId: "" });
         fetchUsers();
       } else {
         const errorData = await response.json().catch(() => ({}));
@@ -110,7 +124,7 @@ export default function UsersPage() {
     );
   }
 
-  if (role !== "admin") {
+  if (role !== "admin" && role !== "club_owner") {
     return (
       <div className="flex-1 p-8 bg-zinc-950 flex flex-col items-center justify-center text-center">
         <div className="w-16 h-16 bg-red-500/10 border border-red-500/20 text-red-500 rounded-full flex items-center justify-center mb-4 shadow-[0_0_15px_rgba(239,68,68,0.1)]">
@@ -180,16 +194,22 @@ export default function UsersPage() {
                       <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold tracking-wide border shadow-sm ${
                         userItem.role === "admin"
                           ? "bg-red-500/10 text-red-400 border-red-500/20 shadow-[0_0_8px_rgba(239,68,68,0.1)]"
-                          : userItem.role === "staff"
-                            ? "bg-indigo-500/10 text-indigo-400 border-indigo-500/20 shadow-[0_0_8px_rgba(99,102,241,0.1)]"
-                            : "bg-zinc-800 text-zinc-400 border-zinc-700"
+                          : userItem.role === "club_owner"
+                            ? "bg-amber-500/10 text-amber-400 border-amber-500/20 shadow-[0_0_8px_rgba(245,158,11,0.1)]"
+                            : userItem.role === "staff"
+                              ? "bg-indigo-500/10 text-indigo-400 border-indigo-500/20 shadow-[0_0_8px_rgba(99,102,241,0.1)]"
+                              : "bg-zinc-800 text-zinc-400 border-zinc-700"
                       }`}>
                         <Shield className="w-3.5 h-3.5" />
                         {userItem.role === "admin"
-                          ? "Administrador"
-                          : userItem.role === "staff"
-                            ? "Personal / Recepción (Sin Config.)"
-                            : userItem.role}
+                          ? "Administrador Global"
+                          : userItem.role === "club_owner"
+                            ? "Dueño / Franquicia"
+                            : userItem.role === "staff"
+                              ? userItem.clubId && clubMap[userItem.clubId]
+                                ? `Personal (${clubMap[userItem.clubId]})`
+                                : "Personal / Recepción (Sin Config.)"
+                              : userItem.role}
                       </span>
                     </td>
                     <td className="p-4 text-center">
@@ -286,17 +306,43 @@ export default function UsersPage() {
                 </label>
                 <select
                   value={formData.role}
-                  onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, role: e.target.value, clubId: e.target.value !== "staff" ? "" : formData.clubId })}
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 hover:bg-white/[0.08] transition-all duration-300 font-semibold"
                 >
                   <option value="staff" className="bg-zinc-950 text-white">
-                    Personal / Recepción (Acceso a reservas - Sin configuración)
+                    Personal / Recepción (Acceso a reservas de su sede)
                   </option>
-                  <option value="admin" className="bg-zinc-950 text-white">
-                    Administrador (Acceso total, sedes y cuentas)
-                  </option>
+                  {role === "admin" && (
+                    <option value="admin" className="bg-zinc-950 text-white">
+                      Administrador (Acceso total, sedes y cuentas)
+                    </option>
+                  )}
                 </select>
               </div>
+
+              {formData.role === "staff" && (
+                <div className="space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-200">
+                  <label className="text-sm font-medium text-zinc-400 flex items-center gap-2">
+                    <Building2 className="w-4 h-4 text-primary" />
+                    Sede Asignada
+                  </label>
+                  <select
+                    required
+                    value={formData.clubId}
+                    onChange={(e) => setFormData({ ...formData, clubId: e.target.value })}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 hover:bg-white/[0.08] transition-all duration-300 font-semibold"
+                  >
+                    <option value="" className="bg-zinc-950 text-zinc-500">
+                      Seleccionar una sede...
+                    </option>
+                    {clubs.map((club) => (
+                      <option key={club._id} value={club._id} className="bg-zinc-950 text-white">
+                        {club.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <button
                 type="submit"

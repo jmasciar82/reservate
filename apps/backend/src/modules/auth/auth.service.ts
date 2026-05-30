@@ -25,6 +25,7 @@ export class AuthService {
       sub: user._id,
       role: user.role,
       clubId: user.clubId ? user.clubId.toString() : undefined,
+      tenantId: user.tenantId ? user.tenantId.toString() : undefined,
     };
     return {
       access_token: this.jwtService.sign(payload),

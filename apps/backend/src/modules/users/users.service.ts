@@ -20,8 +20,10 @@ export class UsersService {
     return this.userModel.findById(id).exec();
   }
 
-  async findAll(clubId?: string): Promise<UserDocument[]> {
-    const filter = clubId ? { clubId } : {};
+  async findAll(clubId?: string, tenantId?: string): Promise<UserDocument[]> {
+    const filter: any = {};
+    if (clubId) filter.clubId = clubId;
+    if (tenantId) filter.tenantId = tenantId;
     return this.userModel.find(filter, { passwordHash: 0 }).exec();
   }
 

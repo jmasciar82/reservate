@@ -23,6 +23,9 @@ export class User {
 
   @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'Club', required: false })
   clubId?: Types.ObjectId;
+
+  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'Tenant', required: false })
+  tenantId?: Types.ObjectId;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

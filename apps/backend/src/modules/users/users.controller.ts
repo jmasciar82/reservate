@@ -25,7 +25,7 @@ export class UsersController {
     if (user.role === 'admin') {
       return this.usersService.findAll();
     } else if (user.role === 'club_owner') {
-      return this.usersService.findAll(user.clubId);
+      return this.usersService.findAll(undefined, user.tenantId);
     }
     throw new ForbiddenException('No tienes permisos para realizar esta acción.');
   }
@@ -52,12 +52,13 @@ export class UsersController {
 
     let targetRole = role || 'staff';
     let targetClubId = body.clubId;
+    let targetTenantId = body.tenantId;
 
     if (caller.role === 'club_owner') {
       if (role !== 'staff' && role !== 'player') {
         targetRole = 'staff';
       }
-      targetClubId = caller.clubId;
+      targetTenantId = caller.tenantId;
     }
 
     return this.usersService.create({
@@ -66,6 +67,7 @@ export class UsersController {
       passwordHash,
       role: targetRole,
       clubId: targetClubId,
+      tenantId: targetTenantId,
     });
   }
 
@@ -76,7 +78,7 @@ export class UsersController {
       return this.usersService.remove(id);
     } else if (caller.role === 'club_owner') {
       const userToDelete = await this.usersService.findById(id);
-      if (!userToDelete || userToDelete.clubId?.toString() !== caller.clubId) {
+      if (!userToDelete || userToDelete.tenantId?.toString() !== caller.tenantId?.toString()) {
         throw new ForbiddenException('No tienes permisos para eliminar este usuario.');
       }
       return this.usersService.remove(id);

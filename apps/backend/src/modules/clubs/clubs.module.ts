@@ -10,6 +10,6 @@ import { Club, ClubSchema } from './schemas/club.schema';
   ],
   controllers: [ClubsController],
   providers: [ClubsService],
-  exports: [MongooseModule],
+  exports: [MongooseModule, ClubsService],
 })
 export class ClubsModule {}
