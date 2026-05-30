@@ -320,8 +320,8 @@ export default function NewReservationButton({
             onClick={() => setIsOpen(false)}
           />
 
-          <div className="relative w-full max-w-md bg-zinc-950/85 backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="px-6 py-4 border-b border-white/5 flex justify-between items-center bg-white/[0.02]">
+          <div className="relative w-full max-w-md max-h-[90vh] flex flex-col bg-zinc-950/85 backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-white/5 flex justify-between items-center bg-white/[0.02] shrink-0">
               <h2 className="text-xl font-black text-white flex items-center gap-2">
                 <span className="w-2 h-6 bg-primary rounded-full shadow-[0_0_8px_rgba(57,255,20,0.5)]" />
                 Nueva reserva
@@ -335,7 +335,7 @@ export default function NewReservationButton({
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-5">
+            <form onSubmit={handleSubmit} className="p-6 space-y-5 overflow-y-auto flex-1">
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-zinc-400 flex items-center gap-2">
                   <User className="w-4 h-4 text-primary" />
