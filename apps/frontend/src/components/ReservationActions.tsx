@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { Ban, CheckCircle, CircleDollarSign, Edit, MoreVertical, User, X } from "lucide-react";
 import { apiFetch } from "@/lib/api";
@@ -38,10 +39,20 @@ export default function ReservationActions({
   const [showBalanceModal, setShowBalanceModal] = useState(false);
   const [showEditNameModal, setShowEditNameModal] = useState(false);
   const [showSingleCancelModal, setShowSingleCancelModal] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [nameInputValue, setNameInputValue] = useState(playerName || "");
   const [expandUp, setExpandUp] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const renderModal = (isOpen: boolean, content: React.ReactNode) => {
+    if (!isOpen || !mounted || typeof window === "undefined" || !document.body) return null;
+    return createPortal(content, document.body);
+  };
 
   const handleToggle = () => {
     if (!isOpen && menuRef.current) {
@@ -262,7 +273,8 @@ export default function ReservationActions({
         </div>
       )}
 
-      {showCancelModal && (
+      {renderModal(
+        showCancelModal,
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
             className="absolute inset-0 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200"
@@ -307,7 +319,8 @@ export default function ReservationActions({
         </div>
       )}
 
-      {showDepositModal && (
+      {renderModal(
+        showDepositModal,
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
             className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
@@ -383,7 +396,8 @@ export default function ReservationActions({
           </div>
         </div>
       )}
-      {showBalanceModal && (
+      {renderModal(
+        showBalanceModal,
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
             className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
@@ -421,7 +435,7 @@ export default function ReservationActions({
                   </span>
                 </div>
               </div>
-
+ 
               <p className="text-xs text-zinc-400 text-center leading-relaxed font-semibold">
                 {isRecurring 
                   ? "¿Confirmás el cobro del saldo restante del bloque completo de 4 semanas? Todas las reservas de este mes quedarán marcadas como totalmente pagadas."
@@ -456,7 +470,8 @@ export default function ReservationActions({
           </div>
         </div>
       )}
-      {showEditNameModal && (
+      {renderModal(
+        showEditNameModal,
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
             className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
@@ -535,7 +550,8 @@ export default function ReservationActions({
         </div>
       )}
 
-      {showSingleCancelModal && (
+      {renderModal(
+        showSingleCancelModal,
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
             className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
