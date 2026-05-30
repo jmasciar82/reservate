@@ -73,6 +73,19 @@ export default function ReservationActions({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    if (menuRef.current) {
+      const card = menuRef.current.closest(".group\\/res, .group") as HTMLElement;
+      if (card) {
+        if (isOpen) {
+          card.style.zIndex = "40";
+        } else {
+          card.style.zIndex = "";
+        }
+      }
+    }
+  }, [isOpen]);
+
   const handleUpdate = async (payload: {
     status?: ReservationStatus;
     paymentStatus?: PaymentStatus;
