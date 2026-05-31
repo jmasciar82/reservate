@@ -7,6 +7,7 @@ import { Court, CourtSchema } from '../courts/schemas/court.schema';
 
 import { ClubsModule } from '../clubs/clubs.module';
 import { CourtsModule } from '../courts/courts.module';
+import { AuditLogsModule } from '../audit-logs/audit-logs.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { CourtsModule } from '../courts/courts.module';
     ]),
     ClubsModule,
     CourtsModule,
+    AuditLogsModule,
   ],
   controllers: [ReservationsController],
   providers: [ReservationsService],

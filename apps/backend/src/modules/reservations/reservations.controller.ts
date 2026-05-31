@@ -16,6 +16,7 @@ import { CourtsService } from '../courts/courts.service';
 import { CreateReservationDto } from './dto/create-reservation.dto';
 import { UpdateReservationDto } from './dto/update-reservation.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { AuditLogsService } from '../audit-logs/audit-logs.service';
 
 @Controller('reservations')
 @UseGuards(JwtAuthGuard)
@@ -24,11 +25,13 @@ export class ReservationsController {
     private readonly reservationsService: ReservationsService,
     private readonly clubsService: ClubsService,
     private readonly courtsService: CourtsService,
+    private readonly auditLogsService: AuditLogsService,
   ) {}
 
   @Post()
   async create(@Body() createReservationDto: CreateReservationDto, @Request() req: any) {
     const user = req.user;
+    let result: any;
     if (user.role === 'club_owner') {
       const court = await this.courtsService.findOne(createReservationDto.courtId);
       if (!court) {
@@ -38,11 +41,39 @@ export class ReservationsController {
       if (!club || club.tenantId?.toString() !== user.tenantId?.toString()) {
         throw new ForbiddenException('No tienes permiso para reservar en esta cancha.');
       }
-      return this.reservationsService.create(createReservationDto);
+      result = await this.reservationsService.create(createReservationDto);
     } else if (user.role === 'staff') {
-      return this.reservationsService.create(createReservationDto, user.clubId);
+      result = await this.reservationsService.create(createReservationDto, user.clubId);
+    } else {
+      result = await this.reservationsService.create(createReservationDto);
     }
-    return this.reservationsService.create(createReservationDto);
+
+    // Registrar acción en auditoría
+    try {
+      await this.auditLogsService.logAction({
+        userId: user._id,
+        userName: user.name,
+        userEmail: user.email,
+        action: 'create_reservation',
+        targetType: 'reservation',
+        targetId: result._id.toString(),
+        clubId: result.courtId?.clubId ?? result.courtId,
+        tenantId: user.tenantId,
+        details: {
+          startTime: result.startTime,
+          endTime: result.endTime,
+          totalPrice: result.totalPrice,
+          paymentStatus: result.paymentStatus,
+          firstName: result.firstName,
+          lastName: result.lastName,
+          isRecurring: result.isRecurring,
+        },
+      });
+    } catch (e) {
+      console.error('Error writing audit log:', e);
+    }
+
+    return result;
   }
 
   @Get()
@@ -78,6 +109,7 @@ export class ReservationsController {
     @Request() req: any,
   ) {
     const user = req.user;
+    let result: any;
     if (user.role === 'club_owner') {
       const reservation = await this.reservationsService.findOne(id);
       if (!reservation) {
@@ -91,16 +123,55 @@ export class ReservationsController {
       if (!club || club.tenantId?.toString() !== user.tenantId?.toString()) {
         throw new ForbiddenException('No tienes permiso para actualizar esta reserva.');
       }
-      return this.reservationsService.update(id, updateReservationDto);
+      result = await this.reservationsService.update(id, updateReservationDto);
     } else if (user.role === 'staff') {
-      return this.reservationsService.update(id, updateReservationDto, user.clubId);
+      result = await this.reservationsService.update(id, updateReservationDto, user.clubId);
+    } else {
+      result = await this.reservationsService.update(id, updateReservationDto);
     }
-    return this.reservationsService.update(id, updateReservationDto);
+
+    // Registrar acción en auditoría
+    try {
+      const isCancellation = updateReservationDto.status === 'cancelled';
+      const isRescheduling = updateReservationDto.courtId || updateReservationDto.startTime || updateReservationDto.endTime;
+      const isPaymentUpdate = updateReservationDto.paymentStatus || updateReservationDto.depositAmount !== undefined;
+
+      let action = 'update_reservation';
+      if (isCancellation) action = 'cancel_reservation';
+      else if (isRescheduling) action = 'reschedule_reservation';
+      else if (isPaymentUpdate) action = 'payment_reservation';
+
+      await this.auditLogsService.logAction({
+        userId: user._id,
+        userName: user.name,
+        userEmail: user.email,
+        action,
+        targetType: 'reservation',
+        targetId: id,
+        clubId: result?.courtId?.clubId ?? result?.courtId,
+        tenantId: user.tenantId,
+        details: {
+          changes: updateReservationDto,
+          newValues: {
+            status: result?.status,
+            paymentStatus: result?.paymentStatus,
+            startTime: result?.startTime,
+            endTime: result?.endTime,
+            courtId: result?.courtId?._id ?? result?.courtId,
+          }
+        },
+      });
+    } catch (e) {
+      console.error('Error writing audit log:', e);
+    }
+
+    return result;
   }
 
   @Post(':id/renew')
   async renew(@Param('id') id: string, @Request() req: any) {
     const user = req.user;
+    let result: any;
     if (user.role === 'club_owner') {
       const reservation = await this.reservationsService.findOne(id);
       if (!reservation) {
@@ -114,10 +185,32 @@ export class ReservationsController {
       if (!club || club.tenantId?.toString() !== user.tenantId?.toString()) {
         throw new ForbiddenException('No tienes permiso para renovar esta reserva.');
       }
-      return this.reservationsService.renew(id);
+      result = await this.reservationsService.renew(id);
     } else if (user.role === 'staff') {
-      return this.reservationsService.renew(id, user.clubId);
+      result = await this.reservationsService.renew(id, user.clubId);
+    } else {
+      result = await this.reservationsService.renew(id);
     }
-    return this.reservationsService.renew(id);
+
+    // Registrar acción en auditoría
+    try {
+      await this.auditLogsService.logAction({
+        userId: user._id,
+        userName: user.name,
+        userEmail: user.email,
+        action: 'renew_reservation',
+        targetType: 'reservation',
+        targetId: id,
+        clubId: result?.courtId?.clubId ?? result?.courtId,
+        tenantId: user.tenantId,
+        details: {
+          description: 'Renovación de 4 semanas para turno fijo'
+        },
+      });
+    } catch (e) {
+      console.error('Error writing audit log:', e);
+    }
+
+    return result;
   }
 }
