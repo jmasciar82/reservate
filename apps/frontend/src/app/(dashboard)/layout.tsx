@@ -25,7 +25,7 @@ export default async function DashboardLayout({
 
   return (
     <ClubProvider initialClubs={clubs} initialActiveClubId={activeClubId}>
-      <div className="relative flex w-full h-screen overflow-hidden bg-[#050507] text-foreground">
+      <div className="relative flex w-full h-screen overflow-hidden bg-background text-foreground transition-colors duration-300">
         {/* Ambient background glows for glassmorphism */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
           <div className="absolute top-[-10%] left-[-10%] w-[45rem] h-[45rem] rounded-full bg-primary/10 blur-[130px] animate-glow-slow" />
