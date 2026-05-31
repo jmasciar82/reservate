@@ -168,18 +168,46 @@ export class AnalyticsService {
       deposits: val.deposits,
     }));
 
-    // 8. Relación de pagos
+    // 8. Relación de pagos e Ingresos por Canchas vs Productos
     let paidOnline = 0;
     let pendingAtFrontDesk = 0;
     let totalRevenue = 0;
+    let courtRevenue = 0;
+    let productsRevenue = 0;
+
+    // Mapa para el ranking de productos
+    const productSalesMap = new Map<string, { quantity: number; revenue: number }>();
 
     reservations.forEach((r) => {
       totalRevenue += r.totalPrice || 0;
+      const rProductsPrice = (r as any).productsPrice || 0;
+      productsRevenue += rProductsPrice;
+      courtRevenue += ((r.totalPrice || 0) - rProductsPrice);
+
       if (r.paymentStatus === 'paid') {
         paidOnline += r.depositAmount || 0;
         pendingAtFrontDesk += (r.totalPrice - r.depositAmount) || 0;
       } else {
         pendingAtFrontDesk += r.totalPrice || 0;
+      }
+
+      // Procesar productos/extras de esta reserva
+      const rProducts = (r as any).products || [];
+      if (Array.isArray(rProducts)) {
+        rProducts.forEach((p: any) => {
+          if (p && p.name) {
+            const pName = p.name.trim();
+            const pQty = p.quantity || 0;
+            const pPrice = p.price || 0;
+            const pRev = pQty * pPrice;
+
+            const existing = productSalesMap.get(pName) || { quantity: 0, revenue: 0 };
+            productSalesMap.set(pName, {
+              quantity: existing.quantity + pQty,
+              revenue: existing.revenue + pRev,
+            });
+          }
+        });
       }
     });
 
@@ -187,7 +215,19 @@ export class AnalyticsService {
       totalRevenue,
       paidOnline,
       pendingAtFrontDesk,
+      courtRevenue,
+      productsRevenue,
     };
+
+    // Compilar y ordenar el Top 5 productos
+    const topProducts = Array.from(productSalesMap.entries())
+      .map(([name, val]) => ({
+        name,
+        quantity: val.quantity,
+        revenue: val.revenue,
+      }))
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 5);
 
     // KPIs generales
     const totalAvailableHours = 14 * daysCount * courts.length;
@@ -203,6 +243,7 @@ export class AnalyticsService {
       occupancyByCourt,
       occupancyBySport,
       peakHours,
+      topProducts,
     };
   }
 
@@ -215,10 +256,13 @@ export class AnalyticsService {
         totalRevenue: 0,
         paidOnline: 0,
         pendingAtFrontDesk: 0,
+        courtRevenue: 0,
+        productsRevenue: 0,
       },
       occupancyByCourt: [],
       occupancyBySport: [],
       peakHours: [],
+      topProducts: [],
     };
   }
 }
