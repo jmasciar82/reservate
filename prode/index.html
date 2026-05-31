@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PRODE Mundial Premium | Pronostica y Gana</title>
+  <meta name="description" content="La aplicación definitiva de pronósticos para el mundial. Registra tu correo, abona tu inscripción y compite por el pozo de premios.">
+  
+  <!-- PWA Meta Tags -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/5323/5323485.png">
+  <meta name="theme-color" content="#000000">
+
+  <!-- Hojas de Estilo y Tipografía -->
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Librería de Confeti para animaciones de éxito -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  
+  <!-- SDK de Supabase Serverless para Base de Datos en Producción -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.8/dist/umd/supabase.js"></script>
+
+  <!-- PWA Service Worker Registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('service-worker.js')
+          .then(reg => console.log('PWA Service Worker registrado con éxito', reg))
+          .catch(err => console.log('Fallo al registrar SW de PWA', err));
+      });
+    }
+  </script>
+</head>
+<body>
+
+  <!-- ================= PANTALLA DE LOGIN ================= -->
+  <section id="login-screen" class="app-screen active">
+    <div class="glass-panel auth-card">
+      <div class="app-logo">
+        <i class="fa-solid fa-trophy"></i>
+      </div>
+      <h1>PRODE MUNDIAL</h1>
+      <p>Pronostica los resultados, suma puntos con tus aciertos y gana el pozo acumulado.</p>
+      
+      <form id="login-form" onsubmit="event.preventDefault();">
+        <div class="form-group">
+          <label for="login-email">Ingresa tu Correo Electrónico</label>
+          <input 
+            type="email" 
+            id="login-email" 
+            class="form-input" 
+            placeholder="ejemplo@correo.com" 
+            required
+          >
+        </div>
+        <button type="submit" id="btn-login-submit" class="btn-primary">
+          Ingresar al Prode
+        </button>
+      </form>
+    </div>
+  </section>
+
+  <!-- ================= PANTALLA DE PAGO MERCADO PAGO ================= -->
+  <section id="payment-screen" class="app-screen">
+    <div class="glass-panel payment-card gold-glow">
+      <div class="payment-header">
+        <div class="payment-badge" style="background: rgba(0, 158, 227, 0.1); border-color: #009ee3; color: #009ee3;">Inscripción con Mercado Pago</div>
+        <h2>Valida tu Cuenta para el Pozo</h2>
+        <p>Abona los $1000 de inscripción para activar tu presencia en el Leaderboard oficial y competir por el pozo acumulado.</p>
+      </div>
+
+      <!-- Selector de métodos de Mercado Pago -->
+      <div class="mp-tabs">
+        <button type="button" class="mp-tab-btn active" id="btn-tab-mp-express" onclick="ProdeApp.switchPaymentTab('express')">
+          <i class="fa-solid fa-bolt"></i> Pago Exprés
+        </button>
+        <button type="button" class="mp-tab-btn" id="btn-tab-mp-transfer" onclick="ProdeApp.switchPaymentTab('transfer')">
+          <i class="fa-solid fa-money-bill-transfer"></i> Transferencia
+        </button>
+      </div>
+
+      <!-- Panel 1: Pago Exprés (Checkout Pro Simulado) -->
+      <div id="mp-pane-express" class="mp-pane active">
+        <div class="mp-express-content">
+          <div class="mp-logo-display">
+            <span class="mp-logo-text">mercado <span class="mp-logo-bold">pago</span></span>
+          </div>
+          
+          <div class="mp-info-bullet">
+            <i class="fa-solid fa-circle-check" style="color: var(--accent-green);"></i>
+            <span>Activación 100% instantánea y automática en el Prode.</span>
+          </div>
+          <div class="mp-info-bullet">
+            <i class="fa-solid fa-circle-check" style="color: var(--accent-green);"></i>
+            <span>Simulador de Checkout Pro integrado o enlace real.</span>
+          </div>
+
+          <div style="margin: 25px 0 15px 0;">
+            <button type="button" id="btn-mp-express-pay" onclick="ProdeApp.startMpExpressFlow()" class="btn-mp-express-pay">
+              <i class="fa-solid fa-wallet"></i> Pagar con Mercado Pago
+            </button>
+          </div>
+          <p style="color: var(--text-muted); font-size: 0.8rem; text-align: center;">Se abrirá la pasarela para procesar tu transferencia de $1000 ARS.</p>
+        </div>
+      </div>
+
+      <!-- Panel 2: Transferencia Directa (CVU/Alias) -->
+      <div id="mp-pane-transfer" class="mp-pane">
+        <div class="mp-transfer-card">
+          <div class="mp-transfer-header">Datos de Cobro del Organizador</div>
+          
+          <div class="mp-transfer-row">
+            <div class="mp-transfer-field">
+              <span class="mp-transfer-label">ALIAS MERCADO PAGO</span>
+              <span class="mp-transfer-value" id="mp-display-alias">prode.mundial.2026</span>
+            </div>
+            <button type="button" onclick="ProdeApp.copyToClipboard('Alias', 'mp-display-alias')" class="btn-copy-mp">
+              <i class="fa-solid fa-copy"></i> Copiar
+            </button>
+          </div>
+
+          <div class="mp-transfer-row">
+            <div class="mp-transfer-field">
+              <span class="mp-transfer-label">CVU MERCADO PAGO</span>
+              <span class="mp-transfer-value" id="mp-display-cvu">0000003100019283746501</span>
+            </div>
+            <button type="button" onclick="ProdeApp.copyToClipboard('CVU', 'mp-display-cvu')" class="btn-copy-mp">
+              <i class="fa-solid fa-copy"></i> Copiar
+            </button>
+          </div>
+
+          <div class="mp-transfer-row-plain">
+            <div class="mp-transfer-field">
+              <span class="mp-transfer-label">TITULAR DE CUENTA</span>
+              <span class="mp-transfer-value-plain" id="mp-display-holder">Juan Pérez (Organizador)</span>
+            </div>
+          </div>
+
+          <div class="mp-transfer-row-plain">
+            <div class="mp-transfer-field">
+              <span class="mp-transfer-label">MONTO ESTABLECIDO</span>
+              <span class="mp-transfer-value-plain" style="color: var(--primary-gold); font-size: 1.15rem; font-weight: 800;">$1000 ARS</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Formulario de Registro de Comprobante -->
+        <form id="mp-transfer-form" onsubmit="event.preventDefault(); ProdeApp.submitMpTransferReceipt();">
+          <div class="form-group" style="margin-top: 20px;">
+            <label for="mp-transaction-id">Número de Comprobante / Operación</label>
+            <input 
+              type="text" 
+              id="mp-transaction-id" 
+              class="form-input" 
+              placeholder="Ej: 19283746201 (mínimo 8 dígitos)" 
+              required
+              maxlength="15"
+            >
+          </div>
+          
+          <button type="submit" id="btn-transfer-submit" class="btn-primary" style="margin-top: 15px;">
+            <i class="fa-solid fa-circle-check"></i> Registrar Transferencia
+          </button>
+        </form>
+      </div>
+
+      <!-- Botón General de Regreso -->
+      <div style="margin-top: 15px; border-top: 1px dashed rgba(255,255,255,0.06); padding-top: 15px;">
+        <button type="button" onclick="ProdeApp.cancelPaymentFlow()" class="btn-primary btn-gray-action" style="padding: 12px; font-size: 0.85rem; text-transform: uppercase;">
+          <i class="fa-solid fa-arrow-left"></i> Volver al Fixture
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= PANTALLA PRINCIPAL (DASHBOARD & SPA) ================= -->
+  <section id="main-screen" class="app-screen">
+    
+    <!-- BARRA LATERAL (Escritorio) -->
+    <aside class="app-sidebar">
+      <div>
+        <div class="sidebar-logo">
+          <div class="logo-icon"><i class="fa-solid fa-futbol"></i></div>
+          <span class="logo-text">PRODE WC 2026</span>
+        </div>
+        
+        <nav>
+          <ul class="nav-menu">
+            <li class="nav-item active" data-tab="dashboard">
+              <span class="nav-link"><i class="fa-solid fa-chart-line"></i> Inicio</span>
+            </li>
+            <li class="nav-item" data-tab="predictions">
+              <span class="nav-link"><i class="fa-solid fa-pen-to-square"></i> Pronósticos</span>
+            </li>
+            <li class="nav-item" data-tab="standings">
+              <span class="nav-link"><i class="fa-solid fa-table-list"></i> Grupos</span>
+            </li>
+            <li class="nav-item" data-tab="leaderboard">
+              <span class="nav-link"><i class="fa-solid fa-ranking-star"></i> Posiciones</span>
+            </li>
+            <li class="nav-item" data-tab="rules">
+              <span class="nav-link"><i class="fa-solid fa-circle-info"></i> Reglamento</span>
+            </li>
+            <li class="nav-item" data-tab="admin" style="display: none;">
+              <span class="nav-link" style="color: rgba(255,255,255,0.4);"><i class="fa-solid fa-gears"></i> Simulador API</span>
+            </li>
+          </ul>
+        </nav>
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="user-profile-badge">
+          <div class="profile-avatar">
+            <i class="fa-solid fa-user"></i>
+          </div>
+          <div class="profile-info">
+            <div class="profile-email" id="user-display-email">correo@mail.com</div>
+            <div class="profile-status" id="user-display-status">
+              <i class="fa-solid fa-circle-check"></i> Activo ($1000)
+            </div>
+          </div>
+        </div>
+        <button id="btn-logout-sidebar" class="btn-logout">
+          <i class="fa-solid fa-right-from-bracket"></i> Cerrar Sesión
+        </button>
+      </div>
+    </aside>
+
+    <!-- HEADER MÓVIL (Smartphones) -->
+    <div class="mobile-top-bar">
+      <div class="sidebar-logo" style="margin-bottom: 0;">
+        <div class="logo-icon" style="width: 32px; height: 32px; font-size: 1rem;"><i class="fa-solid fa-futbol"></i></div>
+        <span class="logo-text" style="font-size: 1.1rem;">PRODE WC</span>
+      </div>
+      <button id="btn-logout-mobile" class="btn-logout" style="width: auto; padding: 6px 12px;">
+        <i class="fa-solid fa-right-from-bracket"></i>
+      </button>
+    </div>
+
+    <!-- NAVEGACIÓN INFERIOR MÓVIL (Smartphones) -->
+    <nav class="mobile-bottom-nav">
+      <span class="mobile-nav-link active" data-tab="dashboard">
+        <i class="fa-solid fa-chart-line"></i>Inicio
+      </span>
+      <span class="mobile-nav-link" data-tab="predictions">
+        <i class="fa-solid fa-pen-to-square"></i>Pronósticos
+      </span>
+      <span class="mobile-nav-link" data-tab="standings">
+        <i class="fa-solid fa-table-list"></i>Grupos
+      </span>
+      <span class="mobile-nav-link" data-tab="leaderboard">
+        <i class="fa-solid fa-ranking-star"></i>Posiciones
+      </span>
+      <span class="mobile-nav-link" data-tab="rules">
+        <i class="fa-solid fa-circle-info"></i>Reglas
+      </span>
+      <span class="mobile-nav-link" data-tab="admin" style="display: none;">
+        <i class="fa-solid fa-gears"></i>Simulador
+      </span>
+    </nav>
+
+    <!-- ÁREA DE CONTENIDO CENTRAL -->
+    <main class="app-content">
+
+      <!-- BANNER DE CUENTA IMPAGA -->
+      <div class="glass-panel unpaid-banner" id="unpaid-warning-banner" style="display: none; padding: 15px 25px; border-color: rgba(212, 175, 55, 0.35); background: rgba(212, 175, 55, 0.05); border-radius: var(--border-radius-md); margin-bottom: 25px; align-items: center; justify-content: space-between; gap: 15px; flex-wrap: wrap; animation: fadeIn 0.4s ease-out;">
+        <div style="display: flex; align-items: center; gap: 15px;">
+          <i class="fa-solid fa-circle-exclamation" style="color: var(--primary-gold); font-size: 1.3rem;"></i>
+          <div>
+            <strong style="color: var(--primary-gold); font-weight: 700; font-size: 0.95rem;">Modo de Demostración Activo</strong>
+            <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 2px;">Tus predicciones están guardadas, pero debes abonar la inscripción de $1000 para figurar en la clasificación y disputar el pozo.</p>
+          </div>
+        </div>
+        <button class="btn-primary" onclick="ProdeApp.goToPaymentScreen()" style="width: auto; padding: 8px 16px; font-size: 0.8rem; text-transform: none; font-weight: 700; box-shadow: 0 4px 10px rgba(212,175,55,0.25);">
+          Abonar $1000 y Competir
+        </button>
+      </div>
+
+      <!-- BANNER INFORMATIVO DE HORA SIMULADA -->
+      <div class="glass-panel" id="time-simulation-banner" style="display: none; padding: 10px 20px; border-color: rgba(59, 130, 246, 0.3); background: rgba(59, 130, 246, 0.05); border-radius: var(--border-radius-md); margin-bottom: 25px; align-items: center; gap: 10px; font-size: 0.8rem;">
+        <i class="fa-regular fa-clock" style="color: var(--accent-blue);"></i>
+        <span style="color: var(--text-muted);">Simulando fecha del torneo: <strong id="simulated-time-display" style="color: var(--text-main);">10 de Junio</strong>.</span>
+        <button onclick="ProdeApp.changeSimulatedTime(null)" style="background:none; border:none; color:var(--accent-blue); cursor:pointer; font-weight:700; text-decoration:underline; margin-left:auto;">Restablecer a real</button>
+      </div>
+      
+      <!-- ================ PESTAÑA: INICIO (DASHBOARD) ================ -->
+      <div id="tab-dashboard" class="tab-content active">
+        <div class="welcome-banner" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
+          <div>
+            <h2>¡Hola de nuevo! <span id="dashboard-user-name" style="color: var(--primary-gold);">Usuario</span></h2>
+            <p>Revisa el pozo actual, compite con tus amigos y mantente al día con los partidos.</p>
+          </div>
+          <!-- COUNTDOWN AL PRÓXIMO PARTIDO (B3) -->
+          <div class="glass-panel countdown-container" id="countdown-widget" style="padding: 12px 24px; border-color: rgba(212, 175, 55, 0.25); background: rgba(212, 175, 55, 0.03); border-radius: var(--border-radius-md); display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 220px; box-shadow: 0 0 15px rgba(212,175,55,0.05);">
+            <span style="font-size: 0.7rem; text-transform: uppercase; font-weight: 700; color: var(--primary-gold); letter-spacing: 0.5px;"><i class="fa-regular fa-clock"></i> PRÓXIMO ENCUENTRO EN</span>
+            <div id="countdown-timer-display" style="font-size: 1.3rem; font-weight: 800; color: #fff; margin-top: 4px; font-family: monospace;">Cargando...</div>
+          </div>
+        </div>
+
+        <div class="dashboard-grid">
+          <!-- Pozo Acumulado -->
+          <div class="glass-panel dash-card total-pool-card gold-glow">
+            <div class="card-icon"><i class="fa-solid fa-sack-dollar"></i></div>
+            <h3>Pozo Acumulado</h3>
+            <div class="dash-val gold-glow-text" id="dash-total-pool">$0</div>
+            <div class="dash-subval" id="dash-pool-participants"><i class="fa-solid fa-users"></i> 0 participantes inscritos</div>
+          </div>
+
+          <!-- Puntos y Posición -->
+          <div class="glass-panel dash-card" style="display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+              <div class="card-icon"><i class="fa-solid fa-award"></i></div>
+              <h3>Tu Puntuación</h3>
+              <div class="dash-val" id="dash-user-points">0 pts</div>
+              <div class="dash-subval" id="dash-user-rank"><i class="fa-solid fa-trophy"></i> Posición: calculando...</div>
+            </div>
+            
+            <!-- BOTÓN DE COMPARTIR PREDICCIONES (C2) -->
+            <div style="margin-top: 15px; border-top: 1px dashed rgba(255,255,255,0.06); padding-top: 15px; display: flex; gap: 8px;">
+              <button id="btn-share-whatsapp" onclick="ProdeApp.sharePredictions('whatsapp')" class="btn-sm-action btn-gold-action" style="flex: 1; padding: 8px; font-size: 0.75rem; background: #25d366; color: #000; border-color: #25d366; font-weight: 700;">
+                <i class="fa-brands fa-whatsapp"></i> Compartir
+              </button>
+              <button id="btn-share-copy" onclick="ProdeApp.sharePredictions('copy')" class="btn-sm-action btn-gray-action" style="flex: 1; padding: 8px; font-size: 0.75rem; border-color: rgba(255,255,255,0.15); color: #fff; background: rgba(255,255,255,0.03);">
+                <i class="fa-solid fa-copy"></i> Copiar
+              </button>
+            </div>
+          </div>
+
+          <!-- ESTADÍSTICAS PERSONALES (B2) -->
+          <div class="glass-panel dash-card" style="display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+              <div class="card-icon" style="color: var(--accent-blue);"><i class="fa-solid fa-chart-simple"></i></div>
+              <h3>Tus Estadísticas</h3>
+              
+              <div style="display: flex; flex-direction: column; gap: 10px; margin: 10px 0;">
+                <div style="display: flex; justify-content: space-between; font-size: 0.85rem;">
+                  <span style="color: var(--text-muted);">Aciertos Exactos (3 pts):</span>
+                  <span style="font-weight: 700; color: #fff;" id="stats-exact-hits">0</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.85rem;">
+                  <span style="color: var(--text-muted);">Aciertos Ganador (1 pt):</span>
+                  <span style="font-weight: 700; color: #fff;" id="stats-partial-hits">0</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.85rem;">
+                  <span style="color: var(--text-muted);">Efectividad General:</span>
+                  <span style="font-weight: 700; color: var(--accent-green);" id="stats-efficiency">0%</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.85rem;">
+                  <span style="color: var(--text-muted);">Racha Actual:</span>
+                  <span style="font-weight: 700; color: var(--primary-gold);" id="stats-streak">0 🔥</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Barra de Progreso de Eficiencia -->
+            <div style="width: 100%; height: 6px; background: rgba(255,255,255,0.05); border-radius: 3px; overflow: hidden; margin-top: 10px;">
+              <div id="stats-progress-bar" style="width: 0%; height: 100%; background: var(--primary-gold-gradient); transition: width 0.8s ease;"></div>
+            </div>
+          </div>
+
+          <!-- Próximo Partido Destacado -->
+          <div class="glass-panel dash-card featured-match-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; width: 100%;">
+              <h3 style="margin-bottom: 0;">Pronóstico Rápido</h3>
+              <span class="match-countdown" id="featured-match-time-badge">Partido Destacado</span>
+            </div>
+            
+            <div class="match-mini-row" id="featured-match-widget">
+              <!-- Renderizado Dinámico -->
+              <div class="mini-team">
+                <img src="https://flagcdn.com/ar.svg" alt="ARG" class="mini-flag">
+                <span class="mini-team-name">Argentina</span>
+              </div>
+              
+              <div class="mini-pred-box">
+                <input type="number" class="mini-pred-input" id="feat-goals-a" placeholder="-" min="0">
+                <span class="mini-versus">vs</span>
+                <input type="number" class="mini-pred-input" id="feat-goals-b" placeholder="-" min="0">
+              </div>
+
+              <div class="mini-team">
+                <img src="https://flagcdn.com/sa.svg" alt="KSA" class="mini-flag">
+                <span class="mini-team-name">Arabia S.</span>
+              </div>
+            </div>
+            
+            <button id="btn-save-featured" class="btn-primary" style="padding: 10px; font-size: 0.85rem; border-radius: 8px;">
+              Guardar Pronóstico Rápido
+            </button>
+          </div>
+        </div>
+
+        <!-- Banner Explicativo Rápido -->
+        <div class="glass-panel" style="padding: 25px; display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
+          <div class="logo-icon" style="font-size: 1.5rem; background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.3); color: var(--accent-green); flex-shrink: 0;">
+            <i class="fa-solid fa-circle-info"></i>
+          </div>
+          <div style="flex: 1; min-width: 250px;">
+            <h4 style="margin-bottom: 5px; font-weight: 700;">¿Cómo jugar y ganar?</h4>
+            <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.4;">
+              Completa todos los marcadores en la pestaña <strong>Pronósticos</strong> antes del inicio de los encuentros. Sumarás <strong>3 puntos</strong> si aciertas el resultado exacto y <strong>1 punto</strong> si aciertas el ganador o empate. ¡El mayor puntaje se lleva el pozo acumulado asociado a su correo!
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================ PESTAÑA: FIXTURE DE PRONÓSTICOS ================ -->
+      <div id="tab-predictions" class="tab-content">
+        <div class="fixture-header">
+          <div>
+            <h2 style="font-size: 1.8rem; font-weight: 800; margin-bottom: 5px;">Fixture y Pronósticos</h2>
+            <p style="color: var(--text-muted); font-size: 0.95rem;">Ingresa tus apuestas de goles para los partidos del mundial.</p>
+          </div>
+          
+          <div class="fixture-tabs">
+            <button class="btn-filter active" data-stage="Fase de Grupos">Grupos</button>
+            <button class="btn-filter" data-stage="Octavos de Final">Octavos</button>
+            <button class="btn-filter" data-stage="Semifinales">Semifinales</button>
+            <button class="btn-filter" data-stage="Gran Final">Final</button>
+            <button class="btn-filter" data-stage="Bracket Visual">Copa Bracket</button>
+          </div>
+        </div>
+
+        <!-- Alerta de Ventana de Apuestas Cerrada -->
+        <div class="glass-panel" id="fixture-lock-alert" style="display: none; padding: 15px 25px; border-color: rgba(239, 68, 68, 0.35); background: rgba(239, 68, 68, 0.05); border-radius: var(--border-radius-md); margin-bottom: 25px; align-items: center; gap: 15px;">
+          <i class="fa-solid fa-lock" style="color: var(--accent-red); font-size: 1.3rem;"></i>
+          <div>
+            <strong style="color: var(--accent-red);">Apuestas Cerradas</strong>
+            <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 2px;">El primer partido de esta fase ha comenzado o ya ha concluido. Ya no es posible modificar ni guardar nuevos pronósticos para estos encuentros.</p>
+          </div>
+        </div>
+
+        <!-- Contenedor de Partidos -->
+        <div class="matches-container" id="matches-render-container">
+          <!-- Los partidos se renderizan dinámicamente mediante js/app.js -->
+        </div>
+
+        <!-- Botón flotante para guardar cambios en fixture -->
+        <div class="floating-save-area">
+          <button id="btn-save-fixture-predictions" class="btn-primary btn-floating-save">
+            <i class="fa-solid fa-floppy-disk"></i> Guardar Pronósticos
+          </button>
+        </div>
+      </div>
+
+      <!-- ================ PESTAÑA: LEADERBOARD ================ -->
+      <div id="tab-leaderboard" class="tab-content">
+        <div class="leaderboard-intro">
+          <div>
+            <h2 style="font-size: 1.8rem; font-weight: 800; margin-bottom: 5px;">Tabla de Clasificación</h2>
+            <p style="color: var(--text-muted); font-size: 0.95rem;">Mira las posiciones reales en vivo y quién está liderando el pozo.</p>
+          </div>
+          <div class="glass-panel pool-status-panel gold-glow">
+            <div class="pool-lbl">Premio / Pozo Actual</div>
+            <div class="pool-val" id="board-total-pool">$0 ARS</div>
+          </div>
+        </div>
+
+        <!-- Mensaje para usuarios impagos en Leaderboard -->
+        <div class="glass-panel" id="leaderboard-unpaid-notice" style="display: none; padding: 15px 25px; border-color: rgba(212, 175, 55, 0.25); background: rgba(212, 175, 55, 0.03); border-radius: var(--border-radius-md); margin-bottom: 25px; align-items: center; gap: 15px;">
+          <i class="fa-solid fa-circle-question" style="color: var(--primary-gold); font-size: 1.3rem;"></i>
+          <div style="flex: 1;">
+            <p style="color: var(--text-muted); font-size: 0.85rem; line-height: 1.4;">
+              💡 <strong>Tus predicciones están registradas y guardadas.</strong> Sin embargo, no figuras en esta clasificación oficial porque no has realizado tu pago de $1000. Los competidores activos que ves abajo han abonado sus respectivas cuotas. ¡Paga en cualquier momento antes de que terminen los partidos para ingresar con tus puntos!
+            </p>
+          </div>
+        </div>
+
+        <div class="leaderboard-table-container glass-panel">
+          <table class="leaderboard-table">
+            <thead>
+              <tr>
+                <th style="text-align: center;">Pos</th>
+                <th>Usuario</th>
+                <th style="text-align: center;">Exactos (3 pts)</th>
+                <th style="text-align: center;">Parciales (1 pt)</th>
+                <th style="text-align: center;">Puntos</th>
+              </tr>
+            </thead>
+            <tbody id="leaderboard-tbody">
+              <!-- Filas dinámicas cargadas por JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ================ PESTAÑA: TABLA DE GRUPOS (STANDINGS) ================ -->
+      <div id="tab-standings" class="tab-content">
+        <div class="leaderboard-intro">
+          <div>
+            <h2 style="font-size: 1.8rem; font-weight: 800; margin-bottom: 5px;">Tablas de Grupos</h2>
+            <p style="color: var(--text-muted); font-size: 0.95rem;">Estadísticas en tiempo real de la Fase de Grupos del Mundial 2026.</p>
+          </div>
+        </div>
+
+        <div class="groups-grid" id="groups-standings-container" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 25px; margin-bottom: 30px;">
+          <!-- Las tablas de los 12 grupos A-L se renderizan dinámicamente -->
+        </div>
+      </div>
+
+      <!-- ================ PESTAÑA: REGLAMENTO ================ -->
+      <div id="tab-rules" class="tab-content">
+        <div class="glass-panel rules-container">
+          <h2 style="font-size: 1.8rem; font-weight: 800; margin-bottom: 10px; text-align: center;">Sistema de Puntuación</h2>
+          <p style="color: var(--text-muted); text-align: center; max-width: 550px; margin: 0 auto 30px auto;">
+            Para asegurar una competencia justa y emocionante, cada partido finalizado otorga puntos de acuerdo a las siguientes reglas estandarizadas:
+          </p>
+
+          <div class="rules-grid">
+            <div class="rule-box">
+              <div class="rule-icon-circle exact-icon">3</div>
+              <h4>Resultado Exacto</h4>
+              <p>Aciertas la cantidad exacta de goles de ambos equipos. Ejemplo: Pronóstico 2-1 | Resultado 2-1.</p>
+            </div>
+            <div class="rule-box">
+              <div class="rule-icon-circle partial-icon">1</div>
+              <h4>Ganador o Empate</h4>
+              <p>Aciertas quién gana el partido o si empatan, pero no la cantidad de goles. Ejemplo: Pronóstico 3-0 | Resultado 1-0.</p>
+            </div>
+            <div class="rule-box">
+              <div class="rule-icon-circle fail-icon">0</div>
+              <h4>Sin Aciertos</h4>
+              <p>No aciertas el resultado ni el ganador del encuentro. Ejemplo: Pronóstico 1-1 | Resultado 0-2.</p>
+            </div>
+          </div>
+
+          <div style="margin-top: 40px; padding: 20px; border-radius: var(--border-radius-md); border: 1px dashed rgba(255,255,255,0.1); background: rgba(0,0,0,0.15);">
+            <h4 style="color: var(--primary-gold); margin-bottom: 10px; font-weight: 700;"><i class="fa-solid fa-circle-question"></i> ¿Cómo se define el ganador al final del Mundial?</h4>
+            <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.5;">
+              El usuario que sume la mayor cantidad de puntos al finalizar el torneo será el ganador del **100% del Pozo Acumulado**. En caso de empate en puntos, se utilizará como criterio de desempate la cantidad de **Resultados Exactos** (3 pts). Si el empate persiste, el ganador será quien haya realizado el **pago de inscripción primero**, verificado mediante la fecha registrada de su correo.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================ PESTAÑA: SIMULADOR DE API (ADMIN) ================ -->
+      <div id="tab-admin" class="tab-content">
+        <!-- PROMPT DE PIN DE ADMINISTRADOR (A1) -->
+        <div id="admin-pin-prompt" class="glass-panel" style="max-width: 400px; margin: 40px auto; padding: 40px 30px; text-align: center; border-color: rgba(212,175,55,0.25);">
+          <div class="app-logo" style="background: var(--primary-gold-gradient); width: 60px; height: 60px; font-size: 1.6rem; color: #000; box-shadow: 0 0 15px rgba(212,175,55,0.3); margin-bottom: 20px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%;">
+            <i class="fa-solid fa-lock"></i>
+          </div>
+          <h3 id="admin-pin-title" style="font-weight: 800; font-size: 1.4rem; margin-bottom: 10px;">PIN de Administrador</h3>
+          <p id="admin-pin-desc" style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 25px; line-height: 1.4;">Ingresa el PIN de seguridad para acceder a la configuración de cobros y simulación.</p>
+          
+          <form id="admin-pin-form" onsubmit="event.preventDefault(); ProdeApp.verifyAdminPin();">
+            <div class="form-group" style="margin-bottom: 20px;">
+              <input type="password" id="admin-pin-input" class="form-input" placeholder="••••" style="text-align: center; letter-spacing: 8px; font-size: 1.6rem; padding: 10px;" required maxlength="6">
+            </div>
+            <button type="submit" id="btn-admin-pin-submit" class="btn-primary">
+              Desbloquear Panel
+            </button>
+          </form>
+        </div>
+
+        <!-- CONTENIDO DEL ADMINISTRADOR (OCULTO HASTA INGRESO DE PIN) -->
+        <div class="glass-panel admin-card" id="admin-main-controls" style="display: none;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+            <div>
+              <h2 style="font-weight: 800; font-size: 1.8rem; margin-bottom: 5px;">Simulador de API de Fútbol</h2>
+              <p style="color: var(--text-muted); font-size: 0.95rem;">Simula la actualización oficial de partidos de la API deportiva para probar el recálculo dinámico de la tabla y los ganadores.</p>
+            </div>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+              <button id="btn-export-csv" class="btn-sm-action btn-gray-action" onclick="ProdeApp.exportLeaderboardCsv()" style="border-color: rgba(255,255,255,0.15); color: #fff; background: rgba(255,255,255,0.03);">
+                <i class="fa-solid fa-file-csv"></i> Exportar CSV
+              </button>
+              <button id="btn-reset-simulator" class="btn-sm-action btn-gray-action" style="background: rgba(239, 68, 68, 0.1); color: var(--accent-red); border-color: rgba(239,68,68,0.2);">
+                <i class="fa-solid fa-rotate-left"></i> Reiniciar Todo
+              </button>
+            </div>
+          </div>
+
+          <!-- VIAJE EN EL TIEMPO - SIMULADOR DE FECHA -->
+          <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--bg-card-border); padding: 20px; border-radius: var(--border-radius-md); margin-top: 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px;">
+            <div>
+              <h4 style="font-weight: 700; color: var(--primary-gold); margin-bottom: 5px;"><i class="fa-regular fa-clock"></i> Simulador de Fecha del Mundial (Lock-Testing)</h4>
+              <p style="color: var(--text-muted); font-size: 0.85rem;">Cambia la fecha simulada para verificar el bloqueo automático de las ventanas de apuestas.</p>
+            </div>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+              <button class="btn-sm-action btn-gray-action active" id="btn-time-before" onclick="ProdeApp.changeSimulatedTime(null)">
+                <i class="fa-solid fa-calendar-days"></i> Antes del Mundial (Abierto)
+              </button>
+              <button class="btn-sm-action btn-gray-action" id="btn-time-groups" onclick="ProdeApp.changeSimulatedTime('2026-06-15T12:00:00Z')">
+                <i class="fa-solid fa-hourglass-half"></i> En Grupos (Cierra Grupos)
+              </button>
+              <button class="btn-sm-action btn-gray-action" id="btn-time-knockout" onclick="ProdeApp.changeSimulatedTime('2026-06-29T12:00:00Z')">
+                <i class="fa-solid fa-ban"></i> En Eliminatoria (Bloquea Todo)
+              </button>
+            </div>
+          </div>
+
+          <!-- CONFIGURACIÓN DE COBROS DE MERCADO PAGO (ADMIN) -->
+          <div class="glass-panel" style="padding: 25px; border-color: rgba(0, 158, 227, 0.25); background: rgba(0, 158, 227, 0.02); border-radius: var(--border-radius-md); margin-top: 20px;">
+            <div style="margin-bottom: 15px; border-bottom: 1px dashed rgba(255,255,255,0.06); padding-bottom: 10px;">
+              <h4 style="font-weight: 700; color: #00aae4; margin-bottom: 5px;"><i class="fa-solid fa-wallet"></i> Configuración de Cobros de Mercado Pago</h4>
+              <p style="color: var(--text-muted); font-size: 0.85rem;">Define tus credenciales de cobro reales. Los usuarios verán estos datos al intentar activar su cuenta en el pozo.</p>
+            </div>
+
+            <form id="admin-mp-config-form" onsubmit="event.preventDefault(); ProdeApp.saveAdminMpConfig();" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px;">
+              <div class="form-group" style="margin-bottom: 0;">
+                <label for="admin-mp-alias">Alias de Mercado Pago</label>
+                <input type="text" id="admin-mp-alias" class="form-input" placeholder="prode.mundial.2026" required style="padding: 10px 14px; font-size: 0.9rem;">
+              </div>
+
+              <div class="form-group" style="margin-bottom: 0;">
+                <label for="admin-mp-cvu">CVU de Mercado Pago</label>
+                <input type="text" id="admin-mp-cvu" class="form-input" placeholder="0000003100019283746501" required style="padding: 10px 14px; font-size: 0.9rem;">
+              </div>
+
+              <div class="form-group" style="margin-bottom: 0;">
+                <label for="admin-mp-holder">Titular de Cuenta</label>
+                <input type="text" id="admin-mp-holder" class="form-input" placeholder="Juan Pérez (Organizador)" required style="padding: 10px 14px; font-size: 0.9rem;">
+              </div>
+
+              <div class="form-group" style="margin-bottom: 0;">
+                <label for="admin-mp-link">Link de Pago (Opcional)</label>
+                <input type="url" id="admin-mp-link" class="form-input" placeholder="https://mpago.la/..." style="padding: 10px 14px; font-size: 0.9rem;">
+              </div>
+
+              <div style="grid-column: 1 / -1; display: flex; justify-content: flex-end; margin-top: 10px;">
+                <button type="submit" class="btn-primary" style="width: auto; padding: 10px 24px; font-size: 0.85rem; background: var(--primary-gold-gradient); color: var(--bg-darker); font-weight:800;">
+                  <i class="fa-solid fa-floppy-disk"></i> Guardar Credenciales
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- ENLACE DE BASE DE DATOS EN LA NUBE (SUPABASE) -->
+          <div class="glass-panel" style="padding: 25px; border-color: rgba(16, 185, 129, 0.25); background: rgba(16, 185, 129, 0.02); border-radius: var(--border-radius-md); margin-top: 20px;">
+            <div style="margin-bottom: 15px; border-bottom: 1px dashed rgba(255,255,255,0.06); padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+              <div>
+                <h4 style="font-weight: 700; color: var(--accent-green); margin-bottom: 5px;"><i class="fa-solid fa-cloud"></i> Base de Datos en la Nube (Supabase)</h4>
+                <p style="color: var(--text-muted); font-size: 0.85rem;">Conecta tu Prode a una base de datos global. Deja estos campos vacíos para usar LocalStorage (Modo Demo).</p>
+              </div>
+              <span id="db-connection-status-badge" class="pts-earned-badge zero-pts" style="font-size: 0.75rem; text-transform: uppercase; background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.3); color: var(--accent-red);"><i class="fa-solid fa-triangle-exclamation"></i> Modo Demo Local</span>
+            </div>
+
+            <form id="admin-db-config-form" onsubmit="event.preventDefault(); ProdeApp.saveAdminDbConfig();" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px;">
+              <div class="form-group" style="margin-bottom: 0; grid-column: 1 / -1;">
+                <label for="admin-sb-url">Supabase Project URL</label>
+                <input type="url" id="admin-sb-url" class="form-input" placeholder="https://xxxxxxxxxxxxxxxxxxxx.supabase.co" style="padding: 10px 14px; font-size: 0.9rem;">
+              </div>
+
+              <div class="form-group" style="margin-bottom: 0; grid-column: 1 / -1;">
+                <label for="admin-sb-key">Supabase Anon Public API Key</label>
+                <input type="text" id="admin-sb-key" class="form-input" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." style="padding: 10px 14px; font-size: 0.9rem; font-family: monospace;">
+              </div>
+
+              <div style="grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; margin-top: 10px; flex-wrap: wrap; gap: 15px;">
+                <button type="button" onclick="ProdeApp.showSqlScriptModal()" class="btn-primary btn-gray-action" style="width: auto; padding: 10px 20px; font-size: 0.85rem; border-color: rgba(16,185,129,0.3); color: var(--accent-green); background: rgba(16, 185, 129, 0.03);">
+                  <i class="fa-solid fa-code"></i> Obtener Script SQL
+                </button>
+                
+                <button type="submit" class="btn-primary" style="width: auto; padding: 10px 24px; font-size: 0.85rem; background: var(--accent-green); color: #000; font-weight:800; box-shadow: 0 4px 15px rgba(16,185,129,0.25);">
+                  <i class="fa-solid fa-plug"></i> Conectar Base de Datos
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- VERIFICACIÓN DE PAGOS (TRANSFERENCIAS PENDIENTES) -->
+          <div class="glass-panel" id="admin-payments-panel" style="padding: 25px; border-color: rgba(212, 175, 55, 0.25); background: rgba(212, 175, 55, 0.02); border-radius: var(--border-radius-md); margin-top: 20px; display: none;">
+            <div style="margin-bottom: 15px; border-bottom: 1px dashed rgba(255,255,255,0.06); padding-bottom: 10px;">
+              <h4 style="font-weight: 700; color: var(--primary-gold); margin-bottom: 5px;"><i class="fa-solid fa-money-bill-transfer"></i> Control de Aprobación de Pagos</h4>
+              <p style="color: var(--text-muted); font-size: 0.85rem;">Lista de transferencias registradas pendientes de verificación en la base de datos centralizada.</p>
+            </div>
+
+            <div class="leaderboard-table-container" style="max-height: 250px; overflow-y: auto; background: #000;">
+              <table class="leaderboard-table" style="font-size: 0.85rem;">
+                <thead>
+                  <tr>
+                    <th>Usuario</th>
+                    <th>Nro Comprobante</th>
+                    <th>Fecha Registro</th>
+                    <th style="text-align: center;">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody id="admin-payments-tbody">
+                  <!-- Filas dinámicas de usuarios pendientes -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- HISTORIAL DE ACTIVIDAD (LOGS) (D2) -->
+          <div class="glass-panel" style="padding: 25px; border-color: rgba(255, 255, 255, 0.08); background: rgba(255, 255, 255, 0.01); border-radius: var(--border-radius-md); margin-top: 20px;">
+            <div style="margin-bottom: 15px; border-bottom: 1px dashed rgba(255,255,255,0.06); padding-bottom: 10px;">
+              <h4 style="font-weight: 700; color: #fff; margin-bottom: 5px;"><i class="fa-solid fa-list-check"></i> Historial de Actividad (Log de Sesión)</h4>
+              <p style="color: var(--text-muted); font-size: 0.85rem;">Historial en tiempo real de acciones administrativas y eventos de servidor.</p>
+            </div>
+            <div id="admin-logs-container" style="max-height: 180px; overflow-y: auto; font-family: monospace; font-size: 0.8rem; color: var(--text-muted); padding: 12px; background: #000; border-radius: var(--border-radius-md); border: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column; gap: 6px; text-align: left;">
+              <div style="color: #666;">-- Sesión iniciada: Esperando actividad... --</div>
+            </div>
+          </div>
+
+          <div class="admin-match-list" id="admin-matches-container">
+            <!-- Los partidos en modo administrador se cargan dinámicamente -->
+          </div>
+        </div> <!-- fin admin-main-controls -->
+      </div>
+
+    </main>
+
+  </section>
+
+  <!-- ================= MODAL SIMULADOR MERCADO PAGO ================= -->
+  <div id="mp-checkout-simulator-modal" class="mp-modal">
+    <div class="mp-modal-content">
+      <!-- MP Header -->
+      <div class="mp-modal-header">
+        <div class="mp-logo-container">
+          <span class="mp-logo-text">mercado <span class="mp-logo-bold">pago</span></span>
+        </div>
+        <button type="button" class="mp-close-btn" onclick="ProdeApp.closeMpSimulator()">&times;</button>
+      </div>
+
+      <!-- MP Body (Pasos dinámicos) -->
+      <div id="mp-modal-body-container" class="mp-modal-body">
+        
+        <!-- Paso 1: Resumen y selección -->
+        <div id="mp-step-summary" class="mp-step-content active">
+          <div class="mp-merchant-card">
+            <span class="mp-merchant-avatar"><i class="fa-solid fa-futbol"></i></span>
+            <div style="flex: 1; text-align: left; margin-left: 10px;">
+              <div class="mp-merchant-name">PRODE Mundial Premium 2026</div>
+              <div class="mp-merchant-desc">Inscripción al torneo oficial</div>
+            </div>
+            <div class="mp-amount-display">$1.000</div>
+          </div>
+
+          <h3 class="mp-section-title">¿Cómo querés pagar?</h3>
+
+          <div class="mp-payment-methods">
+            <div class="mp-method-option active" id="mp-opt-wallet" onclick="ProdeApp.selectMpMethod('wallet')">
+              <div class="mp-option-icon wallet-icon"><i class="fa-solid fa-wallet"></i></div>
+              <div style="flex: 1; text-align: left;">
+                <div class="mp-option-title">Dinero en mi cuenta de Mercado Pago</div>
+                <div class="mp-option-sub">Disponible: $4.500,00</div>
+              </div>
+              <div class="mp-radio-circle"><div class="mp-radio-inner"></div></div>
+            </div>
+
+            <div class="mp-method-option" id="mp-opt-card" onclick="ProdeApp.selectMpMethod('card')">
+              <div class="mp-option-icon card-icon"><i class="fa-regular fa-credit-card"></i></div>
+              <div style="flex: 1; text-align: left;">
+                <div class="mp-option-title">Nueva Tarjeta de Débito o Crédito</div>
+                <div class="mp-option-sub">Visa, Mastercard, Cabal...</div>
+              </div>
+              <div class="mp-radio-circle"><div class="mp-radio-inner"></div></div>
+            </div>
+          </div>
+          
+          <button type="button" class="mp-btn-confirm-pay" onclick="ProdeApp.triggerMpProcessing()">
+            Pagar $1.000
+          </button>
+        </div>
+
+        <!-- Paso 2: Procesando (Loader) -->
+        <div id="mp-step-processing" class="mp-step-content">
+          <div class="mp-loader-wrapper">
+            <div class="mp-spinner"></div>
+            <h3>Procesando tu pago...</h3>
+            <p>Por favor, no cierres esta ventana.</p>
+          </div>
+        </div>
+
+        <!-- Paso 3: Éxito (Green Screen) -->
+        <div id="mp-step-success" class="mp-step-content">
+          <div class="mp-success-wrapper">
+            <div class="mp-success-icon-circle">
+              <i class="fa-solid fa-check"></i>
+            </div>
+            <h2>¡Listo, se acreditó tu pago!</h2>
+            <p class="mp-success-details">El pago de $1.000 ARS a PRODE Mundial Premium fue aprobado.</p>
+            <div class="mp-receipt-badge">Comprobante Nro: <strong id="mp-success-tx-id">8273910283</strong></div>
+            <p class="mp-redirecting-text"><i class="fa-solid fa-circle-notch fa-spin"></i> Volviendo al Prode...</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL SQL SCRIPT SUPABASE ================= -->
+  <div id="mp-sql-script-modal" class="mp-modal">
+    <div class="mp-modal-content" style="max-width: 650px;">
+      <!-- Header -->
+      <div class="mp-modal-header" style="border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px;">
+        <div class="mp-logo-container" style="color: var(--accent-green);">
+          <i class="fa-solid fa-database"></i> <span style="font-weight: 800; margin-left: 8px;">Script SQL de Supabase</span>
+        </div>
+        <button type="button" class="mp-close-btn" onclick="ProdeApp.closeSqlScriptModal()">&times;</button>
+      </div>
+
+      <!-- Body -->
+      <div class="mp-modal-body" style="padding: 20px 0 0 0;">
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 15px; text-align: left;">
+          Copia y pega este script en el editor SQL (SQL Editor) de tu consola de Supabase para crear las 4 tablas necesarias con las claves y relaciones correctas.
+        </p>
+
+        <div style="position: relative;">
+          <pre id="supabase-sql-code" style="background: #000; border: 1px solid rgba(255,255,255,0.1); border-radius: var(--border-radius-md); padding: 15px; font-family: monospace; font-size: 0.75rem; color: #a6e22e; overflow-x: auto; max-height: 250px; text-align: left;"></pre>
+          <button type="button" onclick="ProdeApp.copySqlScriptCode()" class="btn-sm-action btn-gold-action" style="position: absolute; top: 10px; right: 10px; padding: 4px 10px; font-size: 0.75rem;">
+            <i class="fa-solid fa-copy"></i> Copiar
+          </button>
+        </div>
+
+        <div style="margin-top: 20px; text-align: right;">
+          <button type="button" onclick="ProdeApp.closeSqlScriptModal()" class="btn-primary btn-gray-action" style="width: auto; padding: 8px 20px; font-size: 0.85rem;">
+            Cerrar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Carga de Módulos Lógicos -->
+  <script src="js/data.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/engine.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
