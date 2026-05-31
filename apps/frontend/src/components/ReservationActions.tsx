@@ -18,7 +18,21 @@ interface ReservationActionsProps {
   isLastOfSeries?: boolean;
   playerName?: string;
   startTime?: string;
+  products?: Array<{
+    name: string;
+    quantity: number;
+    price: number;
+    total?: number;
+  }>;
 }
+
+const PRESET_PRODUCTS = [
+  { name: "Alquiler de Pala", price: 1500, icon: "🎒" },
+  { name: "Tubo de Pelotas", price: 3000, icon: "🥎" },
+  { name: "Agua Mineral", price: 1200, icon: "🥤" },
+  { name: "Gatorade", price: 2000, icon: "⚡" },
+];
+
 
 export default function ReservationActions({
   reservationId,
@@ -31,6 +45,7 @@ export default function ReservationActions({
   isLastOfSeries = false,
   playerName = "",
   startTime,
+  products = [],
 }: ReservationActionsProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -44,6 +59,56 @@ export default function ReservationActions({
   const [expandUp, setExpandUp] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+
+  const [showAddProductsModal, setShowAddProductsModal] = useState(false);
+  const [currentProducts, setCurrentProducts] = useState<Array<{ name: string; quantity: number; price: number }>>([]);
+  const [customProduct, setCustomProduct] = useState({ name: "", price: "", quantity: "1" });
+
+  const handleOpenAddProducts = () => {
+    setCurrentProducts(products || []);
+    setCustomProduct({ name: "", price: "", quantity: "1" });
+    setIsOpen(false);
+    setShowAddProductsModal(true);
+  };
+
+  const addPresetProduct = (preset: { name: string; price: number }) => {
+    setCurrentProducts(prev => {
+      const existing = prev.find(p => p.name === preset.name);
+      if (existing) {
+        return prev.map(p => p.name === preset.name ? { ...p, quantity: p.quantity + 1 } : p);
+      }
+      return [...prev, { name: preset.name, price: preset.price, quantity: 1 }];
+    });
+  };
+
+  const addCustomProduct = () => {
+    if (!customProduct.name.trim() || !customProduct.price) return;
+    const priceNum = Number(customProduct.price);
+    const qtyNum = Number(customProduct.quantity) || 1;
+    if (isNaN(priceNum) || priceNum < 0) return;
+
+    setCurrentProducts(prev => {
+      const existing = prev.find(p => p.name.toLowerCase() === customProduct.name.toLowerCase());
+      if (existing) {
+        return prev.map(p => p.name.toLowerCase() === customProduct.name.toLowerCase() ? { ...p, quantity: p.quantity + qtyNum } : p);
+      }
+      return [...prev, { name: customProduct.name.trim(), price: priceNum, quantity: qtyNum }];
+    });
+    setCustomProduct({ name: "", price: "", quantity: "1" });
+  };
+
+  const updateProductQty = (index: number, newQty: number) => {
+    if (newQty <= 0) {
+      setCurrentProducts(prev => prev.filter((_, i) => i !== index));
+    } else {
+      setCurrentProducts(prev => prev.map((p, i) => i === index ? { ...p, quantity: newQty } : p));
+    }
+  };
+
+  const removeProduct = (index: number) => {
+    setCurrentProducts(prev => prev.filter((_, i) => i !== index));
+  };
+
 
   useEffect(() => {
     setMounted(true);
@@ -107,11 +172,13 @@ export default function ReservationActions({
     cancelSeries?: boolean;
     userId?: string;
     payBlock?: boolean;
+    products?: Array<{ name: string; quantity: number; price: number }>;
   }) => {
     setIsOpen(false);
     setShowCancelModal(false);
     setShowDepositModal(false);
     setShowEditNameModal(false);
+    setShowAddProductsModal(false);
 
     try {
       const response = await apiFetch(`/reservations/${reservationId}`, {
@@ -241,16 +308,26 @@ export default function ReservationActions({
           )}
 
           {status !== "cancelled" && (
-            <button
-              onClick={() => {
-                setIsOpen(false);
-                setShowEditNameModal(true);
-              }}
-              className="w-full text-left px-4 py-2 text-sm text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-900 flex items-center gap-2.5 transition-colors border-t border-zinc-100 dark:border-zinc-900"
-            >
-              <Edit className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
-              <span>Editar nombre</span>
-            </button>
+            <>
+              <button
+                onClick={() => {
+                  setIsOpen(false);
+                  setShowEditNameModal(true);
+                }}
+                className="w-full text-left px-4 py-2 text-sm text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-900 flex items-center gap-2.5 transition-colors border-t border-zinc-100 dark:border-zinc-900"
+              >
+                <Edit className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
+                <span>Editar nombre</span>
+              </button>
+
+              <button
+                onClick={handleOpenAddProducts}
+                className="w-full text-left px-4 py-2 text-sm text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-900 flex items-center gap-2.5 transition-colors border-t border-zinc-100 dark:border-zinc-900"
+              >
+                <span className="w-4 h-4 flex items-center justify-center text-xs">🎒</span>
+                <span>Agregar Consumo / Extra</span>
+              </button>
+            </>
           )}
 
           {showCancel && (
@@ -602,6 +679,163 @@ export default function ReservationActions({
           </div>
         </div>
       )}
+
+      {renderModal(
+        showAddProductsModal,
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/30 dark:bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+            onClick={() => setShowAddProductsModal(false)}
+          />
+          <div className="relative w-full max-w-sm bg-white/95 dark:bg-zinc-950/85 backdrop-blur-xl border border-zinc-200 dark:border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-zinc-200/80 dark:border-white/5 flex justify-between items-center bg-zinc-50 dark:bg-white/[0.02]">
+              <h3 className="text-lg font-black text-zinc-900 dark:text-white flex items-center gap-2">
+                <span className="w-2 h-5 bg-primary rounded-full shadow-[0_0_8px_rgba(57,255,20,0.5)]" />
+                Agregar Consumo / Extra
+              </h3>
+              <button
+                onClick={() => setShowAddProductsModal(false)}
+                className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-all duration-300 p-1.5 bg-zinc-100/80 dark:bg-white/5 hover:bg-zinc-200 dark:hover:bg-white/10 rounded-lg border border-zinc-200/80 dark:border-white/5"
+                title="Cerrar"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-4 overflow-y-auto max-h-[75vh]">
+              {/* Presets Grid */}
+              <div className="grid grid-cols-2 gap-2">
+                {PRESET_PRODUCTS.map((preset) => (
+                  <button
+                    key={preset.name}
+                    type="button"
+                    onClick={() => addPresetProduct(preset)}
+                    className="flex items-center justify-between p-2.5 text-xs font-semibold rounded-xl bg-white dark:bg-white/5 border border-zinc-200 dark:border-white/10 hover:border-primary/50 dark:hover:border-primary/50 hover:bg-zinc-50 dark:hover:bg-white/[0.08] active:scale-95 transition-all duration-200 text-left text-zinc-700 dark:text-zinc-300"
+                  >
+                    <span className="flex items-center gap-1.5">
+                      <span>{preset.icon}</span>
+                      <span>{preset.name}</span>
+                    </span>
+                    <span className="font-bold text-primary">${preset.price.toLocaleString("es-AR")}</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Custom item input */}
+              <div className="space-y-2 pt-2 border-t border-zinc-200/80 dark:border-white/5">
+                <span className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400">Agregar ítem personalizado</span>
+                <div className="flex gap-2 items-center">
+                  <input
+                    type="text"
+                    placeholder="Nombre (ej. Grip)"
+                    value={customProduct.name}
+                    onChange={(e) => setCustomProduct(prev => ({ ...prev, name: e.target.value }))}
+                    className="flex-1 bg-white dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-none focus:border-primary"
+                  />
+                  <input
+                    type="number"
+                    placeholder="Precio"
+                    value={customProduct.price}
+                    onChange={(e) => setCustomProduct(prev => ({ ...prev, price: e.target.value }))}
+                    className="w-16 bg-white dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-lg px-2 py-1.5 text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-none focus:border-primary"
+                  />
+                  <button
+                    type="button"
+                    onClick={addCustomProduct}
+                    className="px-3 py-1.5 bg-primary text-black font-extrabold text-xs rounded-lg hover:scale-105 active:scale-95 transition-all"
+                  >
+                    ➕
+                  </button>
+                </div>
+              </div>
+
+              {/* List of currently added products */}
+              {currentProducts.length > 0 && (
+                <div className="space-y-2 pt-3 border-t border-zinc-200/80 dark:border-white/5">
+                  <span className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400">Consumos Cargados</span>
+                  <div className="space-y-1.5 max-h-[150px] overflow-y-auto pr-1">
+                    {currentProducts.map((p, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center justify-between p-2 rounded-lg bg-zinc-100/50 dark:bg-white/[0.03] border border-zinc-200/55 dark:border-white/[0.05] text-xs"
+                      >
+                        <div className="flex flex-col">
+                          <span className="font-bold text-zinc-800 dark:text-zinc-200">{p.name}</span>
+                          <span className="text-[10px] text-zinc-500">${p.price.toLocaleString("es-AR")} c/u</span>
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center bg-zinc-200 dark:bg-white/10 rounded-md">
+                            <button
+                              type="button"
+                              onClick={() => updateProductQty(idx, p.quantity - 1)}
+                              className="px-2 py-0.5 text-xs font-bold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-white/15 rounded-l-md transition-colors"
+                            >
+                              -
+                            </button>
+                            <span className="px-2.5 text-xs font-black text-zinc-800 dark:text-zinc-200">{p.quantity}</span>
+                            <button
+                              type="button"
+                              onClick={() => updateProductQty(idx, p.quantity + 1)}
+                              className="px-2 py-0.5 text-xs font-bold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-white/15 rounded-r-md transition-colors"
+                            >
+                              +
+                            </button>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeProduct(idx)}
+                            className="text-red-500 hover:text-red-400 p-1"
+                            title="Eliminar"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Total Summary */}
+              <div className="bg-zinc-100/50 dark:bg-white/[0.02] border border-zinc-200/80 dark:border-white/5 rounded-xl p-4 space-y-2.5">
+                <div className="flex justify-between text-xs font-semibold text-zinc-500 dark:text-zinc-400">
+                  <span>Precio de Cancha:</span>
+                  <span>${(totalPrice - (products?.reduce((s, p) => s + p.price * p.quantity, 0) || 0)).toLocaleString("es-AR")}</span>
+                </div>
+                <div className="flex justify-between text-xs font-semibold text-zinc-500 dark:text-zinc-400">
+                  <span>Total Consumos Cargados:</span>
+                  <span>${currentProducts.reduce((sum, p) => sum + p.price * p.quantity, 0).toLocaleString("es-AR")}</span>
+                </div>
+                <div className="border-t border-zinc-200/80 dark:border-white/5 pt-2 flex justify-between text-sm font-bold text-zinc-700 dark:text-zinc-200">
+                  <span>Nuevo Total General:</span>
+                  <span className="text-primary text-base drop-shadow-[0_0_6px_rgba(57,255,20,0.3)]">
+                    ${((totalPrice - (products?.reduce((s, p) => s + p.price * p.quantity, 0) || 0)) + currentProducts.reduce((sum, p) => sum + p.price * p.quantity, 0)).toLocaleString("es-AR")}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAddProductsModal(false)}
+                  className="flex-1 py-3 bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-300 font-semibold rounded-xl border border-zinc-300 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-700 transition-all text-sm"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleUpdate({ products: currentProducts })}
+                  className="flex-1 py-3 bg-primary text-primary-foreground font-black rounded-xl shadow-[0_4px_15px_rgba(57,255,20,0.25)] hover:shadow-[0_4px_20px_rgba(57,255,20,0.45)] transition-all text-sm"
+                >
+                  Confirmar Consumos
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+

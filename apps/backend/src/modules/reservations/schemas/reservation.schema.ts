@@ -4,6 +4,23 @@ import { Document, Types } from 'mongoose';
 
 export type ReservationDocument = Reservation & Document;
 
+@Schema({ _id: false })
+export class ReservationProduct {
+  @Prop({ required: true })
+  name: string;
+
+  @Prop({ required: true, default: 1 })
+  quantity: number;
+
+  @Prop({ required: true, default: 0 })
+  price: number;
+
+  @Prop({ required: true, default: 0 })
+  total: number;
+}
+
+const ReservationProductSchema = SchemaFactory.createForClass(ReservationProduct);
+
 @Schema({ timestamps: true })
 export class Reservation {
   @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'Court', required: true })
@@ -62,6 +79,13 @@ export class Reservation {
 
   @Prop({ default: false })
   isRecurring: boolean;
+
+  @Prop({ type: [ReservationProductSchema], default: [] })
+  products: ReservationProduct[];
+
+  @Prop({ default: 0 })
+  productsPrice: number;
 }
 
 export const ReservationSchema = SchemaFactory.createForClass(Reservation);
+

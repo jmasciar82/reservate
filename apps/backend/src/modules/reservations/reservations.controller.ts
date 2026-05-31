@@ -63,10 +63,13 @@ export class ReservationsController {
           startTime: result.startTime,
           endTime: result.endTime,
           totalPrice: result.totalPrice,
+          depositAmount: result.depositAmount,
           paymentStatus: result.paymentStatus,
           firstName: result.firstName,
           lastName: result.lastName,
           isRecurring: result.isRecurring,
+          products: result.products,
+          productsPrice: result.productsPrice,
         },
       });
     } catch (e) {
@@ -158,6 +161,10 @@ export class ReservationsController {
             startTime: result?.startTime,
             endTime: result?.endTime,
             courtId: result?.courtId?._id ?? result?.courtId,
+            totalPrice: result?.totalPrice,
+            depositAmount: result?.depositAmount,
+            products: result?.products,
+            productsPrice: result?.productsPrice,
           }
         },
       });

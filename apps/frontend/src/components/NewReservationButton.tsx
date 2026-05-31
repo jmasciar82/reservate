@@ -90,6 +90,13 @@ interface NewReservationButtonProps {
   children?: React.ReactNode;
 }
 
+const PRESET_PRODUCTS = [
+  { name: "Alquiler de Pala", price: 1500, icon: "🎒" },
+  { name: "Tubo de Pelotas", price: 3000, icon: "🥎" },
+  { name: "Agua Mineral", price: 1200, icon: "🥤" },
+  { name: "Gatorade", price: 2000, icon: "⚡" },
+];
+
 export default function NewReservationButton({
   activeClubId,
   defaultDate,
@@ -116,6 +123,46 @@ export default function NewReservationButton({
     isDepositPaid: false,
   });
   const [paymentType, setPaymentType] = useState<string>("pending");
+  const [products, setProducts] = useState<Array<{ name: string; quantity: number; price: number }>>([]);
+  const [customProduct, setCustomProduct] = useState({ name: "", price: "", quantity: "1" });
+
+  const addPresetProduct = (preset: { name: string; price: number }) => {
+    setProducts(prev => {
+      const existing = prev.find(p => p.name === preset.name);
+      if (existing) {
+        return prev.map(p => p.name === preset.name ? { ...p, quantity: p.quantity + 1 } : p);
+      }
+      return [...prev, { name: preset.name, price: preset.price, quantity: 1 }];
+    });
+  };
+
+  const addCustomProduct = () => {
+    if (!customProduct.name.trim() || !customProduct.price) return;
+    const priceNum = Number(customProduct.price);
+    const qtyNum = Number(customProduct.quantity) || 1;
+    if (isNaN(priceNum) || priceNum < 0) return;
+
+    setProducts(prev => {
+      const existing = prev.find(p => p.name.toLowerCase() === customProduct.name.toLowerCase());
+      if (existing) {
+        return prev.map(p => p.name.toLowerCase() === customProduct.name.toLowerCase() ? { ...p, quantity: p.quantity + qtyNum } : p);
+      }
+      return [...prev, { name: customProduct.name.trim(), price: priceNum, quantity: qtyNum }];
+    });
+    setCustomProduct({ name: "", price: "", quantity: "1" });
+  };
+
+  const updateProductQty = (index: number, newQty: number) => {
+    if (newQty <= 0) {
+      setProducts(prev => prev.filter((_, i) => i !== index));
+    } else {
+      setProducts(prev => prev.map((p, i) => i === index ? { ...p, quantity: newQty } : p));
+    }
+  };
+
+  const removeProduct = (index: number) => {
+    setProducts(prev => prev.filter((_, i) => i !== index));
+  };
 
   const handleOpen = () => {
     setFormData({
@@ -129,6 +176,8 @@ export default function NewReservationButton({
       depositAmount: "",
       isDepositPaid: false,
     });
+    setProducts([]);
+    setCustomProduct({ name: "", price: "", quantity: "1" });
     setPaymentType("pending");
     setIsOpen(true);
   };
@@ -144,6 +193,9 @@ export default function NewReservationButton({
   const durationHours = Number(formData.duration);
   const courtPrice = selectedCourt ? selectedCourt.pricePerHour : 0;
   const calculatedTotalPrice = Math.round(durationHours * courtPrice);
+
+  const productsPrice = products.reduce((sum, p) => sum + p.price * p.quantity, 0);
+  const totalWithProducts = calculatedTotalPrice + productsPrice;
 
   useEffect(() => {
     const shouldLoadCourts = isOpen && isTimeSelectionReady && activeClubId;
@@ -245,8 +297,8 @@ export default function NewReservationButton({
         finalPaymentStatus = "paid";
       } else if (paymentType === "full") {
         finalDepositAmount = formData.isRecurring
-          ? Math.round(calculatedTotalPrice * Number(formData.recurrenceWeeks || 4) * 0.90)
-          : calculatedTotalPrice;
+          ? Math.round(calculatedTotalPrice * Number(formData.recurrenceWeeks || 4) * 0.90) + productsPrice
+          : totalWithProducts;
         finalPaymentStatus = "paid";
       }
 
@@ -265,6 +317,7 @@ export default function NewReservationButton({
           payBlock: formData.isRecurring && paymentType === "full" ? true : undefined,
           depositAmount: finalDepositAmount,
           paymentStatus: finalPaymentStatus,
+          products: products,
         }),
       });
 
@@ -281,6 +334,8 @@ export default function NewReservationButton({
           depositAmount: "",
           isDepositPaid: false,
         });
+        setProducts([]);
+        setCustomProduct({ name: "", price: "", quantity: "1" });
         setPaymentType("pending");
         router.refresh();
       } else {
@@ -320,7 +375,7 @@ export default function NewReservationButton({
             onClick={() => setIsOpen(false)}
           />
 
-          <div className="relative w-full max-w-md max-h-[90vh] flex flex-col bg-white/95 dark:bg-zinc-950/85 backdrop-blur-xl border border-zinc-200 dark:border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          <div className="relative w-full max-w-lg max-h-[90vh] flex flex-col bg-white/95 dark:bg-zinc-950/85 backdrop-blur-xl border border-zinc-200 dark:border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <div className="px-6 py-4 border-b border-zinc-200/80 dark:border-white/5 flex justify-between items-center bg-zinc-50/50 dark:bg-white/[0.02] shrink-0">
               <h2 className="text-xl font-black text-zinc-900 dark:text-white flex items-center gap-2">
                 <span className="w-2 h-6 bg-primary rounded-full shadow-[0_0_8px_rgba(57,255,20,0.5)]" />
@@ -463,6 +518,109 @@ export default function NewReservationButton({
                 </select>
               </div>
 
+              {/* Consumos y Equipamiento Opcional */}
+              {selectedCourt && (
+                <div className="space-y-4 bg-zinc-50/50 dark:bg-white/[0.02] border border-zinc-200/80 dark:border-white/5 rounded-xl p-4 shadow-inner">
+                  <label className="text-sm font-bold text-zinc-700 dark:text-zinc-200 flex items-center gap-2">
+                    🎒 Consumos y Equipamiento Opcional
+                  </label>
+                  
+                  {/* Presets Grid */}
+                  <div className="grid grid-cols-2 gap-2">
+                    {PRESET_PRODUCTS.map((preset) => (
+                      <button
+                        key={preset.name}
+                        type="button"
+                        onClick={() => addPresetProduct(preset)}
+                        className="flex items-center justify-between p-2.5 text-xs font-semibold rounded-xl bg-white dark:bg-white/5 border border-zinc-200 dark:border-white/10 hover:border-primary/50 dark:hover:border-primary/50 hover:bg-zinc-50 dark:hover:bg-white/[0.08] active:scale-95 transition-all duration-200 text-left text-zinc-700 dark:text-zinc-300"
+                      >
+                        <span className="flex items-center gap-1.5">
+                          <span>{preset.icon}</span>
+                          <span>{preset.name}</span>
+                        </span>
+                        <span className="font-bold text-primary">${preset.price.toLocaleString("es-AR")}</span>
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Custom item input */}
+                  <div className="space-y-2 pt-2 border-t border-zinc-200/80 dark:border-white/5">
+                    <span className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400">Agregar ítem personalizado</span>
+                    <div className="flex gap-2 items-center">
+                      <input
+                        type="text"
+                        placeholder="Nombre (ej. Grip)"
+                        value={customProduct.name}
+                        onChange={(e) => setCustomProduct(prev => ({ ...prev, name: e.target.value }))}
+                        className="flex-1 bg-white dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-none focus:border-primary"
+                      />
+                      <input
+                        type="number"
+                        placeholder="Precio"
+                        value={customProduct.price}
+                        onChange={(e) => setCustomProduct(prev => ({ ...prev, price: e.target.value }))}
+                        className="w-16 bg-white dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-lg px-2 py-1.5 text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-none focus:border-primary"
+                      />
+                      <button
+                        type="button"
+                        onClick={addCustomProduct}
+                        className="px-3 py-1.5 bg-primary text-black font-extrabold text-xs rounded-lg hover:scale-105 active:scale-95 transition-all"
+                      >
+                        ➕
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* List of currently added products */}
+                  {products.length > 0 && (
+                    <div className="space-y-2 pt-3 border-t border-zinc-200/80 dark:border-white/5">
+                      <span className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400">Detalle de Consumos</span>
+                      <div className="space-y-1.5 max-h-[150px] overflow-y-auto pr-1">
+                        {products.map((p, idx) => (
+                          <div
+                            key={idx}
+                            className="flex items-center justify-between p-2 rounded-lg bg-zinc-100/50 dark:bg-white/[0.03] border border-zinc-200/55 dark:border-white/[0.05] text-xs"
+                          >
+                            <div className="flex flex-col">
+                              <span className="font-bold text-zinc-800 dark:text-zinc-200">{p.name}</span>
+                              <span className="text-[10px] text-zinc-505">${p.price.toLocaleString("es-AR")} c/u</span>
+                            </div>
+                            
+                            <div className="flex items-center gap-2">
+                              <div className="flex items-center bg-zinc-200 dark:bg-white/10 rounded-md">
+                                <button
+                                  type="button"
+                                  onClick={() => updateProductQty(idx, p.quantity - 1)}
+                                  className="px-2 py-0.5 text-xs font-bold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-white/15 rounded-l-md transition-colors"
+                                >
+                                  -
+                                </button>
+                                <span className="px-2.5 text-xs font-black text-zinc-800 dark:text-zinc-200">{p.quantity}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => updateProductQty(idx, p.quantity + 1)}
+                                  className="px-2 py-0.5 text-xs font-bold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-white/15 rounded-r-md transition-colors"
+                                >
+                                  +
+                                </button>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => removeProduct(idx)}
+                                className="text-red-500 hover:text-red-650 p-1"
+                                title="Eliminar"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Estimación de Precio */}
               {selectedCourt && (
                 <div className="bg-zinc-50/50 dark:bg-white/[0.02] border border-zinc-200/80 dark:border-white/5 rounded-xl p-4 space-y-2.5 shadow-inner">
@@ -470,19 +628,29 @@ export default function NewReservationButton({
                     <span>Precio por hora:</span>
                     <span className="text-zinc-900 dark:text-white">${selectedCourt.pricePerHour.toLocaleString("es-AR")}</span>
                   </div>
+                  <div className="flex justify-between items-center text-xs font-semibold text-zinc-500 dark:text-zinc-400 border-t border-zinc-200/80 dark:border-white/5 pt-2">
+                    <span>Subtotal turno (cancha):</span>
+                    <span className="text-zinc-900 dark:text-white">${calculatedTotalPrice.toLocaleString("es-AR")}</span>
+                  </div>
+                  {productsPrice > 0 && (
+                    <div className="flex justify-between items-center text-xs font-semibold text-zinc-500 dark:text-zinc-400">
+                      <span>Subtotal consumos / extras:</span>
+                      <span className="text-zinc-900 dark:text-white">${productsPrice.toLocaleString("es-AR")}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between items-center text-xs font-bold text-zinc-600 dark:text-zinc-300 border-t border-zinc-200/80 dark:border-white/5 pt-2">
-                    <span>Valor estimado del turno:</span>
-                    <span className="text-primary text-sm font-black">${calculatedTotalPrice.toLocaleString("es-AR")}</span>
+                    <span>Valor estimado total:</span>
+                    <span className="text-primary text-sm font-black">${totalWithProducts.toLocaleString("es-AR")}</span>
                   </div>
                   {formData.isRecurring && (
                     <div className="flex flex-col gap-1 border-t border-zinc-200/80 dark:border-white/5 pt-2.5">
                       <div className="flex justify-between items-center text-xs font-semibold text-zinc-500 dark:text-zinc-400">
                         <span>Total normal ({Number(formData.recurrenceWeeks || 4)} sem):</span>
-                        <span className="line-through text-zinc-505">${(calculatedTotalPrice * Number(formData.recurrenceWeeks || 4)).toLocaleString("es-AR")}</span>
+                        <span className="line-through text-zinc-505">${((calculatedTotalPrice * Number(formData.recurrenceWeeks || 4)) + productsPrice).toLocaleString("es-AR")}</span>
                       </div>
                       <div className="flex justify-between items-center text-xs font-bold text-indigo-300">
                         <span className="flex items-center gap-1">🏷️ Total con 10% OFF:</span>
-                        <span className="text-indigo-400 text-sm font-black">${Math.round(calculatedTotalPrice * Number(formData.recurrenceWeeks || 4) * 0.90).toLocaleString("es-AR")}</span>
+                        <span className="text-indigo-400 text-sm font-black">${(Math.round(calculatedTotalPrice * Number(formData.recurrenceWeeks || 4) * 0.90) + productsPrice).toLocaleString("es-AR")}</span>
                       </div>
                     </div>
                   )}
@@ -508,7 +676,7 @@ export default function NewReservationButton({
                         onClick={() => {
                           setPaymentType(opt.id);
                           if (opt.id === "deposit") {
-                            const defaultDeposit = Math.round(calculatedTotalPrice * 0.3);
+                            const defaultDeposit = Math.round(totalWithProducts * 0.3);
                             setFormData(prev => ({ ...prev, depositAmount: String(defaultDeposit) }));
                           } else {
                             setFormData(prev => ({ ...prev, depositAmount: "" }));
@@ -534,7 +702,7 @@ export default function NewReservationButton({
                         placeholder="Ej. 5400"
                         value={formData.depositAmount}
                         onChange={(e) => setFormData(prev => ({ ...prev, depositAmount: e.target.value }))}
-                        className="w-full bg-zinc-50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-xl px-4 py-2.5 text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 font-semibold"
+                        className="w-full bg-zinc-50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-xl px-4 py-2.5 text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-650 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 font-semibold"
                       />
                     </div>
                   )}
@@ -545,7 +713,7 @@ export default function NewReservationButton({
               <div className="space-y-3 bg-zinc-50/50 dark:bg-white/[0.02] border border-zinc-200/80 dark:border-white/5 rounded-xl p-4 shadow-inner">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-bold text-zinc-600 dark:text-zinc-200 flex items-center gap-2">
-                    <span className="text-indigo-400">🔁</span> Turno Fijo Recurrente
+                    <span className="text-indigo-400">🔁</span> Turno Fijo
                   </span>
                   <label className="relative inline-flex items-center cursor-pointer">
                     <input

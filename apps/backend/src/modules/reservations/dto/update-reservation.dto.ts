@@ -12,4 +12,13 @@ export class UpdateReservationDto {
   endTime?: Date;
   courtId?: string;
   totalPrice?: number;
+  products?: Array<{
+    name: string;
+    quantity: number;
+    price: number;
+    total?: number;
+  }>;
+  productsPrice?: number;
 }
+
+

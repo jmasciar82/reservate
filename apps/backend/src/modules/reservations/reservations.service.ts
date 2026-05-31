@@ -73,7 +73,25 @@ export class ReservationsService {
     }
 
     const durationHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
-    const totalPrice = Math.round(durationHours * court.pricePerHour);
+    const courtPrice = Math.round(durationHours * court.pricePerHour);
+
+    let productsPrice = 0;
+    let productsList: any[] = [];
+    if (createReservationDto.products && createReservationDto.products.length > 0) {
+      productsList = createReservationDto.products.map(p => {
+        const qty = Number(p.quantity) || 1;
+        const prc = Number(p.price) || 0;
+        return {
+          name: p.name,
+          quantity: qty,
+          price: prc,
+          total: qty * prc
+        };
+      });
+      productsPrice = productsList.reduce((sum, item) => sum + item.total, 0);
+    }
+
+    const totalPrice = courtPrice + productsPrice;
 
     if (isRecurring) {
       const recurrenceWeeksCount = recurrenceWeeks || 4;
@@ -116,7 +134,7 @@ export class ReservationsService {
       const isBlockPayment = isPaid && (
         createReservationDto.payBlock === true || (
           createReservationDto.depositAmount !== undefined && 
-          Number(createReservationDto.depositAmount) >= Math.round(totalPrice * recurrenceWeeksCount * 0.85)
+          Number(createReservationDto.depositAmount) >= Math.round(courtPrice * recurrenceWeeksCount * 0.85)
         )
       );
 
@@ -124,7 +142,7 @@ export class ReservationsService {
         const isFirst = idx === 0;
 
         if (isBlockPayment) {
-          const discountedPrice = Math.round(totalPrice * 0.90);
+          const discountedPrice = Math.round(courtPrice * 0.90) + (isFirst ? productsPrice : 0);
           return new this.reservationModel({
             ...createReservationDto,
             courtId: new Types.ObjectId(courtId),
@@ -137,20 +155,28 @@ export class ReservationsService {
             status: 'confirmed',
             isRecurring: true,
             recurrenceGroupId,
+            products: isFirst ? productsList : [],
+            productsPrice: isFirst ? productsPrice : 0,
           });
         } else {
+          const weekCourtPrice = courtPrice;
+          const weekProductsPrice = isFirst ? productsPrice : 0;
+          const weekTotalPrice = weekCourtPrice + weekProductsPrice;
+          const weekDeposit = (isPaid && isFirst) ? (createReservationDto.depositAmount || weekTotalPrice) : 0;
           return new this.reservationModel({
             ...createReservationDto,
             courtId: new Types.ObjectId(courtId),
             startTime: week.start,
             endTime: week.end,
-            totalPrice,
-            paymentStatus: (isPaid && isFirst) ? 'paid' : 'pending',
+            totalPrice: weekTotalPrice,
+            paymentStatus: (weekDeposit >= weekTotalPrice) ? 'paid' : 'pending',
             paymentDate: (isPaid && isFirst) ? new Date() : undefined,
-            depositAmount: (isPaid && isFirst) ? (createReservationDto.depositAmount || 0) : 0,
+            depositAmount: weekDeposit,
             status: (isPaid && isFirst) ? 'confirmed' : (createReservationDto.status || 'pending'),
             isRecurring: true,
             recurrenceGroupId,
+            products: isFirst ? productsList : [],
+            productsPrice: weekProductsPrice,
           });
         }
       });
@@ -185,13 +211,20 @@ export class ReservationsService {
       }
 
       const isPaid = createReservationDto.paymentStatus === 'paid';
+      const depositAmount = createReservationDto.depositAmount !== undefined
+        ? Number(createReservationDto.depositAmount)
+        : (isPaid ? totalPrice : 0);
+
       const createdReservation = new this.reservationModel({
         ...createReservationDto,
         courtId: new Types.ObjectId(courtId),
         startTime: start,
         endTime: end,
         totalPrice,
-        paymentStatus: isPaid ? 'paid' : 'pending',
+        depositAmount,
+        products: productsList,
+        productsPrice,
+        paymentStatus: depositAmount >= totalPrice ? 'paid' : 'pending',
         paymentDate: isPaid ? new Date() : undefined,
         status: isPaid ? 'confirmed' : (createReservationDto.status || 'pending'),
       });
@@ -305,6 +338,8 @@ export class ReservationsService {
       throw new BadRequestException('Reserva no encontrada.');
     }
 
+    let courtPrice = existingReservation.totalPrice - (existingReservation.productsPrice || 0);
+
     // Validaciones de reprogramación (Rescheduling / Drag and Drop)
     if (
       updateReservationDto.courtId ||
@@ -343,15 +378,55 @@ export class ReservationsService {
         throw new ConflictException('La cancha ya se encuentra reservada en el horario seleccionado.');
       }
 
-      // Recalcular precio
+      // Recalcular precio de la cancha
       const durationHours = (newEnd.getTime() - newStart.getTime()) / (1000 * 60 * 60);
-      const newTotalPrice = Math.round(durationHours * targetCourt.pricePerHour);
+      courtPrice = Math.round(durationHours * targetCourt.pricePerHour);
       
       // Actualizar en el DTO
-      updateReservationDto.totalPrice = newTotalPrice;
       updateReservationDto.courtId = newCourtId as any;
       updateReservationDto.startTime = newStart;
       updateReservationDto.endTime = newEnd;
+    }
+
+    let productsPrice = existingReservation.productsPrice || 0;
+    let productsList = existingReservation.products || [];
+
+    if (updateReservationDto.products) {
+      productsList = updateReservationDto.products.map(p => {
+        const qty = Number(p.quantity) || 1;
+        const prc = Number(p.price) || 0;
+        return {
+          name: p.name,
+          quantity: qty,
+          price: prc,
+          total: qty * prc
+        } as any;
+      });
+      productsPrice = productsList.reduce((sum, item) => sum + item.total, 0);
+      updateReservationDto.products = productsList;
+      updateReservationDto.productsPrice = productsPrice;
+    }
+
+    const updatedTotalPrice = courtPrice + productsPrice;
+    updateReservationDto.totalPrice = updatedTotalPrice;
+
+    // Determine the deposit amount
+    let finalDeposit = existingReservation.depositAmount;
+    if (updateReservationDto.depositAmount !== undefined) {
+      finalDeposit = updateReservationDto.depositAmount;
+    }
+
+    // If they explicitly send paymentStatus = 'paid', we set depositAmount to updatedTotalPrice
+    if (updateReservationDto.paymentStatus === 'paid') {
+      finalDeposit = updatedTotalPrice;
+      updateReservationDto.depositAmount = updatedTotalPrice;
+    }
+
+    // Compare deposit amount with total price
+    if (finalDeposit >= updatedTotalPrice) {
+      updateReservationDto.paymentStatus = 'paid';
+    } else {
+      updateReservationDto.paymentStatus = 'pending';
     }
 
     if (
