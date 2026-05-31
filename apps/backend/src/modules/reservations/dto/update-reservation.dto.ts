@@ -8,4 +8,8 @@ export class UpdateReservationDto {
   lastName?: string;
   paymentDate?: Date;
   payBlock?: boolean;
+  startTime?: Date;
+  endTime?: Date;
+  courtId?: string;
+  totalPrice?: number;
 }

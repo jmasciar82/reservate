@@ -305,6 +305,55 @@ export class ReservationsService {
       throw new BadRequestException('Reserva no encontrada.');
     }
 
+    // Validaciones de reprogramación (Rescheduling / Drag and Drop)
+    if (
+      updateReservationDto.courtId ||
+      updateReservationDto.startTime ||
+      updateReservationDto.endTime
+    ) {
+      const newCourtId = updateReservationDto.courtId || existingReservation.courtId.toString();
+      const newStart = updateReservationDto.startTime ? new Date(updateReservationDto.startTime) : new Date(existingReservation.startTime);
+      const newEnd = updateReservationDto.endTime ? new Date(updateReservationDto.endTime) : new Date(existingReservation.endTime);
+
+      if (Number.isNaN(newStart.getTime()) || Number.isNaN(newEnd.getTime()) || newEnd <= newStart) {
+        throw new BadRequestException('El horario de la reserva no es válido.');
+      }
+
+      if (!Types.ObjectId.isValid(newCourtId)) {
+        throw new BadRequestException('La cancha indicada no es válida.');
+      }
+
+      const targetCourt = await this.courtModel.findById(newCourtId).exec();
+      if (!targetCourt) {
+        throw new NotFoundException('La cancha especificada no existe.');
+      }
+
+      // Validar solapamiento (excluyendo la reserva actual)
+      const overlapping = await this.reservationModel
+        .findOne({
+          _id: { $ne: new Types.ObjectId(id) },
+          courtId: newCourtId,
+          status: { $ne: 'cancelled' },
+          startTime: { $lt: newEnd },
+          endTime: { $gt: newStart },
+        })
+        .exec();
+
+      if (overlapping) {
+        throw new ConflictException('La cancha ya se encuentra reservada en el horario seleccionado.');
+      }
+
+      // Recalcular precio
+      const durationHours = (newEnd.getTime() - newStart.getTime()) / (1000 * 60 * 60);
+      const newTotalPrice = Math.round(durationHours * targetCourt.pricePerHour);
+      
+      // Actualizar en el DTO
+      updateReservationDto.totalPrice = newTotalPrice;
+      updateReservationDto.courtId = newCourtId as any;
+      updateReservationDto.startTime = newStart;
+      updateReservationDto.endTime = newEnd;
+    }
+
     if (
       updateReservationDto.paymentStatus === 'paid' &&
       (existingReservation.paymentStatus !== 'paid' ||
