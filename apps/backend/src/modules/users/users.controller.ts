@@ -51,8 +51,8 @@ export class UsersController {
     const passwordHash = await bcrypt.hash(password, salt);
 
     let targetRole = role || 'staff';
-    let targetClubId = body.clubId;
-    let targetTenantId = body.tenantId;
+    let targetClubId = body.clubId && body.clubId !== '' ? body.clubId : undefined;
+    let targetTenantId = body.tenantId && body.tenantId !== '' ? body.tenantId : undefined;
 
     if (caller.role === 'club_owner') {
       if (role !== 'staff' && role !== 'player') {

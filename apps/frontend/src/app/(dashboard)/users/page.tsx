@@ -204,7 +204,7 @@ export default function UsersPage() {
                         {userItem.role === "admin"
                           ? "Administrador Global"
                           : userItem.role === "club_owner"
-                            ? "Dueño / Franquicia"
+                            ? "Usuario"
                             : userItem.role === "staff"
                               ? userItem.clubId && clubMap[userItem.clubId]
                                 ? `Personal (${clubMap[userItem.clubId]})`
