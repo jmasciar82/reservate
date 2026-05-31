@@ -118,20 +118,20 @@ export default function UsersPage() {
 
   if (checkingRole) {
     return (
-      <div className="flex-1 bg-zinc-950 flex items-center justify-center p-8">
-        <span className="text-zinc-400 font-medium animate-pulse">Verificando credenciales...</span>
+      <div className="flex-1 bg-white dark:bg-zinc-950 flex items-center justify-center p-8">
+        <span className="text-zinc-500 dark:text-zinc-400 font-medium animate-pulse">Verificando credenciales...</span>
       </div>
     );
   }
 
   if (role !== "admin" && role !== "club_owner") {
     return (
-      <div className="flex-1 p-8 bg-zinc-950 flex flex-col items-center justify-center text-center">
+      <div className="flex-1 p-8 bg-white dark:bg-zinc-950 flex flex-col items-center justify-center text-center">
         <div className="w-16 h-16 bg-red-500/10 border border-red-500/20 text-red-500 rounded-full flex items-center justify-center mb-4 shadow-[0_0_15px_rgba(239,68,68,0.1)]">
           <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
         </div>
-        <h2 className="text-2xl font-black text-white mb-2">Acceso Denegado</h2>
-        <p className="text-sm text-zinc-400 max-w-sm">
+        <h2 className="text-2xl font-black text-zinc-900 dark:text-white mb-2">Acceso Denegado</h2>
+        <p className="text-sm text-zinc-500 dark:text-zinc-400 max-w-sm">
           No tienes permisos para ver esta sección. Solo los administradores pueden gestionar usuarios del sistema.
         </p>
       </div>
@@ -140,13 +140,13 @@ export default function UsersPage() {
 
   return (
     <div className="flex-1 overflow-y-auto p-6 lg:p-8 z-10">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-8 pb-4 border-b border-white/5">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-8 pb-4 border-b border-zinc-200/80 dark:border-white/5">
         <div>
-          <h1 className="text-3xl font-black flex items-center gap-3 text-white tracking-wide">
+          <h1 className="text-3xl font-black flex items-center gap-3 text-zinc-900 dark:text-white tracking-wide">
             <span className="w-2.5 h-7 bg-primary rounded-full shadow-[0_0_10px_rgba(57,255,20,0.6)]" />
             Control de Usuarios
           </h1>
-          <p className="text-sm text-zinc-400 mt-1">
+          <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
             Gestiona los miembros del equipo que tienen acceso al sistema de reservas.
           </p>
         </div>
@@ -160,36 +160,36 @@ export default function UsersPage() {
         </button>
       </div>
 
-      <div className="bg-white/[0.015] border border-white/5 rounded-2xl p-6 shadow-[0_12px_40px_rgba(0,0,0,0.25)] overflow-hidden">
+      <div className="bg-white/80 dark:bg-white/[0.015] border border-zinc-200/80 dark:border-white/5 rounded-2xl p-6 shadow-[0_12px_40px_rgba(0,0,0,0.06)] dark:shadow-[0_12px_40px_rgba(0,0,0,0.25)] overflow-hidden">
         <div className="overflow-x-auto">
           {loading ? (
-            <div className="text-center py-12 text-zinc-400">
+            <div className="text-center py-12 text-zinc-500 dark:text-zinc-400">
               <span className="font-semibold">Cargando usuarios...</span>
             </div>
           ) : users.length === 0 ? (
-            <div className="text-center py-12 text-zinc-400 italic">
+            <div className="text-center py-12 text-zinc-500 dark:text-zinc-400 italic">
               No hay usuarios del equipo creados todavía.
             </div>
           ) : (
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-white/5 text-xs font-extrabold text-zinc-400 uppercase tracking-wider bg-white/[0.01]">
+                <tr className="border-b border-zinc-200/80 dark:border-white/5 text-xs font-extrabold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider bg-zinc-50/30 dark:bg-white/[0.01]">
                   <th className="p-4">Nombre</th>
                   <th className="p-4">Email</th>
                   <th className="p-4">Rol / Permisos</th>
                   <th className="p-4 text-center">Acciones</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/5 text-sm">
+              <tbody className="divide-y divide-zinc-200/80 dark:divide-white/5 text-sm">
                 {users.map((userItem) => (
-                  <tr key={userItem._id} className="hover:bg-white/[0.01] transition-colors">
-                    <td className="p-4 font-bold text-white capitalize flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center font-black text-xs text-primary uppercase">
+                  <tr key={userItem._id} className="hover:bg-zinc-50 dark:hover:bg-white/[0.01] transition-colors">
+                    <td className="p-4 font-bold text-zinc-900 dark:text-white capitalize flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-full bg-zinc-200 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 flex items-center justify-center font-black text-xs text-primary uppercase">
                         {userItem.name.substring(0, 2)}
                       </div>
                       {userItem.name}
                     </td>
-                    <td className="p-4 text-zinc-300 font-medium">{userItem.email}</td>
+                    <td className="p-4 text-zinc-600 dark:text-zinc-300 font-medium">{userItem.email}</td>
                     <td className="p-4">
                       <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold tracking-wide border shadow-sm ${
                         userItem.role === "admin"
@@ -236,15 +236,15 @@ export default function UsersPage() {
             className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
             onClick={() => !submitting && setShowModal(false)}
           />
-          <div className="relative w-full max-w-md bg-zinc-950/85 backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="px-6 py-4 border-b border-white/5 flex justify-between items-center bg-white/[0.02]">
-              <h2 className="text-xl font-black text-white flex items-center gap-2">
+          <div className="relative w-full max-w-md bg-white/95 dark:bg-zinc-950/85 backdrop-blur-xl border border-zinc-200 dark:border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-zinc-200/80 dark:border-white/5 flex justify-between items-center bg-zinc-50/50 dark:bg-white/[0.02]">
+              <h2 className="text-xl font-black text-zinc-900 dark:text-white flex items-center gap-2">
                 <span className="w-2 h-6 bg-primary rounded-full shadow-[0_0_8px_rgba(57,255,20,0.5)]" />
                 Crear Nuevo Usuario
               </h2>
               <button
                 onClick={() => setShowModal(false)}
-                className="text-zinc-400 hover:text-white transition-all duration-300 p-1.5 bg-white/5 hover:bg-white/10 rounded-lg border border-white/5"
+                className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-all duration-300 p-1.5 bg-zinc-100 dark:bg-white/5 hover:bg-zinc-200 dark:hover:bg-white/10 rounded-lg border border-zinc-200 dark:border-white/5"
                 title="Cerrar"
                 disabled={submitting}
               >
@@ -254,7 +254,7 @@ export default function UsersPage() {
 
             <form onSubmit={handleCreateUser} className="p-6 space-y-5">
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-zinc-400 flex items-center gap-2">
+                <label className="text-sm font-medium text-zinc-500 dark:text-zinc-400 flex items-center gap-2">
                   <User className="w-4 h-4 text-primary" />
                   Nombre Completo
                 </label>
@@ -264,12 +264,12 @@ export default function UsersPage() {
                   placeholder="Ej. Martín Gómez"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-zinc-600 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 hover:bg-white/[0.08] transition-all duration-300 font-semibold"
+                  className="w-full bg-zinc-50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-xl px-4 py-3 text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 hover:bg-zinc-100 dark:hover:bg-white/[0.08] transition-all duration-300 font-semibold"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-zinc-400 flex items-center gap-2">
+                <label className="text-sm font-medium text-zinc-500 dark:text-zinc-400 flex items-center gap-2">
                   <Mail className="w-4 h-4 text-primary" />
                   Correo Electrónico
                 </label>
@@ -279,12 +279,12 @@ export default function UsersPage() {
                   placeholder="Ej. martin@club.com"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-zinc-600 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 hover:bg-white/[0.08] transition-all duration-300 font-semibold"
+                  className="w-full bg-zinc-50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-xl px-4 py-3 text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 hover:bg-zinc-100 dark:hover:bg-white/[0.08] transition-all duration-300 font-semibold"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-zinc-400 flex items-center gap-2">
+                <label className="text-sm font-medium text-zinc-500 dark:text-zinc-400 flex items-center gap-2">
                   <Key className="w-4 h-4 text-primary" />
                   Contraseña
                 </label>
@@ -295,19 +295,19 @@ export default function UsersPage() {
                   minLength={6}
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-zinc-600 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 hover:bg-white/[0.08] transition-all duration-300 font-semibold"
+                  className="w-full bg-zinc-50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-xl px-4 py-3 text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 hover:bg-zinc-100 dark:hover:bg-white/[0.08] transition-all duration-300 font-semibold"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-zinc-400 flex items-center gap-2">
+                <label className="text-sm font-medium text-zinc-500 dark:text-zinc-400 flex items-center gap-2">
                   <Shield className="w-4 h-4 text-primary" />
                   Rol y Permisos
                 </label>
                 <select
                   value={formData.role}
                   onChange={(e) => setFormData({ ...formData, role: e.target.value, clubId: e.target.value !== "staff" ? "" : formData.clubId })}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 hover:bg-white/[0.08] transition-all duration-300 font-semibold"
+                  className="w-full bg-zinc-50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-xl px-4 py-3 text-zinc-900 dark:text-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 hover:bg-zinc-100 dark:hover:bg-white/[0.08] transition-all duration-300 font-semibold"
                 >
                   <option value="staff" className="bg-zinc-950 text-white">
                     Personal / Recepción (Acceso a reservas de su sede)
@@ -322,7 +322,7 @@ export default function UsersPage() {
 
               {formData.role === "staff" && (
                 <div className="space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-200">
-                  <label className="text-sm font-medium text-zinc-400 flex items-center gap-2">
+                  <label className="text-sm font-medium text-zinc-500 dark:text-zinc-400 flex items-center gap-2">
                     <Building2 className="w-4 h-4 text-primary" />
                     Sede Asignada
                   </label>
@@ -330,7 +330,7 @@ export default function UsersPage() {
                     required
                     value={formData.clubId}
                     onChange={(e) => setFormData({ ...formData, clubId: e.target.value })}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 hover:bg-white/[0.08] transition-all duration-300 font-semibold"
+                    className="w-full bg-zinc-50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-xl px-4 py-3 text-zinc-900 dark:text-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 hover:bg-zinc-100 dark:hover:bg-white/[0.08] transition-all duration-300 font-semibold"
                   >
                     <option value="" className="bg-zinc-950 text-zinc-500">
                       Seleccionar una sede...

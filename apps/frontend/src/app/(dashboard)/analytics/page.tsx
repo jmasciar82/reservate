@@ -140,16 +140,16 @@ export default function AnalyticsPage() {
             <Sparkles className="w-5 h-5 animate-pulse" />
             <span className="text-xs font-extrabold uppercase tracking-widest">Módulo Estadístico</span>
           </div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-white">
+          <h1 className="text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-white">
             Analíticas de {activeClub?.name || "tu sede"}
           </h1>
-          <p className="text-sm text-zinc-400 mt-1">
+          <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
             Información en tiempo real para optimizar el rendimiento y facturación del club.
           </p>
         </div>
 
         {/* Time range selector */}
-        <div className="flex items-center bg-zinc-950 p-1.5 rounded-xl border border-zinc-800 w-fit shrink-0">
+        <div className="flex items-center bg-white dark:bg-zinc-950 p-1.5 rounded-xl border border-zinc-300 dark:border-zinc-800 w-fit shrink-0">
           {(["7d", "30d", "12m"] as const).map((r) => (
             <button
               key={r}
@@ -157,7 +157,7 @@ export default function AnalyticsPage() {
               className={`px-4 py-2 text-xs font-bold rounded-lg transition-all ${
                 range === r
                   ? "bg-primary text-[#09090b] shadow-[0_0_15px_rgba(57,255,20,0.25)]"
-                  : "text-zinc-400 hover:text-white"
+                  : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
               }`}
             >
               {r === "7d" ? "7 días" : r === "30d" ? "30 días" : "12 meses"}
@@ -206,18 +206,18 @@ export default function AnalyticsPage() {
         ].map((kpi, idx) => (
           <div
             key={idx}
-            className={`bg-zinc-900/50 border backdrop-blur-md p-5 rounded-2xl flex flex-col justify-between shadow-lg relative overflow-hidden group hover:border-zinc-700 transition-colors ${loading ? "animate-pulse" : ""}`}
+            className={`bg-white/80 dark:bg-zinc-900/50 border backdrop-blur-md p-5 rounded-2xl flex flex-col justify-between shadow-lg relative overflow-hidden group hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors ${loading ? "animate-pulse" : ""}`}
           >
             <div className="flex justify-between items-start mb-4">
               <div>
                 <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-1">{kpi.label}</p>
-                <h3 className="text-3xl font-black text-white tracking-tight">{loading ? "..." : kpi.value}</h3>
+                <h3 className="text-3xl font-black text-zinc-900 dark:text-white tracking-tight">{loading ? "..." : kpi.value}</h3>
               </div>
-              <div className={`p-3 rounded-xl bg-zinc-950 border border-zinc-800 ${kpi.color}`}>
+              <div className={`p-3 rounded-xl bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 ${kpi.color}`}>
                 <kpi.icon className="w-5 h-5" />
               </div>
             </div>
-            <p className="text-[10px] text-zinc-400 mt-2 border-t border-zinc-800/40 pt-2">{kpi.desc}</p>
+            <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-2 border-t border-zinc-300/40 dark:border-zinc-800/40 pt-2">{kpi.desc}</p>
           </div>
         ))}
       </div>
@@ -225,10 +225,10 @@ export default function AnalyticsPage() {
       {/* Row 1: Charts (Revenue Trend & Payment Distribution) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Revenue Trend Area Chart */}
-        <div className="bg-zinc-900/50 border border-zinc-800 p-6 rounded-2xl shadow-lg lg:col-span-2">
+        <div className="bg-white/80 dark:bg-zinc-900/50 border border-zinc-300 dark:border-zinc-800 p-6 rounded-2xl shadow-lg lg:col-span-2">
           <div className="flex justify-between items-center mb-6">
             <div>
-              <h3 className="text-lg font-bold text-white">Tendencia de Ingresos</h3>
+              <h3 className="text-lg font-bold text-zinc-900 dark:text-white">Tendencia de Ingresos</h3>
               <p className="text-xs text-zinc-500">Comparativa temporal de reservas vs. señas cobradas</p>
             </div>
           </div>
@@ -293,9 +293,9 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Payment breakdown Pie Chart */}
-        <div className="bg-zinc-900/50 border border-zinc-800 p-6 rounded-2xl shadow-lg">
+        <div className="bg-white/80 dark:bg-zinc-900/50 border border-zinc-300 dark:border-zinc-800 p-6 rounded-2xl shadow-lg">
           <div>
-            <h3 className="text-lg font-bold text-white">Método de Recaudación</h3>
+            <h3 className="text-lg font-bold text-zinc-900 dark:text-white">Método de Recaudación</h3>
             <p className="text-xs text-zinc-500">Origen de los fondos del período</p>
           </div>
 
@@ -339,8 +339,8 @@ export default function AnalyticsPage() {
             )}
             {!loading && data.paymentBreakdown.totalRevenue > 0 && (
               <div className="absolute flex flex-col items-center justify-center">
-                <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest">Cobrado</span>
-                <span className="text-lg font-black text-white">
+                <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-bold uppercase tracking-widest">Cobrado</span>
+                <span className="text-lg font-black text-zinc-900 dark:text-white">
                   {Math.round((data.paymentBreakdown.paidOnline / data.paymentBreakdown.totalRevenue) * 100)}%
                 </span>
                 <span className="text-[8px] text-primary font-medium">Online</span>
@@ -348,20 +348,20 @@ export default function AnalyticsPage() {
             )}
           </div>
 
-          <div className="mt-4 border-t border-zinc-800/50 pt-4 space-y-2 text-xs">
+          <div className="mt-4 border-t border-zinc-300/50 dark:border-zinc-800/50 pt-4 space-y-2 text-xs">
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-primary" />
-                <span className="text-zinc-300">Señas Online</span>
+                <span className="text-zinc-600 dark:text-zinc-300">Señas Online</span>
               </div>
-              <span className="font-bold text-white">${data.paymentBreakdown.paidOnline.toLocaleString("es-AR")}</span>
+              <span className="font-bold text-zinc-900 dark:text-white">${data.paymentBreakdown.paidOnline.toLocaleString("es-AR")}</span>
             </div>
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-[#00d1ff]" />
-                <span className="text-zinc-300">En mostrador</span>
+                <span className="text-zinc-600 dark:text-zinc-300">En mostrador</span>
               </div>
-              <span className="font-bold text-white">${data.paymentBreakdown.pendingAtFrontDesk.toLocaleString("es-AR")}</span>
+              <span className="font-bold text-zinc-900 dark:text-white">${data.paymentBreakdown.pendingAtFrontDesk.toLocaleString("es-AR")}</span>
             </div>
           </div>
         </div>
@@ -370,9 +370,9 @@ export default function AnalyticsPage() {
       {/* Row 2: Court Occupancy & Peak Hours */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Court Occupancy Bar Chart */}
-        <div className="bg-zinc-900/50 border border-zinc-800 p-6 rounded-2xl shadow-lg">
+        <div className="bg-white/80 dark:bg-zinc-900/50 border border-zinc-300 dark:border-zinc-800 p-6 rounded-2xl shadow-lg">
           <div>
-            <h3 className="text-lg font-bold text-white">Ocupación por Cancha</h3>
+            <h3 className="text-lg font-bold text-zinc-900 dark:text-white">Ocupación por Cancha</h3>
             <p className="text-xs text-zinc-500">Porcentaje de tiempo reservado sobre el total disponible</p>
           </div>
 
@@ -418,9 +418,9 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Peak Hours Line/Area Chart */}
-        <div className="bg-zinc-900/50 border border-zinc-800 p-6 rounded-2xl shadow-lg">
+        <div className="bg-white/80 dark:bg-zinc-900/50 border border-zinc-300 dark:border-zinc-800 p-6 rounded-2xl shadow-lg">
           <div>
-            <h3 className="text-lg font-bold text-white">Horarios de Mayor Demanda</h3>
+            <h3 className="text-lg font-bold text-zinc-900 dark:text-white">Horarios de Mayor Demanda</h3>
             <p className="text-xs text-zinc-500">Distribución de turnos según hora de inicio</p>
           </div>
 

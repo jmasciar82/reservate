@@ -168,7 +168,7 @@ export default async function Dashboard({
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold mb-2">Panel general</h1>
-          <p className="text-zinc-400">
+          <p className="text-zinc-500 dark:text-zinc-400">
             Resumen operativo de todas las sedes para la fecha seleccionada.
           </p>
         </div>
@@ -189,20 +189,20 @@ export default async function Dashboard({
             label: "Canchas ocupadas",
             value: `${occupiedCourtsCount}/${totalCourtsCount}`,
             trend: occupancyPercent,
-            color: "text-white",
+            color: "text-zinc-900 dark:text-white",
           },
           {
             label: "Ingresos cobrados",
             value: revenueStat,
             trend: "Pagos confirmados",
-            color: "text-zinc-100",
+            color: "text-zinc-800 dark:text-zinc-100",
           },
         ].map((stat) => (
-          <div key={stat.label} className="relative group overflow-hidden bg-white/[0.02] backdrop-blur-md border border-white/5 hover:border-primary/30 p-5 rounded-2xl transition-all duration-300 hover:shadow-[0_8px_30px_rgba(57,255,20,0.05)] hover:scale-[1.02]">
+          <div key={stat.label} className="relative group overflow-hidden bg-white/80 dark:bg-white/[0.02] backdrop-blur-md border border-zinc-200/80 dark:border-white/5 hover:border-primary/30 p-5 rounded-2xl transition-all duration-300 hover:shadow-[0_8px_30px_rgba(57,255,20,0.05)] hover:scale-[1.02]">
             {/* Ambient hover glow inside the card */}
             <div className="absolute -inset-px bg-gradient-to-r from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl" />
             <div className="relative z-10">
-              <p className="text-xs font-extrabold text-zinc-400 uppercase tracking-wider mb-2">{stat.label}</p>
+              <p className="text-xs font-extrabold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-2">{stat.label}</p>
               <div className="flex items-baseline justify-between gap-2">
                 <h3 className={`text-3xl font-black tracking-tight ${stat.color} drop-shadow`}>{stat.value}</h3>
                 <span className="text-[10px] text-primary font-extrabold uppercase bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20 shadow-[0_0_8px_rgba(57,255,20,0.1)]">{stat.trend}</span>
@@ -212,25 +212,25 @@ export default async function Dashboard({
         ))}
       </div>
 
-      <div className="bg-white/[0.015] border border-white/5 rounded-2xl p-6 shadow-[0_12px_40px_rgba(0,0,0,0.25)] relative overflow-hidden">
+      <div className="bg-white/80 dark:bg-white/[0.015] border border-zinc-200/80 dark:border-white/5 rounded-2xl p-6 shadow-[0_12px_40px_rgba(0,0,0,0.06)] dark:shadow-[0_12px_40px_rgba(0,0,0,0.25)] relative overflow-hidden">
         {/* Subtle interior glow */}
-        <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent pointer-events-none" />
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 pb-4 border-b border-white/5 relative z-10">
+        <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-zinc-300/50 dark:via-white/10 to-transparent pointer-events-none" />
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 pb-4 border-b border-zinc-200/80 dark:border-white/5 relative z-10">
           <div>
-            <h2 className="text-xl font-black flex items-center gap-2 text-white tracking-wide">
+            <h2 className="text-xl font-black flex items-center gap-2 text-zinc-900 dark:text-white tracking-wide">
               <span className="w-2.5 h-6 bg-primary rounded-full shadow-[0_0_10px_rgba(57,255,20,0.6)]" />
               Reservas del día
             </h2>
-            <p className="text-[11px] font-medium text-zinc-400 mt-1">Organización y control de turnos en tiempo real</p>
+            <p className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 mt-1">Organización y control de turnos en tiempo real</p>
           </div>
           
-          <div className="flex items-center bg-white/5 p-1 rounded-xl border border-white/10 w-fit backdrop-blur-md shadow-inner">
+          <div className="flex items-center bg-zinc-100/80 dark:bg-white/5 p-1 rounded-xl border border-zinc-200 dark:border-white/10 w-fit backdrop-blur-md shadow-inner">
             <Link
               href={`?date=${date}&view=scheduler`}
               className={`px-4 py-2 text-xs font-extrabold rounded-lg transition-all duration-300 ${
                 view === "scheduler"
                   ? "bg-primary text-[#09090b] shadow-[0_0_15px_rgba(57,255,20,0.4)]"
-                  : "text-zinc-400 hover:text-white hover:bg-white/5"
+                  : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-white/5"
               }`}
             >
               Vista Agenda (Calendario)
@@ -240,7 +240,7 @@ export default async function Dashboard({
               className={`px-4 py-2 text-xs font-extrabold rounded-lg transition-all duration-300 ${
                 view === "list"
                   ? "bg-primary text-[#09090b] shadow-[0_0_15px_rgba(57,255,20,0.4)]"
-                  : "text-zinc-400 hover:text-white hover:bg-white/5"
+                  : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-white/5"
               }`}
             >
               Vista Lista (Detallada)
@@ -251,21 +251,21 @@ export default async function Dashboard({
         {view === "scheduler" ? (
           /* VISTA AGENDA - SCHEDULER GRID */
           activeClubCourts.length === 0 ? (
-            <div className="text-center py-16 text-zinc-400 border border-dashed border-white/10 rounded-2xl bg-white/[0.01]">
+            <div className="text-center py-16 text-zinc-500 dark:text-zinc-400 border border-dashed border-zinc-300 dark:border-white/10 rounded-2xl bg-zinc-50/50 dark:bg-white/[0.01]">
               <CalendarDays className="w-12 h-12 mx-auto mb-3 opacity-20" />
               <p className="font-medium">No hay canchas creadas en esta sede para mostrar la grilla diaria.</p>
             </div>
           ) : (
-            <div className="overflow-x-auto w-full border border-white/5 rounded-2xl bg-white/[0.01] shadow-[0_8px_32px_rgba(0,0,0,0.15)] relative">
+            <div className="overflow-x-auto w-full border border-zinc-200/80 dark:border-white/5 rounded-2xl bg-zinc-50/50 dark:bg-white/[0.01] shadow-[0_8px_32px_rgba(0,0,0,0.04)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.15)] relative">
               <div className="min-w-[800px]">
                 {/* Header Row */}
-                <div className="grid border-b border-white/5 relative z-10" style={{ gridTemplateColumns: `100px repeat(${activeClubCourts.length}, minmax(180px, 1fr))` }}>
-                  <div className="flex items-center justify-center font-extrabold text-xs uppercase tracking-wider text-zinc-400 bg-white/5 border-r border-white/5 p-3 backdrop-blur-md">
+                <div className="grid border-b border-zinc-200/80 dark:border-white/5 relative z-10" style={{ gridTemplateColumns: `100px repeat(${activeClubCourts.length}, minmax(180px, 1fr))` }}>
+                  <div className="flex items-center justify-center font-extrabold text-xs uppercase tracking-wider text-zinc-500 dark:text-zinc-400 bg-zinc-100/80 dark:bg-white/5 border-r border-zinc-200/80 dark:border-white/5 p-3 backdrop-blur-md">
                     Horario
                   </div>
                   {activeClubCourts.map((court) => (
-                    <div key={court._id} className="text-center p-3 border-r border-white/5 bg-white/[0.02] flex flex-col items-center justify-center backdrop-blur-md last:border-r-0">
-                      <p className="font-black text-sm text-white tracking-wide">{court.name}</p>
+                    <div key={court._id} className="text-center p-3 border-r border-zinc-200/80 dark:border-white/5 bg-white/80 dark:bg-white/[0.02] flex flex-col items-center justify-center backdrop-blur-md last:border-r-0">
+                      <p className="font-black text-sm text-zinc-900 dark:text-white tracking-wide">{court.name}</p>
                       <span className="inline-block mt-1.5 px-2.5 py-0.5 rounded-full border border-primary/20 bg-primary/10 text-[9px] font-extrabold text-primary uppercase tracking-wider shadow-[0_0_8px_rgba(57,255,20,0.15)]">
                         {court.sport} • {court.isCovered ? "Techada" : "Descubierta"}
                       </span>
@@ -286,11 +286,11 @@ export default async function Dashboard({
                 })().map((slot, slotIndex) => (
                   <div
                     key={slot.label}
-                    className="grid hover:bg-white/[0.01] transition-colors"
+                    className="grid hover:bg-zinc-50/50 dark:hover:bg-white/[0.01] transition-colors"
                     style={{ gridTemplateColumns: `100px repeat(${activeClubCourts.length}, minmax(180px, 1fr))` }}
                   >
                     {/* Hour Column */}
-                    <div className="flex items-center justify-center font-extrabold text-xs text-zinc-400 bg-white/[0.01] border-r border-b border-white/5 py-3">
+                    <div className="flex items-center justify-center font-extrabold text-xs text-zinc-500 dark:text-zinc-400 bg-zinc-50/50 dark:bg-white/[0.01] border-r border-b border-zinc-200/80 dark:border-white/5 py-3">
                       {slot.label} hs
                     </div>
 
@@ -329,17 +329,17 @@ export default async function Dashboard({
                         return (
                           <div
                             key={court._id}
-                            className={`p-1 border-r border-white/5 min-h-[65px] last:border-r-0 ${
+                            className={`p-1 border-r border-zinc-200/80 dark:border-white/5 min-h-[65px] last:border-r-0 ${
                               isStartSlot
                                 ? "pb-0 border-b-0"
                                 : isIntermediateSlot
                                   ? "py-0 border-b-0"
-                                  : "pt-0 border-b border-white/5"
+                                  : "pt-0 border-b border-zinc-200/80 dark:border-white/5"
                             }`}
                           >
                             {isStartSlot ? (
                               <div 
-                                className={`h-full bg-white/5 backdrop-blur-sm border border-white/10 p-2.5 flex flex-col justify-between hover:border-primary/45 hover:bg-white/[0.08] transition-all duration-300 shadow-[0_4px_12px_rgba(0,0,0,0.15)] hover:shadow-[0_8px_20px_rgba(57,255,20,0.08)] group/res relative hover:z-20 ${
+                                className={`h-full bg-zinc-100/80 dark:bg-white/5 backdrop-blur-sm border border-zinc-200 dark:border-white/10 p-2.5 flex flex-col justify-between hover:border-primary/45 hover:bg-zinc-100 dark:hover:bg-white/[0.08] transition-all duration-300 shadow-[0_4px_12px_rgba(0,0,0,0.04)] dark:shadow-[0_4px_12px_rgba(0,0,0,0.15)] hover:shadow-[0_8px_20px_rgba(57,255,20,0.08)] group/res relative hover:z-20 ${
                                   isEndSlot 
                                     ? "rounded-xl" 
                                     : "rounded-t-xl rounded-b-none border-b-0 pb-1"
@@ -373,7 +373,7 @@ export default async function Dashboard({
                                   {/* Renders Name in Start Slot only if it's a short 1-slot or 2-slot reservation */}
                                   {totalSlots <= 2 && (
                                     <div className="mt-2.5">
-                                      <h4 className="text-sm font-black text-white truncate capitalize flex items-center gap-1.5 min-w-0">
+                                      <h4 className="text-sm font-black text-zinc-900 dark:text-white truncate capitalize flex items-center gap-1.5 min-w-0">
                                         <span className="truncate">
                                           {reservation.firstName
                                             ? `${reservation.firstName} ${reservation.lastName}`
@@ -405,8 +405,8 @@ export default async function Dashboard({
                                         const isPartiallyPaid = reservation.paymentStatus === "paid" && (reservation.depositAmount ?? 0) > 0 && (reservation.depositAmount ?? 0) < (reservation.totalPrice ?? 0);
                                         const balance = (reservation.totalPrice ?? 0) - (reservation.depositAmount ?? 0);
                                         return (totalSlots === 1 && isPartiallyPaid) ? (
-                                          <p className="text-xs text-zinc-400 mt-1 leading-none">
-                                            Resta: <strong className="text-white">${balance.toLocaleString("es-AR")}</strong>
+                                          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 leading-none">
+                                            Resta: <strong className="text-zinc-900 dark:text-white">${balance.toLocaleString("es-AR")}</strong>
                                           </p>
                                         ) : null;
                                       })()}
@@ -414,13 +414,13 @@ export default async function Dashboard({
                                   )}
                                 </div>
                                 {isEndSlot ? (
-                                  <div className="flex items-center justify-between border-t border-white/5 pt-1.5 mt-1.5 relative z-10 w-full">
+                                  <div className="flex items-center justify-between border-t border-zinc-200/80 dark:border-white/5 pt-1.5 mt-1.5 relative z-10 w-full">
                                     <span className={`text-[10px] font-black tracking-wider ${
                                       reservation.status === "confirmed"
                                         ? "text-primary drop-shadow-[0_0_5px_rgba(57,255,20,0.3)]"
                                         : reservation.status === "completed"
                                           ? "text-blue-400"
-                                          : "text-zinc-400"
+                                          : "text-zinc-500 dark:text-zinc-400"
                                     }`}>
                                       {statusLabel(reservation.status)}
                                     </span>
@@ -445,13 +445,13 @@ export default async function Dashboard({
                               </div>
                             ) : isIntermediateSlot ? (
                               <div 
-                                className="h-full bg-white/5 backdrop-blur-sm border-x border-white/10 rounded-none px-2.5 py-1.5 flex flex-col items-center justify-center relative group/res hover:bg-white/[0.08] transition-all duration-300"
+                                className="h-full bg-zinc-100/80 dark:bg-white/5 backdrop-blur-sm border-x border-zinc-200 dark:border-white/10 rounded-none px-2.5 py-1.5 flex flex-col items-center justify-center relative group/res hover:bg-zinc-100 dark:hover:bg-white/[0.08] transition-all duration-300"
                                 style={{ zIndex: 50 - slotIndex }}
                               >
                                 {isSecondSlot && totalSlots >= 3 ? (
                                   /* Render Name & turn details beautifully centered in the middle slot of tall cards */
                                   <div className="text-center w-full animate-in fade-in zoom-in-95 duration-200">
-                                    <h4 className="text-base font-black text-white capitalize flex items-center justify-center gap-1.5 w-full">
+                                    <h4 className="text-base font-black text-zinc-900 dark:text-white capitalize flex items-center justify-center gap-1.5 w-full">
                                       <span className="truncate max-w-[150px]">
                                         {reservation.firstName
                                           ? `${reservation.firstName} ${reservation.lastName}`
@@ -481,7 +481,7 @@ export default async function Dashboard({
                               </div>
                             ) : (
                               <div 
-                                className="h-full bg-white/5 backdrop-blur-sm border-x border-b border-white/10 rounded-b-xl rounded-t-none px-2.5 py-2.5 flex flex-col justify-between relative group/res hover:bg-white/[0.08] transition-all duration-300 shadow-[0_4px_12px_rgba(0,0,0,0.15)]"
+                                className="h-full bg-zinc-100/80 dark:bg-white/5 backdrop-blur-sm border-x border-b border-zinc-200 dark:border-white/10 rounded-b-xl rounded-t-none px-2.5 py-2.5 flex flex-col justify-between relative group/res hover:bg-zinc-100 dark:hover:bg-white/[0.08] transition-all duration-300 shadow-[0_4px_12px_rgba(0,0,0,0.04)] dark:shadow-[0_4px_12px_rgba(0,0,0,0.15)]"
                                 style={{ zIndex: 50 - slotIndex }}
                               >
                                 {/* Balance (Resta: $...) rendered beautifully in the upper part of the bottom slot */}
@@ -492,33 +492,33 @@ export default async function Dashboard({
                                     
                                     if (isPartiallyPaid) {
                                       return (
-                                        <p className="text-xs text-zinc-300 font-bold bg-white/5 px-3 py-1 rounded-lg border border-white/5 shadow-inner">
-                                          Resta: <strong className="text-white font-extrabold">${balance.toLocaleString("es-AR")}</strong>
+                                        <p className="text-xs text-zinc-600 dark:text-zinc-300 font-bold bg-zinc-100/80 dark:bg-white/5 px-3 py-1 rounded-lg border border-zinc-200/80 dark:border-white/5 shadow-inner">
+                                          Resta: <strong className="text-zinc-900 dark:text-white font-extrabold">${balance.toLocaleString("es-AR")}</strong>
                                         </p>
                                       );
                                     } else if (reservation.paymentStatus === "pending") {
                                       return (
                                         <p className="text-xs text-amber-300 font-bold bg-amber-500/5 px-3 py-1 rounded-lg border border-amber-500/10 shadow-inner">
-                                          Total: <strong className="text-white font-extrabold">${reservation.totalPrice.toLocaleString("es-AR")}</strong>
+                                          Total: <strong className="text-zinc-900 dark:text-white font-extrabold">${reservation.totalPrice.toLocaleString("es-AR")}</strong>
                                         </p>
                                       );
                                     } else {
                                       return (
                                         <p className="text-xs text-green-300 font-bold bg-green-500/5 px-3 py-1 rounded-lg border border-green-500/10 shadow-inner">
-                                          Total Pagado: <strong className="text-white font-extrabold">${reservation.totalPrice.toLocaleString("es-AR")}</strong>
+                                          Total Pagado: <strong className="text-zinc-900 dark:text-white font-extrabold">${reservation.totalPrice.toLocaleString("es-AR")}</strong>
                                         </p>
                                       );
                                     }
                                   })()}
                                 </div>
 
-                                <div className="flex items-center justify-between border-t border-white/5 pt-1.5 mt-1.5 relative z-10 w-full shrink-0">
+                                <div className="flex items-center justify-between border-t border-zinc-200/80 dark:border-white/5 pt-1.5 mt-1.5 relative z-10 w-full shrink-0">
                                   <span className={`text-[10px] font-black tracking-wider ${
                                     reservation.status === "confirmed"
                                       ? "text-primary drop-shadow-[0_0_5px_rgba(57,255,20,0.3)]"
                                       : reservation.status === "completed"
                                         ? "text-blue-400"
-                                        : "text-zinc-400"
+                                        : "text-zinc-500 dark:text-zinc-400"
                                   }`}>
                                     {statusLabel(reservation.status)}
                                   </span>
@@ -546,7 +546,7 @@ export default async function Dashboard({
                       }
 
                       return (
-                        <div key={court._id} className="p-1 border-r border-b border-white/5 min-h-[65px] last:border-r-0">
+                        <div key={court._id} className="p-1 border-r border-b border-zinc-200/80 dark:border-white/5 min-h-[65px] last:border-r-0">
                           <NewReservationButton
                             activeClubId={activeClubId}
                             defaultDate={date}
@@ -554,7 +554,7 @@ export default async function Dashboard({
                             presetTime={slot.label}
                             presetDate={date}
                           >
-                            <div className="h-full w-full min-h-[48px] border border-dashed border-white/10 hover:border-primary/45 hover:bg-primary/[0.03] rounded-xl flex items-center justify-center group/btn cursor-pointer transition-all duration-300 py-3 shadow-inner">
+                            <div className="h-full w-full min-h-[48px] border border-dashed border-zinc-300 dark:border-white/10 hover:border-primary/45 hover:bg-primary/[0.03] rounded-xl flex items-center justify-center group/btn cursor-pointer transition-all duration-300 py-3 shadow-inner">
                               <Plus className="w-4 h-4 text-zinc-600 group-hover/btn:text-primary group-hover/btn:scale-110 group-hover/btn:rotate-90 transition-all" />
                             </div>
                           </NewReservationButton>
@@ -570,7 +570,7 @@ export default async function Dashboard({
           /* VISTA LISTA - STANDARD LIST VIEW */
           <div className="space-y-3 relative z-10">
             {playingTodayReservations.length === 0 ? (
-              <div className="text-center py-16 text-zinc-400 border border-dashed border-white/10 rounded-2xl bg-white/[0.01]">
+              <div className="text-center py-16 text-zinc-500 dark:text-zinc-400 border border-dashed border-zinc-300 dark:border-white/10 rounded-2xl bg-zinc-50/50 dark:bg-white/[0.01]">
                 <CalendarDays className="w-12 h-12 mx-auto mb-3 opacity-20" />
                 <p className="font-medium">No hay reservas programadas para esta selección.</p>
               </div>
@@ -578,13 +578,13 @@ export default async function Dashboard({
               playingTodayReservations.map((reservation) => (
                 <div
                   key={reservation._id}
-                  className="relative group flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between p-5 rounded-2xl bg-white/[0.02] border border-white/5 hover:border-primary/30 transition-all duration-300 hover:shadow-[0_8px_30px_rgba(57,255,20,0.03)] hover:scale-[1.01] hover:z-20"
+                  className="relative group flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between p-5 rounded-2xl bg-white/80 dark:bg-white/[0.02] border border-zinc-200/80 dark:border-white/5 hover:border-primary/30 transition-all duration-300 hover:shadow-[0_8px_30px_rgba(57,255,20,0.03)] hover:scale-[1.01] hover:z-20"
                 >
                   <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl pointer-events-none" />
                   <div className="flex items-center gap-4 min-w-0 relative z-10">
                     <div className="w-1.5 h-12 bg-primary rounded-full shadow-[0_0_10px_rgba(57,255,20,0.6)]" />
                     <div className="min-w-0">
-                      <p className="font-extrabold text-white truncate flex items-center gap-2 tracking-wide text-sm sm:text-base">
+                      <p className="font-extrabold text-zinc-900 dark:text-white truncate flex items-center gap-2 tracking-wide text-sm sm:text-base">
                         <span>
                           Reserva #{reservation._id.substring(0, 5)} -{" "}
                           {reservation.courtId?.name ?? "Cancha"}
@@ -611,15 +611,15 @@ export default async function Dashboard({
                           </span>
                         )}
                       </p>
-                      <p className="text-xs text-zinc-400 mt-1">
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
                         Jugador:{" "}
-                        <strong className="text-zinc-200 font-bold capitalize">
+                        <strong className="text-zinc-600 dark:text-zinc-200 font-bold capitalize">
                           {reservation.isPublic || !reservation.userId
                             ? `${reservation.firstName} ${reservation.lastName} (Público)`
                             : reservation.userId}
                         </strong>{" "}
                         {reservation.courtId && (
-                          <span className="text-[10px] font-extrabold text-zinc-500 bg-white/5 px-2 py-0.5 rounded-full border border-white/5 ml-1 capitalize tracking-wide">
+                          <span className="text-[10px] font-extrabold text-zinc-500 bg-zinc-100/80 dark:bg-white/5 px-2 py-0.5 rounded-full border border-zinc-200/80 dark:border-white/5 ml-1 capitalize tracking-wide">
                             {courtSportEmoji(reservation.courtId.sport)} {reservation.courtId.sport}
                           </span>
                         )}
@@ -629,7 +629,7 @@ export default async function Dashboard({
 
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end relative z-10">
                     <div className="flex flex-col sm:items-end">
-                      <span className="text-xs font-bold text-white tracking-wide">
+                      <span className="text-xs font-bold text-zinc-900 dark:text-white tracking-wide">
                         {formatArtDateStr(reservation.startTime)} - {formatArtTimeStr(reservation.startTime)} hs
                       </span>
                       <span className="text-xs text-primary font-black mt-0.5 drop-shadow-[0_0_4px_rgba(57,255,20,0.2)]">
@@ -639,9 +639,9 @@ export default async function Dashboard({
                         const isPartiallyPaid = reservation.paymentStatus === "paid" && (reservation.depositAmount ?? 0) > 0 && (reservation.depositAmount ?? 0) < (reservation.totalPrice ?? 0);
                         const balance = (reservation.totalPrice ?? 0) - (reservation.depositAmount ?? 0);
                         return isPartiallyPaid ? (
-                          <div className="flex flex-col sm:items-end text-[10px] text-zinc-400 mt-1 leading-tight">
-                            <span>Seña: <strong className="text-zinc-200">${(reservation.depositAmount ?? 0).toLocaleString("es-AR")}</strong></span>
-                            <span>Resta: <strong className="text-white">${balance.toLocaleString("es-AR")}</strong></span>
+                           <div className="flex flex-col sm:items-end text-[10px] text-zinc-500 dark:text-zinc-400 mt-1 leading-tight">
+                            <span>Seña: <strong className="text-zinc-600 dark:text-zinc-200">${(reservation.depositAmount ?? 0).toLocaleString("es-AR")}</strong></span>
+                            <span>Resta: <strong className="text-zinc-900 dark:text-white">${balance.toLocaleString("es-AR")}</strong></span>
                           </div>
                         ) : null;
                       })()}
@@ -676,7 +676,7 @@ export default async function Dashboard({
                               ? "bg-red-500/10 text-red-400 border border-red-500/20"
                               : reservation.status === "completed"
                                 ? "bg-blue-500/10 text-blue-400 border border-blue-500/20"
-                                : "bg-zinc-800 text-zinc-400 border border-zinc-700"
+                                : "bg-zinc-200 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border border-zinc-300 dark:border-zinc-700"
                         }`}
                       >
                         {statusLabel(reservation.status)}

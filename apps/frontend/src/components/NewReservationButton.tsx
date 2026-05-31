@@ -316,19 +316,19 @@ export default function NewReservationButton({
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/30 dark:bg-black/60 backdrop-blur-sm"
             onClick={() => setIsOpen(false)}
           />
 
-          <div className="relative w-full max-w-md max-h-[90vh] flex flex-col bg-zinc-950/85 backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="px-6 py-4 border-b border-white/5 flex justify-between items-center bg-white/[0.02] shrink-0">
-              <h2 className="text-xl font-black text-white flex items-center gap-2">
+          <div className="relative w-full max-w-md max-h-[90vh] flex flex-col bg-white/95 dark:bg-zinc-950/85 backdrop-blur-xl border border-zinc-200 dark:border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-zinc-200/80 dark:border-white/5 flex justify-between items-center bg-zinc-50/50 dark:bg-white/[0.02] shrink-0">
+              <h2 className="text-xl font-black text-zinc-900 dark:text-white flex items-center gap-2">
                 <span className="w-2 h-6 bg-primary rounded-full shadow-[0_0_8px_rgba(57,255,20,0.5)]" />
                 Nueva reserva
               </h2>
               <button
                 onClick={() => setIsOpen(false)}
-                className="text-zinc-400 hover:text-white transition-all duration-300 p-1.5 bg-white/5 hover:bg-white/10 rounded-lg border border-white/5"
+                className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-all duration-300 p-1.5 bg-zinc-100/80 dark:bg-white/5 hover:bg-zinc-200 dark:hover:bg-white/10 rounded-lg border border-zinc-200/80 dark:border-white/5"
                 title="Cerrar"
               >
                 <X className="w-4 h-4" />
@@ -337,7 +337,7 @@ export default function NewReservationButton({
 
             <form onSubmit={handleSubmit} className="p-6 space-y-5 overflow-y-auto flex-1">
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-zinc-400 flex items-center gap-2">
+                <label className="text-sm font-medium text-zinc-500 dark:text-zinc-400 flex items-center gap-2">
                   <User className="w-4 h-4 text-primary" />
                   Nombre del jugador
                 </label>
@@ -352,12 +352,12 @@ export default function NewReservationButton({
                       playerName: e.target.value,
                     }))
                   }
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-zinc-505 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 hover:bg-white/[0.08] transition-all duration-300 font-medium"
+                  className="w-full bg-zinc-50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-xl px-4 py-3 text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-505 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 hover:bg-zinc-100 dark:hover:bg-white/[0.08] transition-all duration-300 font-medium"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-zinc-400 flex items-center gap-2">
+                <label className="text-sm font-medium text-zinc-500 dark:text-zinc-400 flex items-center gap-2">
                   <Calendar className="w-4 h-4 text-primary" />
                   Fecha
                 </label>
@@ -368,13 +368,13 @@ export default function NewReservationButton({
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, date: e.target.value }))
                   }
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 hover:bg-white/[0.08] transition-all duration-300 [color-scheme:dark] font-medium"
+                  className="w-full bg-zinc-50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-xl px-4 py-3 text-zinc-900 dark:text-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 hover:bg-zinc-100 dark:hover:bg-white/[0.08] transition-all duration-300 dark:[color-scheme:dark] font-medium"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-zinc-400 flex items-center gap-2">
+                  <label className="text-sm font-medium text-zinc-500 dark:text-zinc-400 flex items-center gap-2">
                     <Clock className="w-4 h-4 text-primary" />
                     Inicio
                   </label>
@@ -384,13 +384,13 @@ export default function NewReservationButton({
                     onChange={(e) =>
                       setFormData((prev) => ({ ...prev, time: e.target.value }))
                     }
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 hover:bg-white/[0.08] transition-all duration-300 font-semibold"
+                    className="w-full bg-zinc-50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-xl px-4 py-3 text-zinc-900 dark:text-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 hover:bg-zinc-100 dark:hover:bg-white/[0.08] transition-all duration-300 font-semibold"
                   >
-                    <option value="" disabled className="bg-zinc-950 text-white">
+                    <option value="" disabled className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-white">
                       --:--
                     </option>
                     {filteredTimes.map((time) => (
-                      <option key={time} value={time} className="bg-zinc-950 text-white">
+                      <option key={time} value={time} className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-white">
                         {time} hs
                       </option>
                     ))}
@@ -398,7 +398,7 @@ export default function NewReservationButton({
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-zinc-400 flex items-center gap-2">
+                  <label className="text-sm font-medium text-zinc-500 dark:text-zinc-400 flex items-center gap-2">
                     <Clock className="w-4 h-4 text-primary" />
                     Duración
                   </label>
@@ -416,16 +416,16 @@ export default function NewReservationButton({
                             : prev.time,
                       }));
                     }}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 hover:bg-white/[0.08] transition-all duration-300 font-semibold"
+                    className="w-full bg-zinc-50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-xl px-4 py-3 text-zinc-900 dark:text-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 hover:bg-zinc-100 dark:hover:bg-white/[0.08] transition-all duration-300 font-semibold"
                   >
-                    <option value="1" className="bg-zinc-950 text-white">1 hora</option>
-                    <option value="1.5" className="bg-zinc-950 text-white">1.5 horas</option>
+                    <option value="1" className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-white">1 hora</option>
+                    <option value="1.5" className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-white">1.5 horas</option>
                   </select>
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-zinc-400 flex items-center gap-2">
+                <label className="text-sm font-medium text-zinc-500 dark:text-zinc-400 flex items-center gap-2">
                   <MapPin className="w-4 h-4 text-primary" />
                   Cancha disponible
                 </label>
@@ -439,21 +439,21 @@ export default function NewReservationButton({
                     }))
                   }
                   disabled={!isTimeSelectionReady || courtsLoading || courts.length === 0}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 hover:bg-white/[0.08] transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed font-semibold"
+                  className="w-full bg-zinc-50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-xl px-4 py-3 text-zinc-900 dark:text-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 hover:bg-zinc-100 dark:hover:bg-white/[0.08] transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed font-semibold"
                 >
                   {!isTimeSelectionReady ? (
-                    <option value="" className="bg-zinc-950 text-white">Seleccioná fecha, hora y duración</option>
+                    <option value="" className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-white">Seleccioná fecha, hora y duración</option>
                   ) : courtsLoading ? (
-                    <option value="" className="bg-zinc-950 text-white">Buscando canchas libres...</option>
+                    <option value="" className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-white">Buscando canchas libres...</option>
                   ) : courts.length === 0 ? (
-                    <option value="" className="bg-zinc-950 text-white">No hay canchas libres en este horario</option>
+                    <option value="" className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-white">No hay canchas libres en este horario</option>
                   ) : (
                     <>
-                      <option value="" disabled className="bg-zinc-950 text-white">
+                      <option value="" disabled className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-white">
                         Seleccioná una cancha libre
                       </option>
                       {courts.map((court) => (
-                        <option key={court._id} value={court._id} className="bg-zinc-950 text-white">
+                        <option key={court._id} value={court._id} className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-white">
                           {court.name} ({court.sport}) -{" "}
                           {court.isCovered ? "Techada" : "Descubierta"}
                         </option>
@@ -465,18 +465,18 @@ export default function NewReservationButton({
 
               {/* Estimación de Precio */}
               {selectedCourt && (
-                <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4 space-y-2.5 shadow-inner">
-                  <div className="flex justify-between items-center text-xs font-semibold text-zinc-400">
+                <div className="bg-zinc-50/50 dark:bg-white/[0.02] border border-zinc-200/80 dark:border-white/5 rounded-xl p-4 space-y-2.5 shadow-inner">
+                  <div className="flex justify-between items-center text-xs font-semibold text-zinc-500 dark:text-zinc-400">
                     <span>Precio por hora:</span>
-                    <span className="text-white">${selectedCourt.pricePerHour.toLocaleString("es-AR")}</span>
+                    <span className="text-zinc-900 dark:text-white">${selectedCourt.pricePerHour.toLocaleString("es-AR")}</span>
                   </div>
-                  <div className="flex justify-between items-center text-xs font-bold text-zinc-300 border-t border-white/5 pt-2">
+                  <div className="flex justify-between items-center text-xs font-bold text-zinc-600 dark:text-zinc-300 border-t border-zinc-200/80 dark:border-white/5 pt-2">
                     <span>Valor estimado del turno:</span>
                     <span className="text-primary text-sm font-black">${calculatedTotalPrice.toLocaleString("es-AR")}</span>
                   </div>
                   {formData.isRecurring && (
-                    <div className="flex flex-col gap-1 border-t border-white/5 pt-2.5">
-                      <div className="flex justify-between items-center text-xs font-semibold text-zinc-400">
+                    <div className="flex flex-col gap-1 border-t border-zinc-200/80 dark:border-white/5 pt-2.5">
+                      <div className="flex justify-between items-center text-xs font-semibold text-zinc-500 dark:text-zinc-400">
                         <span>Total normal ({Number(formData.recurrenceWeeks || 4)} sem):</span>
                         <span className="line-through text-zinc-505">${(calculatedTotalPrice * Number(formData.recurrenceWeeks || 4)).toLocaleString("es-AR")}</span>
                       </div>
@@ -491,12 +491,12 @@ export default function NewReservationButton({
 
               {/* Registro de Pago */}
               {selectedCourt && (
-                <div className="space-y-3.5 bg-white/[0.02] border border-white/5 rounded-xl p-4 shadow-inner">
-                  <label className="text-sm font-bold text-zinc-200 flex items-center gap-2">
+                <div className="space-y-3.5 bg-zinc-50/50 dark:bg-white/[0.02] border border-zinc-200/80 dark:border-white/5 rounded-xl p-4 shadow-inner">
+                  <label className="text-sm font-bold text-zinc-600 dark:text-zinc-200 flex items-center gap-2">
                     💵 Registro de Pago
                   </label>
                   
-                  <div className="grid grid-cols-3 gap-1.5 p-1 bg-white/5 rounded-xl border border-white/5">
+                  <div className="grid grid-cols-3 gap-1.5 p-1 bg-zinc-100/80 dark:bg-white/5 rounded-xl border border-zinc-200/80 dark:border-white/5">
                     {[
                       { id: "pending", label: "Pendiente" },
                       { id: "deposit", label: "Seña" },
@@ -517,7 +517,7 @@ export default function NewReservationButton({
                         className={`py-2 text-xs font-extrabold rounded-lg transition-all duration-300 ${
                           paymentType === opt.id
                             ? "bg-primary text-[#09090b] shadow-[0_0_10px_rgba(57,255,20,0.3)]"
-                            : "text-zinc-400 hover:text-white hover:bg-white/5"
+                            : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-white/5"
                         }`}
                       >
                         {opt.label}
@@ -527,14 +527,14 @@ export default function NewReservationButton({
 
                   {paymentType === "deposit" && (
                     <div className="space-y-1.5 pt-2 animate-in fade-in slide-in-from-top-1 duration-150">
-                      <label className="text-xs font-bold text-zinc-400">Monto de la seña ($)</label>
+                      <label className="text-xs font-bold text-zinc-500 dark:text-zinc-400">Monto de la seña ($)</label>
                       <input
                         type="number"
                         required
                         placeholder="Ej. 5400"
                         value={formData.depositAmount}
                         onChange={(e) => setFormData(prev => ({ ...prev, depositAmount: e.target.value }))}
-                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder:text-zinc-600 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 font-semibold"
+                        className="w-full bg-zinc-50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-xl px-4 py-2.5 text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 font-semibold"
                       />
                     </div>
                   )}
@@ -542,9 +542,9 @@ export default function NewReservationButton({
               )}
 
               {/* Turno Recurrente */}
-              <div className="space-y-3 bg-white/[0.02] border border-white/5 rounded-xl p-4 shadow-inner">
+              <div className="space-y-3 bg-zinc-50/50 dark:bg-white/[0.02] border border-zinc-200/80 dark:border-white/5 rounded-xl p-4 shadow-inner">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-bold text-zinc-200 flex items-center gap-2">
+                  <span className="text-sm font-bold text-zinc-600 dark:text-zinc-200 flex items-center gap-2">
                     <span className="text-indigo-400">🔁</span> Turno Fijo Recurrente
                   </span>
                   <label className="relative inline-flex items-center cursor-pointer">
@@ -559,14 +559,14 @@ export default function NewReservationButton({
                       }
                       className="sr-only peer"
                     />
-                    <div className="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-zinc-400 after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-500 peer-checked:after:bg-white peer-checked:after:border-indigo-500 shadow-md"></div>
+                    <div className="w-11 h-6 bg-zinc-200 dark:bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-zinc-400 after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-500 peer-checked:after:bg-white peer-checked:after:border-indigo-500 shadow-md"></div>
                   </label>
                 </div>
 
                 {formData.isRecurring && (
-                  <div className="space-y-1.5 pt-2 border-t border-white/5 animate-in fade-in slide-in-from-top-1 duration-150">
-                    <p className="text-[11px] text-zinc-400 leading-relaxed">
-                      Se creará un bloque de <strong className="text-white">4 semanas (1 mes)</strong>. Podrás renovarlo de forma indefinida y cobrar el próximo mes en un solo clic.
+                  <div className="space-y-1.5 pt-2 border-t border-zinc-200/80 dark:border-white/5 animate-in fade-in slide-in-from-top-1 duration-150">
+                    <p className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-relaxed">
+                      Se creará un bloque de <strong className="text-zinc-900 dark:text-white">4 semanas (1 mes)</strong>. Podrás renovarlo de forma indefinida y cobrar el próximo mes en un solo clic.
                     </p>
                   </div>
                 )}
@@ -575,17 +575,17 @@ export default function NewReservationButton({
               {isTimeSelectionReady && formData.time && (
                 <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 flex items-start gap-3 backdrop-blur-sm shadow-[0_4px_12px_rgba(57,255,20,0.02)] animate-in fade-in slide-in-from-top-1">
                   <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_6px_rgba(57,255,20,0.8)] flex-shrink-0" />
-                  <p className="text-xs text-zinc-300 leading-relaxed font-medium">
+                  <p className="text-xs text-zinc-600 dark:text-zinc-300 leading-relaxed font-medium">
                     El turno dura{" "}
-                    <strong className="text-white font-bold">
+                    <strong className="text-zinc-900 dark:text-white font-bold">
                       {formData.duration === "1" ? "1:00 hs" : "1:30 hs"}
                     </strong>
                     , empieza a las{" "}
-                    <strong className="text-white font-bold">
+                    <strong className="text-zinc-900 dark:text-white font-bold">
                       {formData.time} hs
                     </strong>{" "}
                     y termina a las{" "}
-                    <strong className="text-white font-bold">
+                    <strong className="text-zinc-900 dark:text-white font-bold">
                       {(() => {
                         const [h, m] = formData.time.split(":").map(Number);
                         const durationMinutes = Number(formData.duration) * 60;

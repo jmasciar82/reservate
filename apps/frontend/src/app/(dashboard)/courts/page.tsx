@@ -213,7 +213,7 @@ export default function CourtsPage() {
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold mb-2">Gestión de canchas</h1>
-          <p className="text-zinc-400">
+          <p className="text-zinc-500 dark:text-zinc-400">
             Administrá disponibilidad, deporte, club y precio por hora.
           </p>
         </div>
@@ -234,7 +234,7 @@ export default function CourtsPage() {
       </div>
 
       {error && (
-        <div className="mb-6 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+        <div className="mb-6 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-600 dark:text-red-300">
           {error}
         </div>
       )}
@@ -247,14 +247,14 @@ export default function CourtsPage() {
           <form onSubmit={handleFormSubmit} className="space-y-5">
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
               <div>
-                <label className="block text-sm font-medium text-zinc-400 mb-1">
+                <label className="block text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-1">
                   Nombre / número
                 </label>
                 <input
                   type="text"
                   required
                   placeholder="Ej. Cancha 1"
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-3 px-4 text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                  className="w-full bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-lg py-3 px-4 text-zinc-900 dark:text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
                   value={formData.name}
                   onChange={(e) =>
                     setFormData({ ...formData, name: e.target.value })
@@ -265,11 +265,11 @@ export default function CourtsPage() {
 
 
               <div>
-                <label className="block text-sm font-medium text-zinc-400 mb-1">
+                <label className="block text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-1">
                   Deporte
                 </label>
                 <select
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-3 px-4 text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                  className="w-full bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-lg py-3 px-4 text-zinc-900 dark:text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
                   value={formData.sport}
                   onChange={(e) =>
                     setFormData({ ...formData, sport: e.target.value })
@@ -283,11 +283,11 @@ export default function CourtsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-zinc-400 mb-1">
+                <label className="block text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-1">
                   Tipo de cancha
                 </label>
                 <select
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-3 px-4 text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                  className="w-full bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-lg py-3 px-4 text-zinc-900 dark:text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
                   value={formData.isCovered ? "true" : "false"}
                   onChange={(e) =>
                     setFormData({
@@ -302,7 +302,7 @@ export default function CourtsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-zinc-400 mb-1">
+                <label className="block text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-1">
                   Precio por hora
                 </label>
                 <div className="relative">
@@ -315,7 +315,7 @@ export default function CourtsPage() {
                     min="0"
                     step="100"
                     placeholder="Ej. 12000"
-                    className="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-3 pl-8 pr-4 text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                    className="w-full bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-lg py-3 pl-8 pr-4 text-zinc-900 dark:text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
                     value={formData.pricePerHour}
                     onChange={(e) =>
                       setFormData({
@@ -327,14 +327,14 @@ export default function CourtsPage() {
                 </div>
               </div>
 
-              <label className="flex items-center gap-2 cursor-pointer text-sm text-zinc-300 md:self-end md:pb-3">
+              <label className="flex items-center gap-2 cursor-pointer text-sm text-zinc-600 dark:text-zinc-300 md:self-end md:pb-3">
                 <input
                   type="checkbox"
                   checked={formData.isActive}
                   onChange={(e) =>
                     setFormData({ ...formData, isActive: e.target.checked })
                   }
-                  className="rounded border-zinc-800 bg-zinc-950 text-primary focus:ring-0 focus:ring-offset-0 w-4 h-4"
+                  className="rounded border-zinc-300 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-primary focus:ring-0 focus:ring-offset-0 w-4 h-4"
                 />
                 Cancha activa
               </label>
@@ -344,7 +344,7 @@ export default function CourtsPage() {
               <button
                 type="button"
                 onClick={handleCancel}
-                className="px-5 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white font-semibold rounded-lg transition-colors"
+                className="px-5 py-2.5 bg-zinc-200 dark:bg-zinc-800 hover:bg-zinc-300 dark:hover:bg-zinc-700 text-zinc-800 dark:text-white font-semibold rounded-lg transition-colors"
               >
                 Cancelar
               </button>
@@ -367,7 +367,7 @@ export default function CourtsPage() {
       {loading ? (
         <p className="text-zinc-500">Cargando canchas...</p>
       ) : courts.length === 0 ? (
-        <div className="text-center py-16 border border-dashed border-zinc-800 rounded-lg">
+        <div className="text-center py-16 border border-dashed border-zinc-300 dark:border-zinc-800 rounded-lg">
           <p className="text-zinc-500">Aún no hay canchas cargadas.</p>
         </div>
       ) : (

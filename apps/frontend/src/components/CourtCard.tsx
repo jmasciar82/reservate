@@ -127,19 +127,19 @@ export default function CourtCard({ court, clubName, onEdit, onDelete }: CourtCa
 
   return (
     <div
-      className={`group relative overflow-hidden flex flex-col justify-between min-h-64 rounded-2xl border ${design.border} ${design.courtBg} bg-white/[0.01] backdrop-blur-md transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_12px_40px_rgba(0,0,0,0.3)]`}
+      className={`group relative overflow-hidden flex flex-col justify-between min-h-64 rounded-2xl border ${design.border} ${design.courtBg} bg-white/60 dark:bg-white/[0.01] backdrop-blur-md transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.3)]`}
     >
       {/* Patrón de fondo (Field) */}
       {design.renderField()}
 
-      <div className="relative z-10 p-5 flex flex-col h-full bg-gradient-to-t from-zinc-950/95 via-zinc-950/50 to-transparent flex-1 justify-between">
+      <div className="relative z-10 p-5 flex flex-col h-full bg-gradient-to-t from-white/95 via-white/70 dark:from-zinc-950/95 dark:via-zinc-950/50 to-transparent flex-1 justify-between">
         <div>
           <div className="flex justify-between items-start gap-3 mb-2">
             <div className="flex flex-col gap-1 min-w-0">
-              <h3 className="text-xl font-bold text-white drop-shadow-md truncate">
+              <h3 className="text-xl font-bold text-zinc-900 dark:text-white dark:drop-shadow-md truncate">
                 {court.name}
               </h3>
-              <span className={`text-xs font-extrabold uppercase tracking-wider ${design.accent} drop-shadow`}>
+              <span className={`text-xs font-extrabold uppercase tracking-wider ${design.accent} dark:drop-shadow`}>
                 {design.label}
               </span>
             </div>
@@ -150,7 +150,7 @@ export default function CourtCard({ court, clubName, onEdit, onDelete }: CourtCa
                   <Check className="w-2.5 h-2.5 mr-1" /> Activa
                 </span>
               ) : (
-                <span className="flex items-center text-[10px] font-extrabold text-zinc-400 bg-white/5 px-2.5 py-0.5 rounded-full border border-white/5 backdrop-blur-md">
+                <span className="flex items-center text-[10px] font-extrabold text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-white/5 px-2.5 py-0.5 rounded-full border border-zinc-300 dark:border-white/5 backdrop-blur-md">
                   Inactiva
                 </span>
               )}
@@ -167,17 +167,17 @@ export default function CourtCard({ court, clubName, onEdit, onDelete }: CourtCa
             </div>
           </div>
 
-          <span className="text-sm text-zinc-200 mt-2 flex items-center gap-1.5 drop-shadow">
+          <span className="text-sm text-zinc-600 dark:text-zinc-200 mt-2 flex items-center gap-1.5 dark:drop-shadow">
             <Building2 className="w-3.5 h-3.5 opacity-80" />
             {clubName || "Club deportivo"}
           </span>
         </div>
 
         <div className="mt-auto pt-6 flex items-end justify-between">
-          <div className="flex items-center gap-1.5 text-zinc-100 bg-white/5 backdrop-blur-md py-1.5 px-3 rounded-xl border border-white/10 w-fit shadow-inner">
+          <div className="flex items-center gap-1.5 text-zinc-700 dark:text-zinc-100 bg-zinc-100/80 dark:bg-white/5 backdrop-blur-md py-1.5 px-3 rounded-xl border border-zinc-200 dark:border-white/10 w-fit shadow-inner">
             <DollarSign className="w-4 h-4 text-primary drop-shadow-[0_0_4px_rgba(57,255,20,0.4)]" />
             <span className="text-xs font-semibold">
-              <strong className="text-white font-extrabold text-sm">
+              <strong className="text-zinc-900 dark:text-white font-extrabold text-sm">
                 ${court.pricePerHour?.toLocaleString("es-AR")}
               </strong>{" "}
               / hora
@@ -187,14 +187,14 @@ export default function CourtCard({ court, clubName, onEdit, onDelete }: CourtCa
           <div className="flex justify-end gap-2 transition-opacity duration-200">
             <button
               onClick={() => onEdit(court)}
-              className="p-2 text-zinc-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-xl border border-white/5 transition-all backdrop-blur-sm hover:scale-105 duration-200"
+              className="p-2 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white bg-zinc-100 dark:bg-white/5 hover:bg-zinc-200 dark:hover:bg-white/10 rounded-xl border border-zinc-300 dark:border-white/5 transition-all backdrop-blur-sm hover:scale-105 duration-200"
               title="Editar cancha"
             >
               <Pencil className="w-4 h-4" />
             </button>
             <button
               onClick={() => onDelete(court._id)}
-              className="p-2 text-zinc-400 hover:text-red-400 bg-white/5 hover:bg-red-500/10 rounded-xl border border-white/5 hover:border-red-500/20 transition-all backdrop-blur-sm hover:scale-105 duration-200"
+              className="p-2 text-zinc-500 dark:text-zinc-400 hover:text-red-400 bg-zinc-100 dark:bg-white/5 hover:bg-red-500/10 rounded-xl border border-zinc-300 dark:border-white/5 hover:border-red-500/20 transition-all backdrop-blur-sm hover:scale-105 duration-200"
               title="Eliminar cancha"
             >
               <Trash2 className="w-4 h-4" />
