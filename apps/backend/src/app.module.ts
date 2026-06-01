@@ -13,6 +13,7 @@ import { WhatsappModule } from './modules/whatsapp/whatsapp.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { TenantsModule } from './modules/tenants/tenants.module';
 import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';
+import { TournamentsModule } from './modules/tournaments/tournaments.module';
  
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';
     AnalyticsModule,
     TenantsModule,
     AuditLogsModule,
+    TournamentsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

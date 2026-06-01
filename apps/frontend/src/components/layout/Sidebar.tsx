@@ -80,6 +80,17 @@ export function Sidebar() {
           <BarChart3 className={`w-5 h-5 mr-3 transition-colors ${isActive("/analytics") ? "text-primary" : "text-zinc-400 dark:text-zinc-500"}`} />
           Analíticas
         </Link>
+        <Link
+          href="/tournaments"
+          className={`flex items-center px-4 py-3 rounded-xl font-bold transition-all duration-300 ${
+            isActive("/tournaments")
+              ? "bg-primary/10 text-emerald-800 dark:text-white shadow-[0_0_15px_rgba(57,255,20,0.05)] border-l-2 border-primary"
+              : "text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-white/5 border-l-2 border-transparent hover:translate-x-1"
+          }`}
+        >
+          <Trophy className={`w-5 h-5 mr-3 transition-colors ${isActive("/tournaments") ? "text-primary" : "text-zinc-400 dark:text-zinc-500"}`} />
+          Torneos
+        </Link>
         {role === "admin" && (
           <Link
             href="/users"
