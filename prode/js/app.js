@@ -86,15 +86,71 @@ const ProdeApp = {
   // EVENTOS E INTERACCIONES DE INTERFAZ DE USUARIO
   // -------------------------------------------------------------
   bindEvents() {
-    // 1. Formulario de Login
+    // 1. Formulario de Login con Contraseña Dinámica para Administradores
     const loginForm = document.getElementById("login-form");
+    const emailInput = document.getElementById("login-email");
+    const passwordGroup = document.getElementById("login-password-group");
+    const passwordLabel = document.getElementById("login-password-label");
+    const passwordInput = document.getElementById("login-password");
+
+    if (emailInput && passwordGroup && passwordInput) {
+      const checkEmailForAdmin = () => {
+        const email = emailInput.value.trim();
+        if (ProdeEngine.isAdmin(email)) {
+          passwordGroup.style.display = "block";
+          passwordInput.required = true;
+          
+          const savedPin = localStorage.getItem("worldcup_prode_admin_pin");
+          if (!savedPin) {
+            passwordLabel.textContent = "Definir nueva Contraseña (PIN)";
+            passwordInput.placeholder = "Crear PIN de 4-6 dígitos";
+          } else {
+            passwordLabel.textContent = "Contraseña de Administrador (PIN)";
+            passwordInput.placeholder = "••••";
+          }
+        } else {
+          passwordGroup.style.display = "none";
+          passwordInput.required = false;
+          passwordInput.value = "";
+        }
+      };
+
+      emailInput.addEventListener("input", checkEmailForAdmin);
+      emailInput.addEventListener("change", checkEmailForAdmin);
+    }
+
     if (loginForm) {
       loginForm.addEventListener("submit", async (e) => {
         e.preventDefault();
-        const emailInput = document.getElementById("login-email");
         const email = emailInput.value.trim();
         
         if (email) {
+          // Si es Admin, validar contraseña
+          if (ProdeEngine.isAdmin(email) && passwordInput) {
+            const enteredPass = passwordInput.value.trim();
+            const savedPin = localStorage.getItem("worldcup_prode_admin_pin");
+
+            if (!savedPin) {
+              // Si no hay PIN, registrar el ingresado en el login
+              if (enteredPass.length < 4 || enteredPass.length > 6 || isNaN(enteredPass)) {
+                this.showMicroNotification("El PIN debe ser numérico y tener de 4 a 6 dígitos.", "warning");
+                return;
+              }
+              localStorage.setItem("worldcup_prode_admin_pin", enteredPass);
+              sessionStorage.setItem("worldcup_prode_admin_authenticated", "true");
+              this.showMicroNotification("¡PIN de administrador creado con éxito!", "success");
+            } else {
+              // Validar contraseña
+              if (enteredPass !== savedPin) {
+                this.showMicroNotification("Contraseña de administrador incorrecta.", "error");
+                passwordInput.value = "";
+                passwordInput.focus();
+                return;
+              }
+              sessionStorage.setItem("worldcup_prode_admin_authenticated", "true");
+            }
+          }
+
           const btn = document.getElementById("btn-login-submit");
           const originalText = btn.innerHTML;
           btn.disabled = true;
@@ -111,6 +167,7 @@ const ProdeApp = {
           } finally {
             btn.disabled = false;
             btn.innerHTML = originalText;
+            if (passwordInput) passwordInput.value = ""; // Limpiar campo
           }
         }
       });

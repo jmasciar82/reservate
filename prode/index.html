@@ -56,7 +56,21 @@
             required
           >
         </div>
-        <button type="submit" id="btn-login-submit" class="btn-primary">
+
+        <!-- CONTRASEÑA DE ADMINISTRADOR DINÁMICA (EXCLUSIVA ADMIN) -->
+        <div class="form-group" id="login-password-group" style="display: none; margin-top: 15px; animation: fadeIn 0.3s ease-out;">
+          <label id="login-password-label" for="login-password">Contraseña de Administrador (PIN)</label>
+          <input 
+            type="password" 
+            id="login-password" 
+            class="form-input" 
+            placeholder="••••" 
+            maxlength="6"
+            style="text-align: center; letter-spacing: 6px; font-size: 1.25rem; padding: 10px;"
+          >
+        </div>
+
+        <button type="submit" id="btn-login-submit" class="btn-primary" style="margin-top: 10px;">
           Ingresar al Prode
         </button>
       </form>
