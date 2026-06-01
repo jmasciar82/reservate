@@ -50,3 +50,14 @@ export interface Reservation {
   isLastOfSeries?: boolean;
   paymentDate?: string | Date;
 }
+
+export interface Product {
+  _id: string;
+  name: string;
+  price: number;
+  icon?: string;
+  isActive: boolean;
+  clubId: string;
+  createdAt?: string;
+  updatedAt?: string;
+}

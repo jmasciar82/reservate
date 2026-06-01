@@ -5,6 +5,7 @@ import { CourtSchema } from './modules/courts/schemas/court.schema';
 import { ReservationSchema } from './modules/reservations/schemas/reservation.schema';
 import { UserSchema } from './modules/users/schemas/user.schema';
 import { TenantSchema } from './modules/tenants/schemas/tenant.schema';
+import { ProductSchema } from './modules/products/schemas/product.schema';
 import * as bcrypt from 'bcrypt';
 
 const MONGO_URI =
@@ -20,6 +21,7 @@ async function seed() {
   const ReservationModel = mongoose.model('Reservation', ReservationSchema);
   const UserModel = mongoose.model('User', UserSchema);
   const TenantModel = mongoose.model('Tenant', TenantSchema);
+  const ProductModel = mongoose.model('Product', ProductSchema);
 
   console.log('Cleaning collections...');
   await ReservationModel.deleteMany({});
@@ -27,6 +29,7 @@ async function seed() {
   await ClubModel.deleteMany({});
   await UserModel.deleteMany({});
   await TenantModel.deleteMany({});
+  await ProductModel.deleteMany({});
 
   console.log('Creating default tenant...');
   const tenant = await TenantModel.create({
@@ -60,6 +63,18 @@ async function seed() {
     description: 'Complejo multideportivo frente al río.',
     tenantId: tenant._id,
   });
+
+  console.log('Creating products catalog...');
+  await ProductModel.create([
+    { name: 'Alquiler de Pala', price: 1500, icon: '🎒', clubId: club1._id, isActive: true },
+    { name: 'Tubo de Pelotas', price: 3000, icon: '🥎', clubId: club1._id, isActive: true },
+    { name: 'Agua Mineral', price: 1200, icon: '🥤', clubId: club1._id, isActive: true },
+    { name: 'Gatorade', price: 2000, icon: '⚡', clubId: club1._id, isActive: true },
+    { name: 'Alquiler de Pala', price: 1600, icon: '🎒', clubId: club2._id, isActive: true },
+    { name: 'Tubo de Pelotas', price: 3200, icon: '🥎', clubId: club2._id, isActive: true },
+    { name: 'Agua Mineral', price: 1300, icon: '🥤', clubId: club2._id, isActive: true },
+    { name: 'Gatorade', price: 2100, icon: '⚡', clubId: club2._id, isActive: true },
+  ]);
 
   console.log('Creating club owners...');
   const ownerPasswordHash = await bcrypt.hash('owner123', salt);

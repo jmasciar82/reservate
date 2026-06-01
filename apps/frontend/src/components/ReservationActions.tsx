@@ -5,7 +5,8 @@ import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { Ban, CheckCircle, CircleDollarSign, Edit, MoreVertical, User, X } from "lucide-react";
 import { apiFetch } from "@/lib/api";
-import type { PaymentStatus, ReservationStatus } from "@/lib/types";
+import type { PaymentStatus, ReservationStatus, Product } from "@/lib/types";
+import { useClub } from "@/providers/ClubProvider";
 
 interface ReservationActionsProps {
   reservationId: string;
@@ -60,9 +61,25 @@ export default function ReservationActions({
   const menuRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
+  const { activeClubId } = useClub();
   const [showAddProductsModal, setShowAddProductsModal] = useState(false);
   const [currentProducts, setCurrentProducts] = useState<Array<{ name: string; quantity: number; price: number }>>([]);
   const [customProduct, setCustomProduct] = useState({ name: "", price: "", quantity: "1" });
+  const [availableProducts, setAvailableProducts] = useState<Product[]>([]);
+
+  useEffect(() => {
+    if (showAddProductsModal && activeClubId) {
+      apiFetch(`/products?clubId=${activeClubId}`)
+        .then((res) => {
+          if (res.ok) return res.json();
+          return [];
+        })
+        .then((data: Product[]) => {
+          setAvailableProducts(data.filter(p => p.isActive));
+        })
+        .catch((err) => console.error("Error fetching products:", err));
+    }
+  }, [showAddProductsModal, activeClubId]);
 
   const handleOpenAddProducts = () => {
     setCurrentProducts(products || []);
@@ -705,18 +722,18 @@ export default function ReservationActions({
             <div className="p-6 space-y-4 overflow-y-auto max-h-[75vh]">
               {/* Presets Grid */}
               <div className="grid grid-cols-2 gap-2">
-                {PRESET_PRODUCTS.map((preset) => (
+                {(availableProducts.length > 0 ? availableProducts : PRESET_PRODUCTS).map((preset) => (
                   <button
                     key={preset.name}
                     type="button"
                     onClick={() => addPresetProduct(preset)}
                     className="flex items-center justify-between p-2.5 text-xs font-semibold rounded-xl bg-white dark:bg-white/5 border border-zinc-200 dark:border-white/10 hover:border-primary/50 dark:hover:border-primary/50 hover:bg-zinc-50 dark:hover:bg-white/[0.08] active:scale-95 transition-all duration-200 text-left text-zinc-700 dark:text-zinc-300"
                   >
-                    <span className="flex items-center gap-1.5">
-                      <span>{preset.icon}</span>
-                      <span>{preset.name}</span>
+                    <span className="flex items-center gap-1.5 truncate">
+                      <span>{'icon' in preset ? preset.icon : '📦'}</span>
+                      <span className="truncate">{preset.name}</span>
                     </span>
-                    <span className="font-bold text-primary">${preset.price.toLocaleString("es-AR")}</span>
+                    <span className="font-bold text-primary shrink-0">${preset.price.toLocaleString("es-AR")}</span>
                   </button>
                 ))}
               </div>

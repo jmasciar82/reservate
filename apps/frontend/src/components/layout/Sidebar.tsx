@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarDays, LayoutDashboard, Settings, Trophy, BarChart3, Users, History } from "lucide-react";
+import { CalendarDays, LayoutDashboard, Settings, Trophy, BarChart3, Users, History, Package } from "lucide-react";
 import { getClientUserRole } from "@/lib/api";
 import { useClub } from "@/providers/ClubProvider";
 
@@ -68,6 +68,17 @@ export function Sidebar() {
         >
           <CalendarDays className={`w-5 h-5 mr-3 transition-colors ${isActive("/courts") ? "text-primary" : "text-zinc-400 dark:text-zinc-500"}`} />
           Canchas
+        </Link>
+        <Link
+          href="/products"
+          className={`flex items-center px-4 py-3 rounded-xl font-bold transition-all duration-300 ${
+            isActive("/products")
+              ? "bg-primary/10 text-emerald-800 dark:text-white shadow-[0_0_15px_rgba(57,255,20,0.05)] border-l-2 border-primary"
+              : "text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-white/5 border-l-2 border-transparent hover:translate-x-1"
+          }`}
+        >
+          <Package className={`w-5 h-5 mr-3 transition-colors ${isActive("/products") ? "text-primary" : "text-zinc-400 dark:text-zinc-500"}`} />
+          Productos
         </Link>
         <Link
           href="/analytics"

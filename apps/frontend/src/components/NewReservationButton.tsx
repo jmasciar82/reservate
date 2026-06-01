@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Calendar, Clock, MapPin, User, X, Mail, Phone } from "lucide-react";
 import { createPortal } from "react-dom";
 import { apiFetch } from "@/lib/api";
-import type { Court } from "@/lib/types";
+import type { Court, Product } from "@/lib/types";
 
 const PRESET_TIMES = [
   "08:00",
@@ -137,6 +137,22 @@ export default function NewReservationButton({
   const [paymentType, setPaymentType] = useState<string>("pending");
   const [products, setProducts] = useState<Array<{ name: string; quantity: number; price: number }>>([]);
   const [customProduct, setCustomProduct] = useState({ name: "", price: "", quantity: "1" });
+  const [availableProducts, setAvailableProducts] = useState<Product[]>([]);
+
+  useEffect(() => {
+    if (isOpen && activeClubId) {
+      apiFetch(`/products?clubId=${activeClubId}`)
+        .then((res) => {
+          if (res.ok) return res.json();
+          return [];
+        })
+        .then((data: Product[]) => {
+          // Filter only active products
+          setAvailableProducts(data.filter(p => p.isActive));
+        })
+        .catch((err) => console.error("Error fetching products:", err));
+    }
+  }, [isOpen, activeClubId]);
 
   const addPresetProduct = (preset: { name: string; price: number }) => {
     setProducts(prev => {
@@ -576,7 +592,111 @@ export default function NewReservationButton({
                 </select>
               </div>
 
+              {/* Consumos / Extras Adicionales */}
+              {formData.courtId && (
+                <div className="space-y-3 bg-zinc-50/50 dark:bg-white/[0.02] border border-zinc-200/80 dark:border-white/5 rounded-xl p-4 shadow-inner">
+                  <label className="text-sm font-bold text-zinc-600 dark:text-zinc-200 flex items-center gap-2">
+                    📦 Consumos y Extras
+                  </label>
+                  <p className="text-[10px] text-zinc-400">
+                    Hacé clic para agregar bebidas, alquiler de palas o extras a la reserva.
+                  </p>
+                  
+                  {/* Preset Grid */}
+                  <div className="grid grid-cols-2 gap-2">
+                    {(availableProducts.length > 0 ? availableProducts : PRESET_PRODUCTS).map((preset) => (
+                      <button
+                        key={preset.name}
+                        type="button"
+                        onClick={() => addPresetProduct(preset)}
+                        className="flex items-center justify-between p-2.5 text-xs font-semibold rounded-xl bg-white dark:bg-white/5 border border-zinc-200 dark:border-white/10 hover:border-primary/50 dark:hover:border-primary/50 hover:bg-zinc-50 dark:hover:bg-white/[0.08] active:scale-95 transition-all duration-200 text-left text-zinc-700 dark:text-zinc-300"
+                      >
+                        <span className="flex items-center gap-1.5 truncate">
+                          <span>{'icon' in preset ? preset.icon : '📦'}</span>
+                          <span className="truncate">{preset.name}</span>
+                        </span>
+                        <span className="font-bold text-primary shrink-0">${preset.price.toLocaleString("es-AR")}</span>
+                      </button>
+                    ))}
+                  </div>
 
+                  {/* Custom item input */}
+                  <div className="space-y-1.5 pt-2 border-t border-zinc-200/80 dark:border-white/5">
+                    <span className="text-[10px] font-bold text-zinc-500">Ítem personalizado</span>
+                    <div className="flex gap-2 items-center">
+                      <input
+                        type="text"
+                        placeholder="Nombre (ej. Grip)"
+                        value={customProduct.name}
+                        onChange={(e) => setCustomProduct(prev => ({ ...prev, name: e.target.value }))}
+                        className="flex-1 bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-none focus:border-primary"
+                      />
+                      <input
+                        type="number"
+                        placeholder="Precio"
+                        value={customProduct.price}
+                        onChange={(e) => setCustomProduct(prev => ({ ...prev, price: e.target.value }))}
+                        className="w-16 bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-white/10 rounded-lg px-2 py-1.5 text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-none focus:border-primary"
+                      />
+                      <button
+                        type="button"
+                        onClick={addCustomProduct}
+                        className="px-3 py-1.5 bg-primary text-black font-extrabold text-xs rounded-lg hover:scale-105 active:scale-95 transition-all"
+                      >
+                        ➕
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* List of currently added products */}
+                  {products.length > 0 && (
+                    <div className="space-y-1.5 pt-3 border-t border-zinc-200/80 dark:border-white/5">
+                      <span className="text-[10px] font-bold text-zinc-500">Consumos Cargados</span>
+                      <div className="space-y-1.5 max-h-[150px] overflow-y-auto pr-1">
+                        {products.map((p, idx) => (
+                          <div
+                            key={idx}
+                            className="flex items-center justify-between p-2 rounded-lg bg-white dark:bg-white/5 border border-zinc-200/50 dark:border-white/10 text-xs"
+                          >
+                            <div className="flex flex-col">
+                              <span className="font-bold text-zinc-800 dark:text-zinc-200">{p.name}</span>
+                              <span className="text-[10px] text-zinc-500">${p.price.toLocaleString("es-AR")} c/u</span>
+                            </div>
+                            
+                            <div className="flex items-center gap-2">
+                              <div className="flex items-center bg-zinc-200 dark:bg-white/10 rounded-md">
+                                <button
+                                  type="button"
+                                  onClick={() => updateProductQty(idx, p.quantity - 1)}
+                                  className="px-2 py-0.5 text-xs font-bold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-white/15 rounded-l-md transition-colors"
+                                >
+                                  -
+                                </button>
+                                <span className="px-2.5 text-xs font-black text-zinc-800 dark:text-zinc-200">{p.quantity}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => updateProductQty(idx, p.quantity + 1)}
+                                  className="px-2 py-0.5 text-xs font-bold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-white/15 rounded-r-md transition-colors"
+                                >
+                                  +
+                                </button>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => removeProduct(idx)}
+                                className="text-red-500 hover:text-red-400 p-1"
+                                title="Eliminar"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Estimación de Precio */}
               {selectedCourt && (

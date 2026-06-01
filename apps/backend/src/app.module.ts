@@ -14,6 +14,7 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { TenantsModule } from './modules/tenants/tenants.module';
 import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';
 import { TournamentsModule } from './modules/tournaments/tournaments.module';
+import { ProductsModule } from './modules/products/products.module';
  
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { TournamentsModule } from './modules/tournaments/tournaments.module';
     TenantsModule,
     AuditLogsModule,
     TournamentsModule,
+    ProductsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
