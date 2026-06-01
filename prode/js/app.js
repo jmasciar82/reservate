@@ -102,11 +102,11 @@ const ProdeApp = {
           
           const savedPin = localStorage.getItem("worldcup_prode_admin_pin");
           if (!savedPin) {
-            passwordLabel.textContent = "Definir nueva Contraseña (PIN)";
-            passwordInput.placeholder = "Crear PIN de 4-6 dígitos";
+            passwordLabel.textContent = "Definir nueva Contraseña de Administrador";
+            passwordInput.placeholder = "Crear contraseña segura (mín. 8 caracteres)";
           } else {
-            passwordLabel.textContent = "Contraseña de Administrador (PIN)";
-            passwordInput.placeholder = "••••";
+            passwordLabel.textContent = "Contraseña de Administrador";
+            passwordInput.placeholder = "Ingresa tu contraseña";
           }
         } else {
           passwordGroup.style.display = "none";
@@ -131,17 +131,19 @@ const ProdeApp = {
             const savedPin = localStorage.getItem("worldcup_prode_admin_pin");
 
             if (!savedPin) {
-              // Si no hay PIN, registrar el ingresado en el login
-              if (enteredPass.length < 4 || enteredPass.length > 6 || isNaN(enteredPass)) {
-                this.showMicroNotification("El PIN debe ser numérico y tener de 4 a 6 dígitos.", "warning");
+              // Si no hay contraseña, registrar el ingresado en el login
+              if (enteredPass.length < 8) {
+                this.showMicroNotification("La contraseña debe tener al menos 8 caracteres.", "warning");
                 return;
               }
-              localStorage.setItem("worldcup_prode_admin_pin", enteredPass);
+              const hashed = await this.hashPassword(enteredPass);
+              localStorage.setItem("worldcup_prode_admin_pin", hashed);
               sessionStorage.setItem("worldcup_prode_admin_authenticated", "true");
-              this.showMicroNotification("¡PIN de administrador creado con éxito!", "success");
+              this.showMicroNotification("¡Contraseña de administrador creada con éxito!", "success");
             } else {
               // Validar contraseña
-              if (enteredPass !== savedPin) {
+              const enteredHash = await this.hashPassword(enteredPass);
+              if (enteredHash !== savedPin) {
                 this.showMicroNotification("Contraseña de administrador incorrecta.", "error");
                 passwordInput.value = "";
                 passwordInput.focus();
@@ -236,9 +238,9 @@ const ProdeApp = {
     // 9. Formulario de PIN de Administrador (A1)
     const pinForm = document.getElementById("admin-pin-form");
     if (pinForm) {
-      pinForm.addEventListener("submit", (e) => {
+      pinForm.addEventListener("submit", async (e) => {
         e.preventDefault();
-        this.verifyAdminPin();
+        await this.verifyAdminPin();
       });
     }
   },
@@ -1080,12 +1082,12 @@ const ProdeApp = {
       const submitBtn = document.getElementById("btn-admin-pin-submit");
       
       if (!savedPin) {
-        titleEl.textContent = "Definir nuevo PIN";
-        descEl.textContent = "No se ha configurado un PIN de Administrador. Define un PIN numérico de 4 a 6 dígitos para proteger este panel:";
-        submitBtn.textContent = "Guardar PIN y Desbloquear";
+        titleEl.textContent = "Definir nueva Contraseña";
+        descEl.textContent = "No se ha configurado una Contraseña de Administrador. Define una contraseña de al menos 8 caracteres para proteger este panel:";
+        submitBtn.textContent = "Guardar Contraseña y Desbloquear";
       } else {
-        titleEl.textContent = "PIN de Administrador";
-        descEl.textContent = "Ingresa el PIN de seguridad para acceder a la configuración de cobros y simulación.";
+        titleEl.textContent = "Contraseña de Administrador";
+        descEl.textContent = "Ingresa la contraseña de seguridad para acceder a la configuración de cobros y simulación.";
         submitBtn.textContent = "Desbloquear Panel";
       }
       return;
@@ -1630,35 +1632,37 @@ CREATE POLICY "Permitir gestion de partidos" ON prode_matches FOR ALL USING (tru
   // MEJORAS DE FASE 7 IMPLEMENTADAS DINÁMICAMENTE
   // -------------------------------------------------------------
 
-  // A1. Validar o registrar el PIN de administrador
-  verifyAdminPin() {
+  // A1. Validar o registrar la contraseña de administrador
+  async verifyAdminPin() {
     const input = document.getElementById("admin-pin-input");
     if (!input) return;
     
-    const pin = input.value.trim();
-    if (!pin) return;
+    const enteredPass = input.value.trim();
+    if (!enteredPass) return;
     
     const savedPin = localStorage.getItem("worldcup_prode_admin_pin");
     
     if (!savedPin) {
-      if (pin.length < 4 || pin.length > 6 || isNaN(pin)) {
-        this.showMicroNotification("El PIN debe ser numérico y tener de 4 a 6 dígitos.", "warning");
+      if (enteredPass.length < 8) {
+        this.showMicroNotification("La contraseña debe tener al menos 8 caracteres.", "warning");
         return;
       }
-      localStorage.setItem("worldcup_prode_admin_pin", pin);
+      const hashed = await this.hashPassword(enteredPass);
+      localStorage.setItem("worldcup_prode_admin_pin", hashed);
       sessionStorage.setItem("worldcup_prode_admin_authenticated", "true");
-      this.addAdminLog("PIN de administrador creado y activado.");
+      this.addAdminLog("Contraseña de administrador creada y activada.");
       this.fireConfetiEffect();
-      this.showMicroNotification("¡PIN configurado y desbloqueado!", "success");
+      this.showMicroNotification("¡Contraseña configurada y desbloqueada!", "success");
       this.refreshAppViews();
     } else {
-      if (pin === savedPin) {
+      const enteredHash = await this.hashPassword(enteredPass);
+      if (enteredHash === savedPin) {
         sessionStorage.setItem("worldcup_prode_admin_authenticated", "true");
-        this.addAdminLog("Panel desbloqueado mediante PIN.");
+        this.addAdminLog("Panel desbloqueado mediante contraseña.");
         this.showMicroNotification("¡Desbloqueo correcto!", "success");
         this.refreshAppViews();
       } else {
-        this.showMicroNotification("PIN de seguridad incorrecto.", "error");
+        this.showMicroNotification("Contraseña de seguridad incorrecta.", "error");
         input.value = "";
         input.focus();
       }
@@ -2082,12 +2086,20 @@ CREATE POLICY "Permitir gestion de partidos" ON prode_matches FOR ALL USING (tru
     
     container.innerHTML = logs.map(log => {
       let style = "color: var(--text-muted);";
-      if (log.includes("aprobada") || log.includes("PIN") || log.includes("creado")) {
+      if (log.includes("aprobada") || log.includes("PIN") || log.includes("creado") || log.includes("Contraseña") || log.includes("contraseña")) {
         style = "color: var(--accent-green); font-weight:700;";
       } else if (log.includes("rechazada") || log.includes("Reinicio")) {
         style = "color: var(--accent-red); font-weight:700;";
       }
       return `<div style="${style}">${log}</div>`;
     }).join("");
+  },
+
+  async hashPassword(password) {
+    const msgBuffer = new TextEncoder().encode(password);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    return hashHex;
   }
 };

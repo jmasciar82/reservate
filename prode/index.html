@@ -59,14 +59,13 @@
 
         <!-- CONTRASEÑA DE ADMINISTRADOR DINÁMICA (EXCLUSIVA ADMIN) -->
         <div class="form-group" id="login-password-group" style="display: none; margin-top: 15px; animation: fadeIn 0.3s ease-out;">
-          <label id="login-password-label" for="login-password">Contraseña de Administrador (PIN)</label>
+          <label id="login-password-label" for="login-password">Contraseña de Administrador (Mín. 8 caracteres)</label>
           <input 
             type="password" 
             id="login-password" 
             class="form-input" 
-            placeholder="••••" 
-            maxlength="6"
-            style="text-align: center; letter-spacing: 6px; font-size: 1.25rem; padding: 10px;"
+            placeholder="Ingresa tu contraseña segura" 
+            style="padding: 12px 18px; font-size: 1rem;"
           >
         </div>
 
@@ -557,12 +556,12 @@
           <div class="app-logo" style="background: var(--primary-gold-gradient); width: 60px; height: 60px; font-size: 1.6rem; color: #000; box-shadow: 0 0 15px rgba(212,175,55,0.3); margin-bottom: 20px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%;">
             <i class="fa-solid fa-lock"></i>
           </div>
-          <h3 id="admin-pin-title" style="font-weight: 800; font-size: 1.4rem; margin-bottom: 10px;">PIN de Administrador</h3>
-          <p id="admin-pin-desc" style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 25px; line-height: 1.4;">Ingresa el PIN de seguridad para acceder a la configuración de cobros y simulación.</p>
+          <h3 id="admin-pin-title" style="font-weight: 800; font-size: 1.4rem; margin-bottom: 10px;">Contraseña de Administrador</h3>
+          <p id="admin-pin-desc" style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 25px; line-height: 1.4;">Ingresa la contraseña de seguridad para acceder a la configuración de cobros y simulación.</p>
           
           <form id="admin-pin-form" onsubmit="event.preventDefault(); ProdeApp.verifyAdminPin();">
             <div class="form-group" style="margin-bottom: 20px;">
-              <input type="password" id="admin-pin-input" class="form-input" placeholder="••••" style="text-align: center; letter-spacing: 8px; font-size: 1.6rem; padding: 10px;" required maxlength="6">
+              <input type="password" id="admin-pin-input" class="form-input" placeholder="Ingresa tu contraseña" style="padding: 12px 18px; font-size: 1rem;" required>
             </div>
             <button type="submit" id="btn-admin-pin-submit" class="btn-primary">
               Desbloquear Panel
