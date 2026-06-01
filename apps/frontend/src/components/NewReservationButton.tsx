@@ -8,6 +8,10 @@ import { apiFetch } from "@/lib/api";
 import type { Court } from "@/lib/types";
 
 const PRESET_TIMES = [
+  "08:00",
+  "08:30",
+  "09:00",
+  "09:30",
   "10:00",
   "10:30",
   "11:00",
