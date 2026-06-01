@@ -5,22 +5,34 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   const frontendUrl = process.env.FRONTEND_URL || '';
-  const origins = [
+  const allowedOrigins = [
     'http://localhost:3000',
     'http://localhost:3002',
   ];
 
   if (frontendUrl) {
-    const cleanUrl = frontendUrl.trim().replace(/\/$/, '');
-    origins.push(cleanUrl);
+    // Support comma-separated URLs in FRONTEND_URL
+    frontendUrl.split(',').forEach((url) => {
+      const cleanUrl = url.trim().replace(/\/$/, '');
+      if (cleanUrl) allowedOrigins.push(cleanUrl);
+    });
   }
 
   app.enableCors({
-    origin: origins,
+    origin: (origin, callback) => {
+      // Allow requests with no origin (mobile apps, curl, etc.)
+      if (!origin) return callback(null, true);
+      // Check exact match
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      // Allow any *.vercel.app subdomain
+      if (/\.vercel\.app$/.test(origin)) return callback(null, true);
+      // Reject
+      callback(new Error(`Origin ${origin} not allowed by CORS`));
+    },
     credentials: true,
   });
 
   await app.listen(3001);
 }
 
-bootstrap();
+bootstrap();
