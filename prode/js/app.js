@@ -101,7 +101,8 @@ const ProdeApp = {
           passwordInput.required = true;
           
           const savedPin = localStorage.getItem("worldcup_prode_admin_pin");
-          if (!savedPin) {
+          const isValidHash = savedPin && savedPin.length === 64 && /^[0-9a-fA-F]+$/.test(savedPin);
+          if (!isValidHash) {
             passwordLabel.textContent = "Definir nueva Contraseña de Administrador";
             passwordInput.placeholder = "Crear contraseña segura (mín. 8 caracteres)";
           } else {
@@ -129,9 +130,10 @@ const ProdeApp = {
           if (ProdeEngine.isAdmin(email) && passwordInput) {
             const enteredPass = passwordInput.value.trim();
             const savedPin = localStorage.getItem("worldcup_prode_admin_pin");
+            const isValidHash = savedPin && savedPin.length === 64 && /^[0-9a-fA-F]+$/.test(savedPin);
 
-            if (!savedPin) {
-              // Si no hay contraseña, registrar el ingresado en el login
+            if (!isValidHash) {
+              // Si no hay contraseña válida, registrar la ingresada
               if (enteredPass.length < 8) {
                 this.showMicroNotification("La contraseña debe tener al menos 8 caracteres.", "warning");
                 return;
@@ -1077,11 +1079,12 @@ const ProdeApp = {
       controlsEl.style.display = "none";
       
       const savedPin = localStorage.getItem("worldcup_prode_admin_pin");
+      const isValidHash = savedPin && savedPin.length === 64 && /^[0-9a-fA-F]+$/.test(savedPin);
       const titleEl = document.getElementById("admin-pin-title");
       const descEl = document.getElementById("admin-pin-desc");
       const submitBtn = document.getElementById("btn-admin-pin-submit");
       
-      if (!savedPin) {
+      if (!isValidHash) {
         titleEl.textContent = "Definir nueva Contraseña";
         descEl.textContent = "No se ha configurado una Contraseña de Administrador. Define una contraseña de al menos 8 caracteres para proteger este panel:";
         submitBtn.textContent = "Guardar Contraseña y Desbloquear";
@@ -1641,8 +1644,9 @@ CREATE POLICY "Permitir gestion de partidos" ON prode_matches FOR ALL USING (tru
     if (!enteredPass) return;
     
     const savedPin = localStorage.getItem("worldcup_prode_admin_pin");
+    const isValidHash = savedPin && savedPin.length === 64 && /^[0-9a-fA-F]+$/.test(savedPin);
     
-    if (!savedPin) {
+    if (!isValidHash) {
       if (enteredPass.length < 8) {
         this.showMicroNotification("La contraseña debe tener al menos 8 caracteres.", "warning");
         return;
