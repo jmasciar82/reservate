@@ -573,6 +573,33 @@
             </div>
           </div>
 
+          <!-- RESUMEN FINANCIERO DEL ADMINISTRADOR (EXCLUSIVO) -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 25px;">
+            <!-- Participantes -->
+            <div class="glass-panel" style="padding: 15px 20px; border-color: rgba(255,255,255,0.06); background: rgba(255,255,255,0.02); text-align: left;">
+              <span style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight:700;"><i class="fa-solid fa-users"></i> Participantes Activos</span>
+              <div id="admin-fin-participants" style="font-size: 1.6rem; font-weight: 800; color: #fff; margin-top: 5px;">0</div>
+            </div>
+            
+            <!-- Recaudación Bruta -->
+            <div class="glass-panel" style="padding: 15px 20px; border-color: rgba(255,255,255,0.06); background: rgba(255,255,255,0.02); text-align: left;">
+              <span style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight:700;"><i class="fa-solid fa-sack-dollar"></i> Recaudación Bruta</span>
+              <div id="admin-fin-gross" style="font-size: 1.6rem; font-weight: 800; color: #fff; margin-top: 5px;">$0</div>
+            </div>
+
+            <!-- Ganancia Admin -->
+            <div class="glass-panel" style="padding: 15px 20px; border-color: rgba(212,175,55,0.25); background: rgba(212,175,55,0.03); text-align: left;">
+              <span style="font-size: 0.7rem; color: var(--primary-gold); text-transform: uppercase; font-weight:700;"><i class="fa-solid fa-wallet"></i> Tu Comisión (Admin)</span>
+              <div id="admin-fin-commission" style="font-size: 1.6rem; font-weight: 800; color: var(--primary-gold); margin-top: 5px;">$0</div>
+            </div>
+
+            <!-- Pozo Neto para Ganador -->
+            <div class="glass-panel" style="padding: 15px 20px; border-color: rgba(16,185,129,0.25); background: rgba(16,185,129,0.03); text-align: left;">
+              <span style="font-size: 0.7rem; color: var(--accent-green); text-transform: uppercase; font-weight:700;"><i class="fa-solid fa-trophy"></i> Pozo Neto (Premios)</span>
+              <div id="admin-fin-net" style="font-size: 1.6rem; font-weight: 800; color: var(--accent-green); margin-top: 5px;">$0</div>
+            </div>
+          </div>
+
           <!-- VIAJE EN EL TIEMPO - SIMULADOR DE FECHA -->
           <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--bg-card-border); padding: 20px; border-radius: var(--border-radius-md); margin-top: 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px;">
             <div>
@@ -618,6 +645,11 @@
               <div class="form-group" style="margin-bottom: 0;">
                 <label for="admin-mp-link">Link de Pago (Opcional)</label>
                 <input type="url" id="admin-mp-link" class="form-input" placeholder="https://mpago.la/..." style="padding: 10px 14px; font-size: 0.9rem;">
+              </div>
+
+              <div class="form-group" style="margin-bottom: 0;">
+                <label for="admin-mp-commission">Comisión de Organización (%)</label>
+                <input type="number" id="admin-mp-commission" class="form-input" placeholder="20" min="0" max="100" required style="padding: 10px 14px; font-size: 0.9rem;">
               </div>
 
               <div style="grid-column: 1 / -1; display: flex; justify-content: flex-end; margin-top: 10px;">

@@ -370,14 +370,16 @@ const ProdeApp = {
     const cvu = document.getElementById("admin-mp-cvu").value.trim();
     const holder = document.getElementById("admin-mp-holder").value.trim();
     const paymentLink = document.getElementById("admin-mp-link").value.trim();
+    const commission = parseInt(document.getElementById("admin-mp-commission").value) || 0;
 
     if (!alias || !cvu || !holder) {
       this.showMicroNotification("Completa todos los campos obligatorios", "warning");
       return;
     }
 
-    const config = { alias, cvu, holder, paymentLink };
+    const config = { alias, cvu, holder, paymentLink, commission };
     await ProdeEngine.saveOrganizerConfig(config);
+    this.addAdminLog(`Configuración de cobros actualizada (Comisión: ${commission}%).`);
     this.showMicroNotification("Credenciales del Organizador actualizadas con éxito", "success");
     
     this.refreshAppViews();
@@ -553,7 +555,13 @@ const ProdeApp = {
     // Obtener estadísticas del Leaderboard y pozo
     const boardData = await ProdeEngine.getLeaderboard();
     document.getElementById("dash-total-pool").textContent = `$${boardData.totalPool.toLocaleString()} ARS`;
-    document.getElementById("dash-pool-participants").innerHTML = `<i class="fa-solid fa-users"></i> ${boardData.participantsCount} participantes activos en el pozo`;
+    
+    const isUserAdmin = ProdeEngine.isAdmin(activeUser.email);
+    const participantsDisplay = document.getElementById("dash-pool-participants");
+    if (participantsDisplay) {
+      participantsDisplay.innerHTML = `<i class="fa-solid fa-users"></i> ${boardData.participantsCount} participantes activos en el pozo`;
+      participantsDisplay.style.display = isUserAdmin ? "flex" : "none";
+    }
 
     // Buscar posición y puntos del usuario
     const rankIndex = boardData.rankings.findIndex(r => r.email === activeUser.email);
@@ -1038,6 +1046,14 @@ const ProdeApp = {
     document.getElementById("admin-mp-cvu").value = config.cvu;
     document.getElementById("admin-mp-holder").value = config.holder;
     document.getElementById("admin-mp-link").value = config.paymentLink;
+    document.getElementById("admin-mp-commission").value = config.commission !== undefined ? config.commission : 20;
+
+    // Calcular y renderizar resumen financiero del administrador
+    const boardData = await ProdeEngine.getLeaderboard();
+    document.getElementById("admin-fin-participants").textContent = boardData.participantsCount;
+    document.getElementById("admin-fin-gross").textContent = `$${boardData.totalGrossPool.toLocaleString()}`;
+    document.getElementById("admin-fin-commission").textContent = `$${boardData.adminCommissionAmount.toLocaleString()}`;
+    document.getElementById("admin-fin-net").textContent = `$${boardData.totalPool.toLocaleString()}`;
 
     // Sincronizar estado de conexión a base de datos en nube
     const sb = ProdeAPI.getSupabaseClient();

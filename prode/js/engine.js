@@ -412,9 +412,18 @@ const ProdeEngine = {
       return new Date(a.paymentDate) - new Date(b.paymentDate);
     });
 
+    const config = this.getOrganizerConfig();
+    const commissionPct = config.commission !== undefined ? parseInt(config.commission) : 20;
+
+    const grossPool = totalPaidParticipants * 1000;
+    const adminCut = grossPool * (commissionPct / 100);
+    const netPool = grossPool - adminCut;
+
     return {
       rankings: leaderboard,
-      totalPool: totalPaidParticipants * 1000,
+      totalPool: netPool, // Pozo acumulado Neto para el ganador
+      totalGrossPool: grossPool, // Bruto total
+      adminCommissionAmount: adminCut, // Ganancia del admin
       participantsCount: totalPaidParticipants
     };
   },
@@ -448,7 +457,8 @@ const ProdeEngine = {
       alias: "prode.mundial.2026",
       cvu: "0000003100019283746501",
       holder: "Juan Pérez (Organizador)",
-      paymentLink: ""
+      paymentLink: "",
+      commission: 20
     };
     const saved = localStorage.getItem("worldcup_prode_organizer_config");
     if (saved) {
@@ -476,7 +486,8 @@ const ProdeEngine = {
             alias: data.alias || defaultConfig.alias,
             cvu: data.cvu || defaultConfig.cvu,
             holder: data.holder || defaultConfig.holder,
-            paymentLink: data.payment_link || defaultConfig.paymentLink
+            paymentLink: data.payment_link || defaultConfig.paymentLink,
+            commission: data.commission !== undefined && data.commission !== null ? parseInt(data.commission) : defaultConfig.commission
           };
           localStorage.setItem("worldcup_prode_organizer_config", JSON.stringify(config));
           return config;
@@ -500,7 +511,8 @@ const ProdeEngine = {
           alias: config.alias,
           cvu: config.cvu,
           holder: config.holder,
-          payment_link: config.paymentLink
+          payment_link: config.paymentLink,
+          commission: config.commission
         });
         if (error) throw error;
       } catch (e) {
