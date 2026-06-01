@@ -10,6 +10,7 @@ import { Reservation, ReservationDocument } from './schemas/reservation.schema';
 import { CreateReservationDto } from './dto/create-reservation.dto';
 import { Court, CourtDocument } from '../courts/schemas/court.schema';
 import { UpdateReservationDto } from './dto/update-reservation.dto';
+import { NotificationsService } from '../notifications/notifications.service';
 
 const RESERVATION_STATUSES = ['pending', 'confirmed', 'cancelled', 'completed'];
 const PAYMENT_STATUSES = ['pending', 'paid'];
@@ -40,6 +41,7 @@ export class ReservationsService {
     @InjectModel(Reservation.name)
     private reservationModel: Model<ReservationDocument>,
     @InjectModel(Court.name) private courtModel: Model<CourtDocument>,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async create(
@@ -63,7 +65,7 @@ export class ReservationsService {
       throw new BadRequestException('El horario de la reserva no es válido.');
     }
 
-    const court = await this.courtModel.findById(courtId).exec();
+    const court = await this.courtModel.findById(courtId).populate('clubId').exec();
     if (!court) {
       throw new NotFoundException('La cancha especificada no existe.');
     }
@@ -193,6 +195,26 @@ export class ReservationsService {
         }
       }
 
+      // Enviar confirmación por correo si se proporcionó un email
+      const firstRes = savedReservations[0];
+      if (firstRes && firstRes.email) {
+        this.notificationsService.sendReservationConfirmation(
+          firstRes.email,
+          firstRes.userId || 'Jugador',
+          {
+            id: firstRes._id.toString(),
+            clubName: court.clubId ? (court.clubId as any).name || 'Club' : 'Club',
+            courtName: court.name,
+            sport: court.sport,
+            date: firstRes.startTime.toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' }),
+            time: firstRes.startTime.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires' }),
+            duration: durationHours,
+            totalPrice: firstRes.totalPrice,
+            depositAmount: firstRes.depositAmount,
+          }
+        ).catch(err => console.error('Error enviando email automático:', err));
+      }
+
       return savedReservations[0];
     } else {
       const overlapping = await this.reservationModel
@@ -229,7 +251,28 @@ export class ReservationsService {
         status: isPaid ? 'confirmed' : (createReservationDto.status || 'pending'),
       });
 
-      return createdReservation.save();
+      const saved = await createdReservation.save();
+
+      // Enviar confirmación por correo si se proporcionó un email
+      if (saved.email) {
+        this.notificationsService.sendReservationConfirmation(
+          saved.email,
+          saved.userId || 'Jugador',
+          {
+            id: saved._id.toString(),
+            clubName: court.clubId ? (court.clubId as any).name || 'Club' : 'Club',
+            courtName: court.name,
+            sport: court.sport,
+            date: saved.startTime.toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' }),
+            time: saved.startTime.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires' }),
+            duration: durationHours,
+            totalPrice: saved.totalPrice,
+            depositAmount: saved.depositAmount,
+          }
+        ).catch(err => console.error('Error enviando email automático:', err));
+      }
+
+      return saved;
     }
   }
 

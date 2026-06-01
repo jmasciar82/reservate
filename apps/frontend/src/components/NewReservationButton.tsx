@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Calendar, Clock, MapPin, User, X } from "lucide-react";
+import { Calendar, Clock, MapPin, User, X, Mail, Phone } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import type { Court } from "@/lib/types";
 
@@ -113,6 +113,8 @@ export default function NewReservationButton({
 
   const [formData, setFormData] = useState({
     playerName: "",
+    email: "",
+    phone: "",
     date: defaultDate,
     time: "",
     duration: "1.5",
@@ -167,6 +169,8 @@ export default function NewReservationButton({
   const handleOpen = () => {
     setFormData({
       playerName: "",
+      email: "",
+      phone: "",
       date: presetDate || defaultDate || formData.date,
       time: presetTime || "",
       duration: "1.5",
@@ -309,6 +313,8 @@ export default function NewReservationButton({
         },
         body: JSON.stringify({
           userId: formData.playerName,
+          email: formData.email,
+          phone: formData.phone,
           courtId: formData.courtId,
           startTime: startTime.toISOString(),
           endTime: endTime.toISOString(),
@@ -325,6 +331,8 @@ export default function NewReservationButton({
         setIsOpen(false);
         setFormData({
           playerName: "",
+          email: "",
+          phone: "",
           date: defaultDate,
           time: "",
           duration: "1.5",
@@ -409,6 +417,46 @@ export default function NewReservationButton({
                   }
                   className="w-full bg-zinc-50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-xl px-4 py-3 text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-505 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 hover:bg-zinc-100 dark:hover:bg-white/[0.08] transition-all duration-300 font-medium"
                 />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-zinc-500 dark:text-zinc-400 flex items-center gap-2">
+                    <Mail className="w-4 h-4 text-primary" />
+                    Correo electrónico
+                  </label>
+                  <input
+                    type="email"
+                    placeholder="ejemplo@correo.com"
+                    value={formData.email}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        email: e.target.value,
+                      }))
+                    }
+                    className="w-full bg-zinc-50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-xl px-4 py-3 text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-505 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 hover:bg-zinc-100 dark:hover:bg-white/[0.08] transition-all duration-300 font-medium"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-zinc-500 dark:text-zinc-400 flex items-center gap-2">
+                    <Phone className="w-4 h-4 text-primary" />
+                    Teléfono / Celular
+                  </label>
+                  <input
+                    type="tel"
+                    placeholder="Ej. +54 9 11 1234 5678"
+                    value={formData.phone}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        phone: e.target.value,
+                      }))
+                    }
+                    className="w-full bg-zinc-50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-xl px-4 py-3 text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-505 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 hover:bg-zinc-100 dark:hover:bg-white/[0.08] transition-all duration-300 font-medium"
+                  />
+                </div>
               </div>
 
               <div className="space-y-1.5">
