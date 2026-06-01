@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Calendar, Clock, MapPin, User, X, Mail, Phone } from "lucide-react";
+import { createPortal } from "react-dom";
 import { apiFetch } from "@/lib/api";
 import type { Court } from "@/lib/types";
 
@@ -106,6 +107,11 @@ export default function NewReservationButton({
   children,
  }: NewReservationButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   const [courts, setCourts] = useState<Court[]>([]);
   const [loading, setLoading] = useState(false);
   const [courtsLoading, setCourtsLoading] = useState(false);
@@ -376,8 +382,8 @@ export default function NewReservationButton({
         </button>
       )}
 
-      {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {mounted && isOpen && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
           <div
             className="absolute inset-0 bg-black/30 dark:bg-black/60 backdrop-blur-sm"
             onClick={() => setIsOpen(false)}
@@ -727,7 +733,8 @@ export default function NewReservationButton({
               </button>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );
