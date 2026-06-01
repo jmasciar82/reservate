@@ -173,10 +173,13 @@ export default function ReservationActions({
     if (menuRef.current) {
       const card = menuRef.current.closest(".group\\/res, .group") as HTMLElement;
       if (card) {
+        const cell = card.parentElement;
         if (isOpen) {
-          card.style.zIndex = "40";
+          card.style.zIndex = "9999";
+          if (cell) cell.style.zIndex = "9999";
         } else {
           card.style.zIndex = "";
+          if (cell) cell.style.zIndex = "";
         }
       }
     }
