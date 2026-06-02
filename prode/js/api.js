@@ -142,41 +142,112 @@ const ProdeAPI = {
       }
     }
     return this.initMatches();
-  },
-
-  // FUNCIÓN PREPARADA PARA PRODUCCIÓN (Integración con API real)
-  async fetchLiveResults(apiKey = "") {
-    if (!apiKey) {
-      console.warn("Se requiere una API Key para consultar resultados reales en vivo.");
-      return null;
-    }
-    
+  },  // Sincroniza resultados reales desde la API open-source de worldcup2026
+  async syncWithWorldCup2026API() {
     try {
-      const response = await fetch("https://api.football-data.org/v4/competitions/WC/matches", {
-        headers: { "X-Auth-Token": apiKey }
+      console.log("Iniciando sincronización con API real...");
+
+      // 1. Autenticar para obtener Token (crea una cuenta del PRODE si es necesario)
+      // La API requiere registro previo, por lo que usamos una cuenta fija del sistema
+      const authRes = await fetch("https://worldcup26.ir/auth/authenticate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: "prode_system_sync@prode.com",
+          password: "SecureSyncPassword2026!"
+        })
       });
+
+      let token = "";
+      if (authRes.ok) {
+        const authData = await authRes.json();
+        token = authData.token;
+      } else {
+        // Si la cuenta no existe en la API externa, la registramos primero
+        const regRes = await fetch("https://worldcup26.ir/auth/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: "Prode Sync System",
+            email: "prode_system_sync@prode.com",
+            password: "SecureSyncPassword2026!"
+          })
+        });
+        if (!regRes.ok) throw new Error("No se pudo autenticar ni registrar en la API");
+        const regData = await regRes.json();
+        token = regData.token;
+      }
+
+      // 2. Obtener Equipos para armar un mapa de ID -> Código FIFA (ej: 37 -> ARG)
+      const teamsRes = await fetch("https://worldcup26.ir/get/teams", {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (!teamsRes.ok) throw new Error("Error al obtener equipos de la API");
+      const apiTeams = await teamsRes.json();
       
-      if (!response.ok) throw new Error("Error consultando la API externa");
-      
-      const data = await response.json();
-      
-      const updatedMatches = data.matches.map(realMatch => {
-        return {
-          id: `real_${realMatch.id}`,
-          stage: realMatch.stage,
-          teamA: realMatch.homeTeam.tla,
-          teamB: realMatch.awayTeam.tla,
-          status: realMatch.status === "FINISHED" ? "FINALIZADO" : "PENDIENTE",
-          result: {
-            goalsA: realMatch.score.fullTime.home,
-            goalsB: realMatch.score.fullTime.away
+      const teamIdToFifaCode = {};
+      apiTeams.forEach(t => {
+        teamIdToFifaCode[t.id] = t.fifa_code;
+      });
+
+      // Mapa de traducción: Código FIFA (3 letras) -> Código del PRODE (2 letras)
+      const fifaToProdeCode = {
+        "MEX": "MX", "RSA": "ZA", "KOR": "KR", "CZE": "CZ",
+        "CAN": "CA", "BIH": "BA", "QAT": "QA", "SUI": "CH",
+        "BRA": "BR", "MAR": "MA", "HAI": "HT", "SCO": "SC",
+        "USA": "US", "PAR": "PY", "AUS": "AU", "TUR": "TR",
+        "GER": "DE", "CUW": "CW", "CIV": "CI", "ECU": "EC",
+        "NED": "NL", "JPN": "JP", "SWE": "SE", "TUN": "TN",
+        "BEL": "BE", "EGY": "EG", "IRN": "IR", "NZL": "NZ",
+        "ESP": "ES", "CPV": "CV", "KSA": "SA", "URU": "UY",
+        "FRA": "FR", "SEN": "SN", "IRQ": "IQ", "NOR": "NO",
+        "AUT": "AT", "JOR": "JO", "ARG": "AR", "ALG": "DZ",
+        "POR": "PT", "COD": "CD", "UZB": "UZ", "COL": "CO",
+        "ENG": "EN", "CRO": "HR", "GHA": "GH", "PAN": "PA"
+      };
+
+      // 3. Obtener todos los partidos de la API
+      const matchesRes = await fetch("https://worldcup26.ir/get/games", {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (!matchesRes.ok) throw new Error("Error al obtener partidos de la API");
+      const apiMatches = await matchesRes.json();
+
+      // 4. Obtener partidos locales del PRODE y sincronizar los finalizados
+      const localMatches = await this.getMatches();
+      let updatedCount = 0;
+
+      for (const apiMatch of apiMatches) {
+        if (apiMatch.finished === "TRUE") {
+          const fifaA = teamIdToFifaCode[apiMatch.home_team_id];
+          const fifaB = teamIdToFifaCode[apiMatch.away_team_id];
+          
+          const codeA = fifaToProdeCode[fifaA];
+          const codeB = fifaToProdeCode[fifaB];
+
+          // Buscar el partido en el fixture local de fase de grupos
+          const localMatch = localMatches.find(m => 
+            m.stage === "Fase de Grupos" &&
+            ((m.teamA === codeA && m.teamB === codeB) || (m.teamA === codeB && m.teamB === codeA))
+          );
+
+          if (localMatch && localMatch.status !== "FINALIZADO") {
+            // Alinear goles según el orden de local/visitante
+            const goalsA = localMatch.teamA === codeA ? apiMatch.home_score : apiMatch.away_score;
+            const goalsB = localMatch.teamB === codeB ? apiMatch.away_score : apiMatch.home_score;
+
+            // Actualizar resultado oficial del partido
+            await this.updateMatchResult(localMatch.id, goalsA, goalsB);
+            updatedCount++;
+            console.log(`Sincronizado: ${localMatch.teamA} vs ${localMatch.teamB} (${goalsA}-${goalsB})`);
           }
-        };
-      });
-      
-      return updatedMatches;
-    } catch (error) {
-      console.error("Error obteniendo resultados en vivo:", error);
+        }
+      }
+
+      console.log(`Sincronización finalizada. Partidos actualizados: ${updatedCount}`);
+      return updatedCount;
+    } catch (e) {
+      console.error("Error en la sincronización de la API:", e);
       return null;
     }
   }

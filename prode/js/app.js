@@ -237,6 +237,33 @@ const ProdeApp = {
       });
     }
 
+    // 8.b. Botón Sincronizar API Real
+    const btnSyncApi = document.getElementById("btn-sync-real-api");
+    if (btnSyncApi) {
+      btnSyncApi.addEventListener("click", async () => {
+        const originalText = btnSyncApi.innerHTML;
+        btnSyncApi.disabled = true;
+        btnSyncApi.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Sincronizando...`;
+        
+        try {
+          const updatedCount = await ProdeAPI.syncWithWorldCup2026API();
+          if (updatedCount !== null) {
+            this.addAdminLog(`Sincronización de API real finalizada (${updatedCount} partidos actualizados).`);
+            this.showMicroNotification(`¡Sincronización exitosa! ${updatedCount} partidos actualizados.`, "success");
+            this.refreshAppViews();
+          } else {
+            this.showMicroNotification("Error al sincronizar resultados desde la API externa.", "error");
+          }
+        } catch (e) {
+          console.error(e);
+          this.showMicroNotification("Ocurrió un error inesperado al conectar con la API.", "error");
+        } finally {
+          btnSyncApi.disabled = false;
+          btnSyncApi.innerHTML = originalText;
+        }
+      });
+    }
+
     // 9. Formulario de PIN de Administrador (A1)
     const pinForm = document.getElementById("admin-pin-form");
     if (pinForm) {
