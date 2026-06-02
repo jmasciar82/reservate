@@ -14,6 +14,10 @@ export class NotificationsService {
   }
 
   private async initializeTransporter() {
+    // Forzar a Node.js a priorizar la resolución IPv4 en todas las llamadas DNS de este servicio.
+    // Esto garantiza que Nodemailer e incluso las llamadas TLS utilicen IPv4 para evitar ENETUNREACH en Render.
+    dns.setDefaultResultOrder('ipv4first');
+
     const host = this.configService.get<string>('SMTP_HOST');
     const port = this.configService.get<number>('SMTP_PORT') || 587;
     const user = this.configService.get<string>('SMTP_USER');
