@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
 import * as fs from 'fs';
+import * as dns from 'dns';
 
 @Injectable()
 export class NotificationsService {
@@ -25,7 +26,9 @@ export class NotificationsService {
         port: parsedPort,
         secure: parsedPort === 465,
         auth: { user, pass },
-        family: 4, // Forzar uso de IPv4 para evitar errores ENETUNREACH en IPv6 (común en Render)
+        lookup: (hostname: string, options: any, callback: any) => {
+          dns.lookup(hostname, { ...options, family: 4 }, callback);
+        },
       } as any);
       
       this.transporter.verify((error, success) => {
