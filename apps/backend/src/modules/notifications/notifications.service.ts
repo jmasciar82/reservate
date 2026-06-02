@@ -26,7 +26,7 @@ export class NotificationsService {
         secure: parsedPort === 465,
         auth: { user, pass },
         family: 4, // Forzar uso de IPv4 para evitar errores ENETUNREACH en IPv6 (común en Render)
-      });
+      } as any);
       
       this.transporter.verify((error, success) => {
         if (error) {
