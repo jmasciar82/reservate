@@ -142,51 +142,56 @@ const ProdeAPI = {
       }
     }
     return this.initMatches();
-  },  // Sincroniza resultados reales desde la API open-source de worldcup2026
+  }, // Sincroniza resultados reales desde la API open-source de worldcup2026
   async syncWithWorldCup2026API() {
     try {
       console.log("Iniciando sincronización con API real...");
-      const proxy = "https://corsproxy.io/?";
-      const baseUrl = "https://worldcup26.ir";
+      
+      // Lista de proxies de respaldo para asegurar compatibilidad con diferentes orígenes (localhost y file://)
+      const proxies = [
+        url => `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
+        url => `https://proxy.corsfix.com/?${url}`
+      ];
 
-      // 1. Autenticar para obtener Token (crea una cuenta del PRODE si es necesario)
-      // La API requiere registro previo, por lo que usamos una cuenta fija del sistema
-      const authRes = await fetch(`${proxy}${baseUrl}/auth/authenticate`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: "prode_system_sync@prode.com",
-          password: "SecureSyncPassword2026!"
-        })
-      });
+      let apiTeams = null;
+      let apiMatches = null;
+      let fetchError = null;
 
-      let token = "";
-      if (authRes.ok) {
-        const authData = await authRes.json();
-        token = authData.token;
-      } else {
-        // Si la cuenta no existe en la API externa, la registramos primero
-        const regRes = await fetch(`${proxy}${baseUrl}/auth/register`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name: "Prode Sync System",
-            email: "prode_system_sync@prode.com",
-            password: "SecureSyncPassword2026!"
-          })
-        });
-        if (!regRes.ok) throw new Error("No se pudo autenticar ni registrar en la API");
-        const regData = await regRes.json();
-        token = regData.token;
+      // Iterar sobre los proxies para intentar obtener los datos (los endpoints GET son públicos y no requieren auth)
+      for (const getProxyUrl of proxies) {
+        try {
+          console.log(`Intentando conectar usando el proxy: ${getProxyUrl("https://worldcup26.ir")}`);
+          
+          // 1. Obtener equipos
+          const teamsUrl = getProxyUrl("https://worldcup26.ir/get/teams");
+          const teamsRes = await fetch(teamsUrl);
+          if (!teamsRes.ok) throw new Error(`Fallo al obtener equipos (${teamsRes.status})`);
+          const teamsData = await teamsRes.json();
+          apiTeams = teamsData.teams || teamsData;
+
+          // 2. Obtener partidos
+          const gamesUrl = getProxyUrl("https://worldcup26.ir/get/games");
+          const gamesRes = await fetch(gamesUrl);
+          if (!gamesRes.ok) throw new Error(`Fallo al obtener partidos (${gamesRes.status})`);
+          const gamesData = await gamesRes.json();
+          apiMatches = gamesData.games || gamesData;
+
+          if (apiTeams && apiMatches) {
+            console.log("Datos obtenidos exitosamente de la API.");
+            fetchError = null;
+            break; // Salió bien, rompemos el bucle
+          }
+        } catch (e) {
+          console.warn(`Error con el proxy actual:`, e);
+          fetchError = e;
+        }
       }
 
-      // 2. Obtener Equipos para armar un mapa de ID -> Código FIFA (ej: 37 -> ARG)
-      const teamsRes = await fetch(`${proxy}${baseUrl}/get/teams`, {
-        headers: { "Authorization": `Bearer ${token}` }
-      });
-      if (!teamsRes.ok) throw new Error("Error al obtener equipos de la API");
-      const apiTeams = await teamsRes.json();
-      
+      if (fetchError || !apiTeams || !apiMatches) {
+        throw new Error("No se pudo obtener datos de la API a través de ningún proxy disponible.");
+      }
+
+      // 3. Armar un mapa de ID -> Código FIFA (ej: 37 -> ARG)
       const teamIdToFifaCode = {};
       apiTeams.forEach(t => {
         teamIdToFifaCode[t.id] = t.fifa_code;
@@ -207,13 +212,6 @@ const ProdeAPI = {
         "POR": "PT", "COD": "CD", "UZB": "UZ", "COL": "CO",
         "ENG": "EN", "CRO": "HR", "GHA": "GH", "PAN": "PA"
       };
-
-      // 3. Obtener todos los partidos de la API
-      const matchesRes = await fetch(`${proxy}${baseUrl}/get/games`, {
-        headers: { "Authorization": `Bearer ${token}` }
-      });
-      if (!matchesRes.ok) throw new Error("Error al obtener partidos de la API");
-      const apiMatches = await matchesRes.json();
 
       // 4. Obtener partidos locales del PRODE y sincronizar los finalizados
       const localMatches = await this.getMatches();
