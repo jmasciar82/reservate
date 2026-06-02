@@ -1,5 +1,10 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import * as dns from 'dns';
+
+// Forzar la resolución de DNS a dar prioridad a IPv4 sobre IPv6. 
+// Esto es CRUCIAL en Render para evitar errores connect ENETUNREACH con servicios externos como Gmail (IPv6 no soportado de salida).
+dns.setDefaultResultOrder('ipv4first');
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
