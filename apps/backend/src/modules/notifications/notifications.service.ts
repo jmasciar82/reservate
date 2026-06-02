@@ -19,12 +19,22 @@ export class NotificationsService {
     const pass = this.configService.get<string>('SMTP_PASS');
 
     if (user && pass && host) {
+      const parsedPort = Number(port);
       this.transporter = nodemailer.createTransport({
         host,
-        port,
-        secure: port === 465,
+        port: parsedPort,
+        secure: parsedPort === 465,
         auth: { user, pass },
       });
+      
+      this.transporter.verify((error, success) => {
+        if (error) {
+          console.error('❌ Error de conexión SMTP en inicialización:', error);
+        } else {
+          console.log('✅ El servidor SMTP está listo para enviar mensajes reales.');
+        }
+      });
+
       this.isTesting = false;
       console.log('Servicio de Email inicializado en modo REAL (SMTP).');
     } else {
