@@ -195,9 +195,9 @@ export class ReservationsService {
         }
       }
 
-      // Enviar confirmación por correo si se proporcionó un email
+      // Enviar confirmación por correo si se proporcionó un email y la reserva está confirmada
       const firstRes = savedReservations[0];
-      if (firstRes && firstRes.email) {
+      if (firstRes && firstRes.email && firstRes.status === 'confirmed') {
         this.notificationsService.sendReservationConfirmation(
           firstRes.email,
           firstRes.userId || 'Jugador',
@@ -253,8 +253,8 @@ export class ReservationsService {
 
       const saved = await createdReservation.save();
 
-      // Enviar confirmación por correo si se proporcionó un email
-      if (saved.email) {
+      // Enviar confirmación por correo si se proporcionó un email y la reserva está confirmada
+      if (saved.email && saved.status === 'confirmed') {
         this.notificationsService.sendReservationConfirmation(
           saved.email,
           saved.userId || 'Jugador',
@@ -380,6 +380,8 @@ export class ReservationsService {
     if (!existingReservation) {
       throw new BadRequestException('Reserva no encontrada.');
     }
+
+    const wasConfirmed = existingReservation.status === 'confirmed';
 
     let courtPrice = existingReservation.totalPrice - (existingReservation.productsPrice || 0);
 
@@ -621,17 +623,70 @@ export class ReservationsService {
           }
         }
 
-        return this.reservationModel
+        const updated = await this.reservationModel
           .findById(id)
           .populate('courtId')
           .exec();
+
+        if (updated && updated.email && !wasConfirmed && updated.status === 'confirmed') {
+          const court = await this.courtModel
+            .findById(updated.courtId)
+            .populate('clubId')
+            .exec();
+          if (court) {
+            const durationHours = (updated.endTime.getTime() - updated.startTime.getTime()) / (1000 * 60 * 60);
+            this.notificationsService.sendReservationConfirmation(
+              updated.email,
+              updated.userId || 'Jugador',
+              {
+                id: updated._id.toString(),
+                clubName: court.clubId ? (court.clubId as any).name || 'Club' : 'Club',
+                courtName: court.name,
+                sport: court.sport,
+                date: updated.startTime.toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' }),
+                time: updated.startTime.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires' }),
+                duration: durationHours,
+                totalPrice: updated.totalPrice,
+                depositAmount: updated.depositAmount,
+              }
+            ).catch(err => console.error('Error enviando email en actualización de reserva:', err));
+          }
+        }
+        return updated;
       }
     }
 
-    return this.reservationModel
+    const updated = await this.reservationModel
       .findByIdAndUpdate(id, updateReservationDto, { new: true })
       .populate('courtId')
       .exec();
+
+    if (updated && updated.email && !wasConfirmed && updated.status === 'confirmed') {
+      const court = await this.courtModel
+        .findById(updated.courtId)
+        .populate('clubId')
+        .exec();
+      if (court) {
+        const durationHours = (updated.endTime.getTime() - updated.startTime.getTime()) / (1000 * 60 * 60);
+        this.notificationsService.sendReservationConfirmation(
+          updated.email,
+          updated.userId || 'Jugador',
+          {
+            id: updated._id.toString(),
+            clubName: court.clubId ? (court.clubId as any).name || 'Club' : 'Club',
+            courtName: court.name,
+            sport: court.sport,
+            date: updated.startTime.toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' }),
+            time: updated.startTime.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires' }),
+            duration: durationHours,
+            totalPrice: updated.totalPrice,
+            depositAmount: updated.depositAmount,
+          }
+        ).catch(err => console.error('Error enviando email en actualización de reserva:', err));
+      }
+    }
+
+    return updated;
   }
 
   async renew(id: string, callerClubId?: string): Promise<Reservation> {
