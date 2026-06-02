@@ -24,6 +24,12 @@ export class NotificationsService {
     const pass = this.configService.get<string>('SMTP_PASS');
 
     if (user && pass && host) {
+      if (pass.startsWith('re_')) {
+        this.isTesting = false;
+        console.log('Servicio de Email inicializado en modo REAL (API REST de Resend por puerto 443).');
+        return;
+      }
+
       const parsedPort = Number(port);
       this.transporter = nodemailer.createTransport({
         host,
@@ -86,11 +92,6 @@ export class NotificationsService {
       depositAmount: number;
     }
   ) {
-    if (!this.transporter) {
-      console.warn('El transportador de email no está inicializado aún.');
-      return;
-    }
-
     const from = this.configService.get<string>('SMTP_FROM') || '"Reservate" <noreply@reservate.com>';
     const subject = `¡Tu reserva en ${reservationDetails.clubName} está confirmada! 🎾`;
 
@@ -294,6 +295,45 @@ export class NotificationsService {
     </body>
     </html>
     `;
+
+    const pass = this.configService.get<string>('SMTP_PASS');
+
+    if (pass && pass.startsWith('re_')) {
+      try {
+        console.log(`Enviando email via API REST de Resend a: ${toEmail}...`);
+        
+        const response = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${pass}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            from: from,
+            to: toEmail,
+            subject: subject,
+            html: htmlContent
+          })
+        });
+
+        const data = await response.json() as any;
+
+        if (response.ok) {
+          console.log(`✅ Email enviado con éxito via API de Resend a: ${toEmail}. MessageId: ${data.id}`);
+        } else {
+          console.error('❌ Error de la API de Resend:', data);
+        }
+        return;
+      } catch (apiError) {
+        console.error('❌ Error al conectar con la API REST de Resend:', apiError);
+        // Fallback al transportador si falla la API
+      }
+    }
+
+    if (!this.transporter) {
+      console.warn('El transportador de email no está inicializado aún.');
+      return;
+    }
 
     try {
       const info = await this.transporter.sendMail({
