@@ -146,10 +146,12 @@ const ProdeAPI = {
   async syncWithWorldCup2026API() {
     try {
       console.log("Iniciando sincronización con API real...");
+      const proxy = "https://corsproxy.io/?";
+      const baseUrl = "https://worldcup26.ir";
 
       // 1. Autenticar para obtener Token (crea una cuenta del PRODE si es necesario)
       // La API requiere registro previo, por lo que usamos una cuenta fija del sistema
-      const authRes = await fetch("https://worldcup26.ir/auth/authenticate", {
+      const authRes = await fetch(`${proxy}${baseUrl}/auth/authenticate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -164,7 +166,7 @@ const ProdeAPI = {
         token = authData.token;
       } else {
         // Si la cuenta no existe en la API externa, la registramos primero
-        const regRes = await fetch("https://worldcup26.ir/auth/register", {
+        const regRes = await fetch(`${proxy}${baseUrl}/auth/register`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -179,7 +181,7 @@ const ProdeAPI = {
       }
 
       // 2. Obtener Equipos para armar un mapa de ID -> Código FIFA (ej: 37 -> ARG)
-      const teamsRes = await fetch("https://worldcup26.ir/get/teams", {
+      const teamsRes = await fetch(`${proxy}${baseUrl}/get/teams`, {
         headers: { "Authorization": `Bearer ${token}` }
       });
       if (!teamsRes.ok) throw new Error("Error al obtener equipos de la API");
@@ -207,7 +209,7 @@ const ProdeAPI = {
       };
 
       // 3. Obtener todos los partidos de la API
-      const matchesRes = await fetch("https://worldcup26.ir/get/games", {
+      const matchesRes = await fetch(`${proxy}${baseUrl}/get/games`, {
         headers: { "Authorization": `Bearer ${token}` }
       });
       if (!matchesRes.ok) throw new Error("Error al obtener partidos de la API");
