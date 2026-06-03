@@ -224,8 +224,8 @@ export default function ReservationActions({
   const showConfirm = status === "pending";
   const showCancel = status !== "cancelled" && !isPast;
   
-  const isPartiallyPaid = paymentStatus === "paid" && depositAmount > 0 && depositAmount < totalPrice;
-  const showPaymentActions = paymentStatus === "pending" && status !== "cancelled";
+  const isPartiallyPaid = depositAmount > 0 && depositAmount < totalPrice;
+  const showPaymentActions = paymentStatus === "pending" && status !== "cancelled" && !isPartiallyPaid;
 
   if (!showConfirm && !showPaymentActions && !isPartiallyPaid && !showCancel) {
     return <div className="w-9 h-9" />;

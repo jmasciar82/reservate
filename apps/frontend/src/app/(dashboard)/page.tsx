@@ -288,7 +288,7 @@ export default async function Dashboard({
                           {reservation.courtId?.name ?? "Cancha"}
                         </span>
                         {reservation.isRecurring && (() => {
-                          const isPartiallyPaid = reservation.paymentStatus === "paid" && (reservation.depositAmount ?? 0) > 0 && (reservation.depositAmount ?? 0) < (reservation.totalPrice ?? 0);
+                          const isPartiallyPaid = (reservation.depositAmount ?? 0) > 0 && (reservation.depositAmount ?? 0) < (reservation.totalPrice ?? 0);
                           const needsTotalPayment = reservation.paymentStatus === "pending" || isPartiallyPaid;
                           return (
                             <span 
@@ -334,7 +334,7 @@ export default async function Dashboard({
                         ${(reservation.totalPrice ?? 0).toLocaleString("es-AR")}
                       </span>
                       {(() => {
-                        const isPartiallyPaid = reservation.paymentStatus === "paid" && (reservation.depositAmount ?? 0) > 0 && (reservation.depositAmount ?? 0) < (reservation.totalPrice ?? 0);
+                        const isPartiallyPaid = (reservation.depositAmount ?? 0) > 0 && (reservation.depositAmount ?? 0) < (reservation.totalPrice ?? 0);
                         const balance = (reservation.totalPrice ?? 0) - (reservation.depositAmount ?? 0);
                         return isPartiallyPaid ? (
                            <div className="flex flex-col sm:items-end text-[10px] text-zinc-500 dark:text-zinc-400 mt-1 leading-tight">
@@ -347,7 +347,7 @@ export default async function Dashboard({
 
                     <div className="flex flex-wrap items-center gap-2">
                       {(() => {
-                        const isPartiallyPaid = reservation.paymentStatus === "paid" && (reservation.depositAmount ?? 0) > 0 && (reservation.depositAmount ?? 0) < (reservation.totalPrice ?? 0);
+                        const isPartiallyPaid = (reservation.depositAmount ?? 0) > 0 && (reservation.depositAmount ?? 0) < (reservation.totalPrice ?? 0);
                         return (
                           <span
                             className={`px-2.5 py-0.5 text-[9px] font-extrabold rounded-full tracking-wider shadow-sm ${

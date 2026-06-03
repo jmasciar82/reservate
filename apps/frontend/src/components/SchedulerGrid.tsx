@@ -288,7 +288,7 @@ export default function SchedulerGrid({
                               {formatArtTimeStr(reservation.startTime)} - {formatArtTimeStr(reservation.endTime)}
                             </span>
                             {(() => {
-                              const isPartiallyPaid = reservation.paymentStatus === "paid" && (reservation.depositAmount ?? 0) > 0 && (reservation.depositAmount ?? 0) < (reservation.totalPrice ?? 0);
+                              const isPartiallyPaid = (reservation.depositAmount ?? 0) > 0 && (reservation.depositAmount ?? 0) < (reservation.totalPrice ?? 0);
                               return (
                                 <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-full tracking-wider select-none ${
                                   isPartiallyPaid
@@ -312,7 +312,7 @@ export default function SchedulerGrid({
                                     : (reservation.userId || "Jugador")}
                                 </span>
                                 {reservation.isRecurring && (() => {
-                                  const isPartiallyPaid = reservation.paymentStatus === "paid" && (reservation.depositAmount ?? 0) > 0 && (reservation.depositAmount ?? 0) < (reservation.totalPrice ?? 0);
+                                  const isPartiallyPaid = (reservation.depositAmount ?? 0) > 0 && (reservation.depositAmount ?? 0) < (reservation.totalPrice ?? 0);
                                   const needsTotalPayment = reservation.paymentStatus === "pending" || isPartiallyPaid;
                                   return (
                                     <span
@@ -334,7 +334,7 @@ export default function SchedulerGrid({
                                 )}
                               </h4>
                               {(() => {
-                                const isPartiallyPaid = reservation.paymentStatus === "paid" && (reservation.depositAmount ?? 0) > 0 && (reservation.depositAmount ?? 0) < (reservation.totalPrice ?? 0);
+                                const isPartiallyPaid = (reservation.depositAmount ?? 0) > 0 && (reservation.depositAmount ?? 0) < (reservation.totalPrice ?? 0);
                                 const balance = (reservation.totalPrice ?? 0) - (reservation.depositAmount ?? 0);
                                 return (totalSlots === 1 && isPartiallyPaid) ? (
                                   <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 leading-none select-none">
@@ -389,7 +389,7 @@ export default function SchedulerGrid({
                                   : (reservation.userId || "Jugador")}
                               </span>
                               {reservation.isRecurring && (() => {
-                                const isPartiallyPaid = reservation.paymentStatus === "paid" && (reservation.depositAmount ?? 0) > 0 && (reservation.depositAmount ?? 0) < (reservation.totalPrice ?? 0);
+                                const isPartiallyPaid = (reservation.depositAmount ?? 0) > 0 && (reservation.depositAmount ?? 0) < (reservation.totalPrice ?? 0);
                                 const needsTotalPayment = reservation.paymentStatus === "pending" || isPartiallyPaid;
                                 return (
                                   <span
@@ -416,7 +416,7 @@ export default function SchedulerGrid({
                       >
                         <div className="text-center w-full flex flex-col items-center justify-center flex-1 select-none">
                           {(() => {
-                            const isPartiallyPaid = reservation.paymentStatus === "paid" && (reservation.depositAmount ?? 0) > 0 && (reservation.depositAmount ?? 0) < (reservation.totalPrice ?? 0);
+                            const isPartiallyPaid = (reservation.depositAmount ?? 0) > 0 && (reservation.depositAmount ?? 0) < (reservation.totalPrice ?? 0);
                             const balance = (reservation.totalPrice ?? 0) - (reservation.depositAmount ?? 0);
 
                             if (isPartiallyPaid) {
