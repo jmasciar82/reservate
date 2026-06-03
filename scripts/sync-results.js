@@ -4,8 +4,15 @@ const path = require('path');
 
 // 1. Validar variables de entorno
 let SUPABASE_URL = process.env.SUPABASE_URL ? process.env.SUPABASE_URL.trim() : null;
-if (SUPABASE_URL && SUPABASE_URL.endsWith('/')) {
-  SUPABASE_URL = SUPABASE_URL.slice(0, -1);
+if (SUPABASE_URL) {
+  if (SUPABASE_URL.endsWith('/rest/v1')) {
+    SUPABASE_URL = SUPABASE_URL.slice(0, -8);
+  } else if (SUPABASE_URL.endsWith('/rest/v1/')) {
+    SUPABASE_URL = SUPABASE_URL.slice(0, -9);
+  }
+  if (SUPABASE_URL.endsWith('/')) {
+    SUPABASE_URL = SUPABASE_URL.slice(0, -1);
+  }
 }
 const SUPABASE_KEY = process.env.SUPABASE_KEY ? process.env.SUPABASE_KEY.trim() : null;
 
