@@ -306,10 +306,17 @@
             <h2>¡Hola de nuevo! <span id="dashboard-user-name" style="color: var(--primary-gold);">Usuario</span></h2>
             <p>Revisa el pozo actual, compite con tus amigos y mantente al día con los partidos.</p>
           </div>
-          <!-- COUNTDOWN AL PRÓXIMO PARTIDO (B3) -->
-          <div class="glass-panel countdown-container" id="countdown-widget" style="padding: 12px 24px; border-color: rgba(212, 175, 55, 0.25); background: rgba(212, 175, 55, 0.03); border-radius: var(--border-radius-md); display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 220px; box-shadow: 0 0 15px rgba(212,175,55,0.05);">
-            <span style="font-size: 0.7rem; text-transform: uppercase; font-weight: 700; color: var(--primary-gold); letter-spacing: 0.5px;"><i class="fa-regular fa-clock"></i> PRÓXIMO ENCUENTRO EN</span>
-            <div id="countdown-timer-display" style="font-size: 1.3rem; font-weight: 800; color: #fff; margin-top: 4px; font-family: monospace;">Cargando...</div>
+          <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+            <!-- COUNTDOWN AL PRÓXIMO PARTIDO (B3) -->
+            <div class="glass-panel countdown-container" id="countdown-widget" style="padding: 12px 24px; border-color: rgba(212, 175, 55, 0.25); background: rgba(212, 175, 55, 0.03); border-radius: var(--border-radius-md); display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 220px; box-shadow: 0 0 15px rgba(212,175,55,0.05);">
+              <span style="font-size: 0.7rem; text-transform: uppercase; font-weight: 700; color: var(--primary-gold); letter-spacing: 0.5px;"><i class="fa-regular fa-clock"></i> PRÓXIMO ENCUENTRO EN</span>
+              <div id="countdown-timer-display" style="font-size: 1.3rem; font-weight: 800; color: #fff; margin-top: 4px; font-family: monospace;">Cargando...</div>
+            </div>
+            <!-- COUNTDOWN AUTOMÁTICO DE SINCRO (NUEVO) -->
+            <div class="glass-panel countdown-container" id="sync-countdown-widget" style="padding: 12px 24px; border-color: rgba(59, 130, 246, 0.25); background: rgba(59, 130, 246, 0.03); border-radius: var(--border-radius-md); display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 220px; box-shadow: 0 0 15px rgba(59,130,246,0.05);">
+              <span style="font-size: 0.7rem; text-transform: uppercase; font-weight: 700; color: var(--accent-blue); letter-spacing: 0.5px;"><i class="fa-solid fa-rotate"></i> ACT. DE RESULTADOS EN</span>
+              <div id="sync-countdown-timer-display" style="font-size: 1.3rem; font-weight: 800; color: #fff; margin-top: 4px; font-family: monospace;">Cargando...</div>
+            </div>
           </div>
         </div>
 

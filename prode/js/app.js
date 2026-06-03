@@ -37,6 +37,7 @@ const ProdeApp = {
 
     // Iniciar timer de cuenta regresiva (B3)
     this.startCountdownTimer();
+    this.startSyncCountdownTimer();
 
     // Setup de realtime (B4)
     this.setupRealtimeSubscription();
@@ -1996,6 +1997,36 @@ CREATE POLICY "Permitir gestion de partidos" ON prode_matches FOR ALL USING (tru
 
     updateTimer();
     setInterval(updateTimer, 1000);
+  },
+
+  // Cuenta regresiva para la sincronización automática de GitHub Actions (cada 10 min)
+  startSyncCountdownTimer() {
+    const display = document.getElementById("sync-countdown-timer-display");
+    if (!display) return;
+
+    const updateSyncTimer = () => {
+      const now = new Date();
+      const minutes = now.getMinutes();
+      const seconds = now.getSeconds();
+
+      // Cada 10 minutos (en los minutos: 0, 10, 20, 30, 40, 50)
+      const currentSeconds = minutes * 60 + seconds;
+      const intervalSeconds = 600; // 10 minutos en segundos
+      const remainingSeconds = intervalSeconds - (currentSeconds % intervalSeconds);
+
+      const min = Math.floor(remainingSeconds / 60);
+      const sec = remainingSeconds % 60;
+
+      const timerText = `${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+
+      display.innerHTML = `
+        <div style="font-size:1.15rem; font-weight:800; color:#fff; text-shadow:0 0 10px rgba(255,255,255,0.1);">${timerText}</div>
+        <div style="font-size:0.65rem; color:var(--text-muted); margin-top:2px;">Autosincronización en la nube</div>
+      `;
+    };
+
+    updateSyncTimer();
+    setInterval(updateSyncTimer, 1000);
   },
 
   // B4. Suscribirse en Realtime a Supabase para notificaciones
