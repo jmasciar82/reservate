@@ -11,7 +11,7 @@ const ProdeAPI = {
 
     // Valores por defecto del proyecto (para conexión automática de todos los usuarios)
     const DEFAULT_URL = "https://serhuzweioduzrdlyywb.supabase.co";
-    const DEFAULT_KEY = "PEGA_TU_ANON_KEY_AQUI"; // Aquí colocaremos la Anon Key del usuario
+    const DEFAULT_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNlcmh1endlaW9kdXpyZGx5eXdiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0NDMyMTcsImV4cCI6MjA5NjAxOTIxN30.PkhLiXy3ELj2tQQoMORSOEJysgvQE8HU0hNJ_CK6Xzk"; // Aquí colocaremos la Anon Key del usuario
 
     let url = localStorage.getItem("worldcup_prode_supabase_url") || DEFAULT_URL;
     let key = localStorage.getItem("worldcup_prode_supabase_key") || DEFAULT_KEY;

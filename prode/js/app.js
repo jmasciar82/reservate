@@ -1186,7 +1186,7 @@ const ProdeApp = {
 
     // Sincronizar valores en los inputs de credenciales
     document.getElementById("admin-sb-url").value = localStorage.getItem("worldcup_prode_supabase_url") || "https://serhuzweioduzrdlyywb.supabase.co";
-    document.getElementById("admin-sb-key").value = localStorage.getItem("worldcup_prode_supabase_key") || "PEGA_TU_ANON_KEY_AQUI";
+    document.getElementById("admin-sb-key").value = localStorage.getItem("worldcup_prode_supabase_key") || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNlcmh1endlaW9kdXpyZGx5eXdiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0NDMyMTcsImV4cCI6MjA5NjAxOTIxN30.PkhLiXy3ELj2tQQoMORSOEJysgvQE8HU0hNJ_CK6Xzk";
 
     // Renderizar Control de Aprobación de Pagos
     const paymentsPanel = document.getElementById("admin-payments-panel");
