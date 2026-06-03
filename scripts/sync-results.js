@@ -3,7 +3,10 @@ const vm = require('vm');
 const path = require('path');
 
 // 1. Validar variables de entorno
-const SUPABASE_URL = process.env.SUPABASE_URL ? process.env.SUPABASE_URL.trim() : null;
+let SUPABASE_URL = process.env.SUPABASE_URL ? process.env.SUPABASE_URL.trim() : null;
+if (SUPABASE_URL && SUPABASE_URL.endsWith('/')) {
+  SUPABASE_URL = SUPABASE_URL.slice(0, -1);
+}
 const SUPABASE_KEY = process.env.SUPABASE_KEY ? process.env.SUPABASE_KEY.trim() : null;
 
 if (!SUPABASE_URL || !SUPABASE_KEY) {
@@ -100,7 +103,8 @@ async function run() {
     });
 
     if (!supabaseRes.ok) {
-      throw new Error(`Error al leer partidos de Supabase: ${supabaseRes.status} ${supabaseRes.statusText}`);
+      const errText = await supabaseRes.text();
+      throw new Error(`Error al leer partidos de Supabase: ${supabaseRes.status} ${supabaseRes.statusText} - ${errText}`);
     }
 
     const dbMatches = await supabaseRes.json();
