@@ -1072,17 +1072,29 @@ const ProdeApp = {
 
       const emailInitial = player.name ? player.name.substring(0,2).toUpperCase() : "US";
 
+      const isPaid = player.paid;
       const tr = document.createElement("tr");
       if (rowClass) tr.className = rowClass;
-      if (isYou) tr.style.background = "rgba(212, 175, 55, 0.05)";
+      
+      // Aplicar estilos de fila según estado de pago y si es el usuario activo
+      if (isPaid) {
+        tr.style.borderLeft = "3px solid var(--primary-gold)";
+        tr.style.background = isYou ? "rgba(212, 175, 55, 0.08)" : "rgba(212, 175, 55, 0.02)";
+      } else if (isYou) {
+        tr.style.borderLeft = "3px solid var(--text-muted)";
+        tr.style.background = "rgba(255, 255, 255, 0.03)";
+      }
 
       tr.innerHTML = `
         <td class="rank-cell">${rankDisplay}</td>
         <td>
           <div class="user-cell">
-            <span class="user-avatar-lbl">${emailInitial}</span>
+            <span class="user-avatar-lbl" ${isPaid ? 'style="border-color: var(--primary-gold); color: var(--primary-gold); background: rgba(212, 175, 55, 0.05);"' : ''}>${emailInitial}</span>
             <div>
-              <span class="user-main-email">${player.name}</span>
+              <span class="user-main-email" ${isPaid ? 'style="color: var(--primary-gold); font-weight: 700;"' : ''}>
+                ${player.name}
+                ${isPaid ? `<i class="fa-solid fa-crown" style="color: var(--primary-gold); margin-left: 4px; font-size: 0.8rem;" title="Inscripción Abonada"></i>` : ""}
+              </span>
               ${isYou ? `<span class="user-is-you-tag">Tú</span>` : ""}
               <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">${player.email}</div>
             </div>
@@ -1090,7 +1102,7 @@ const ProdeApp = {
         </td>
         <td style="text-align: center;" class="hits-cell">${player.exactHits}</td>
         <td style="text-align: center;" class="hits-cell">${player.partialHits}</td>
-        <td style="text-align: center;" class="points-cell">${player.points} pts</td>
+        <td style="text-align: center;" class="points-cell" ${!isPaid ? 'style="color: var(--text-muted);"' : ''}>${player.points} pts</td>
       `;
 
       tbody.appendChild(tr);

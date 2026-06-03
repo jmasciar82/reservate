@@ -378,38 +378,43 @@ const ProdeEngine = {
     Object.values(users).forEach(user => {
       if (user.paid) {
         totalPaidParticipants++;
-        let points = 0;
-        let exactHits = 0;
-        let partialHits = 0;
-
-        realMatches.forEach(match => {
-          if (match.status === "FINALIZADO") {
-            const pred = user.predictions[match.id];
-            if (pred) {
-              const pts = this.calculateMatchPoints(pred, match);
-              points += pts;
-              if (pts === 3) exactHits++;
-              else if (pts === 1) partialHits++;
-            }
-          }
-        });
-
-        leaderboard.push({
-          email: user.email,
-          name: user.name,
-          points: points,
-          exactHits: exactHits,
-          partialHits: partialHits,
-          paymentDate: user.paymentDate
-        });
       }
+      
+      let points = 0;
+      let exactHits = 0;
+      let partialHits = 0;
+
+      realMatches.forEach(match => {
+        if (match.status === "FINALIZADO") {
+          const pred = user.predictions[match.id];
+          if (pred) {
+            const pts = this.calculateMatchPoints(pred, match);
+            points += pts;
+            if (pts === 3) exactHits++;
+            else if (pts === 1) partialHits++;
+          }
+        }
+      });
+
+      leaderboard.push({
+        email: user.email,
+        name: user.name,
+        points: points,
+        exactHits: exactHits,
+        partialHits: partialHits,
+        paymentDate: user.paymentDate,
+        paid: !!user.paid
+      });
     });
 
-    // Ordenar: 1) Puntos, 2) Exactos, 3) Fecha de pago más antigua (prioridad por registrarse antes)
+    // Ordenar: 1) Puntos, 2) Exactos, 3) Fecha de pago más antigua (los no pagos van al final si empatan)
     leaderboard.sort((a, b) => {
       if (b.points !== a.points) return b.points - a.points;
       if (b.exactHits !== a.exactHits) return b.exactHits - a.exactHits;
-      return new Date(a.paymentDate) - new Date(b.paymentDate);
+      
+      const dateA = a.paymentDate ? new Date(a.paymentDate).getTime() : Infinity;
+      const dateB = b.paymentDate ? new Date(b.paymentDate).getTime() : Infinity;
+      return dateA - dateB;
     });
 
     const config = this.getOrganizerConfig();
