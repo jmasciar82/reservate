@@ -149,8 +149,9 @@ const ProdeAPI = {
       
       // Lista de proxies de respaldo para asegurar compatibilidad con diferentes orígenes (localhost y file://)
       const proxies = [
-        url => `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
-        url => `https://proxy.corsfix.com/?${url}`
+        url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+        url => `https://proxy.corsfix.com/?${url}`,
+        url => `https://corsproxy.io/?url=${encodeURIComponent(url)}`
       ];
 
       let apiTeams = null;
