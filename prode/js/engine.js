@@ -23,40 +23,34 @@ const ProdeEngine = {
     return adminList.includes(cleanEmail) || cleanEmail.includes("admin");
   },
 
-  // Inicializa usuarios y crea competidores simulados
+  // Inicializa usuarios y limpia competidores simulados para iniciar de cero
   initUsers() {
     let saved = localStorage.getItem(USER_STORAGE_KEY);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        // Si detecta bots de prueba del fixture inicial, limpia la caché local
+        if (parsed["antigravity.bot@deepmind.com"] || parsed["messi10.fan@rosario.gov.ar"]) {
+          localStorage.removeItem(USER_STORAGE_KEY);
+          saved = null;
+        }
+      } catch (e) {
+        localStorage.removeItem(USER_STORAGE_KEY);
+        saved = null;
+      }
+    }
+
     if (!saved) {
-      const mockCompetitors = this.generateMockCompetitors();
-      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(mockCompetitors));
-      return mockCompetitors;
+      const emptyUsers = {};
+      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(emptyUsers));
+      return emptyUsers;
     }
     return JSON.parse(saved);
   },
 
-  // Genera contrincantes ficticios con predicciones aleatorias pero coherentes
+  // Retorna vacío para producción de cero
   generateMockCompetitors() {
-    const names = [
-      { email: "antigravity.bot@deepmind.com", name: "Antigravity AI (Bot)" },
-      { email: "scaloni.dt@afa.com.ar", name: "Lionel Scaloneta" },
-      { email: "dibu.martinez@villaalbertina.com", name: "El Dibu Atajador" },
-      { email: "la.boti.futbol@charlas.net", name: "Boti Futbolero" },
-      { email: "messi10.fan@rosario.gov.ar", name: "La Pulga Fans" }
-    ];
-
-    const competitors = {};
-
-    names.forEach((comp, index) => {
-      competitors[comp.email] = {
-        email: comp.email,
-        name: comp.name,
-        paid: true, // Todos los competidores simulados ya pagaron sus $1000
-        paymentDate: new Date(Date.now() - (index + 1) * 3600000).toISOString(),
-        predictions: this.generateRandomPredictions()
-      };
-    });
-
-    return competitors;
+    return {};
   },
 
   // Genera predicciones aleatorias de 0 a 3 goles para los partidos definidos
