@@ -1178,15 +1178,15 @@ const ProdeApp = {
       dbStatusBadge.textContent = "Nube Sincronizada";
       dbStatusBadge.className = "pts-earned-badge";
       dbStatusBadge.style.cssText = "font-size: 0.75rem; text-transform: uppercase; background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.3); color: var(--accent-green);";
-      
-      // Sincronizar valores en los inputs de credenciales
-      document.getElementById("admin-sb-url").value = localStorage.getItem("worldcup_prode_supabase_url") || "";
-      document.getElementById("admin-sb-key").value = localStorage.getItem("worldcup_prode_supabase_key") || "";
     } else {
       dbStatusBadge.textContent = "Modo Demo Local";
       dbStatusBadge.className = "pts-earned-badge zero-pts";
       dbStatusBadge.style.cssText = "font-size: 0.75rem; text-transform: uppercase; background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.3); color: var(--accent-red);";
     }
+
+    // Sincronizar valores en los inputs de credenciales
+    document.getElementById("admin-sb-url").value = localStorage.getItem("worldcup_prode_supabase_url") || "https://serhuzweioduzrdlyywb.supabase.co";
+    document.getElementById("admin-sb-key").value = localStorage.getItem("worldcup_prode_supabase_key") || "PEGA_TU_ANON_KEY_AQUI";
 
     // Renderizar Control de Aprobación de Pagos
     const paymentsPanel = document.getElementById("admin-payments-panel");

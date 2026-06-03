@@ -8,9 +8,15 @@ const ProdeAPI = {
   // Obtiene o inicializa el cliente de Supabase dinámicamente
   getSupabaseClient() {
     if (this._supabaseClient) return this._supabaseClient;
-    let url = localStorage.getItem("worldcup_prode_supabase_url");
-    const key = localStorage.getItem("worldcup_prode_supabase_key");
-    if (url && key && typeof supabase !== "undefined") {
+
+    // Valores por defecto del proyecto (para conexión automática de todos los usuarios)
+    const DEFAULT_URL = "https://serhuzweioduzrdlyywb.supabase.co";
+    const DEFAULT_KEY = "PEGA_TU_ANON_KEY_AQUI"; // Aquí colocaremos la Anon Key del usuario
+
+    let url = localStorage.getItem("worldcup_prode_supabase_url") || DEFAULT_URL;
+    let key = localStorage.getItem("worldcup_prode_supabase_key") || DEFAULT_KEY;
+
+    if (url && key && key !== "PEGA_TU_ANON_KEY_AQUI" && typeof supabase !== "undefined") {
       try {
         // Limpiar URL: eliminar /rest/v1 duplicado y barras finales
         url = url.trim();
