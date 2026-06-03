@@ -1497,7 +1497,7 @@ const ProdeApp = {
   async saveAdminDbConfig() {
     const urlInput = document.getElementById("admin-sb-url");
     const keyInput = document.getElementById("admin-sb-key");
-    const url = urlInput.value.trim();
+    let url = urlInput.value.trim();
     const key = keyInput.value.trim();
 
     const btn = document.querySelector("#admin-db-config-form button[type='submit']");
@@ -1518,6 +1518,11 @@ const ProdeApp = {
       this.refreshAppViews();
       return;
     }
+
+    // Limpiar URL: eliminar /rest/v1 duplicado y barras finales
+    if (url.endsWith("/rest/v1/")) url = url.slice(0, -9);
+    else if (url.endsWith("/rest/v1")) url = url.slice(0, -8);
+    if (url.endsWith("/")) url = url.slice(0, -1);
 
     try {
       const client = supabase.createClient(url, key);

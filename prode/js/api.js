@@ -8,10 +8,16 @@ const ProdeAPI = {
   // Obtiene o inicializa el cliente de Supabase dinámicamente
   getSupabaseClient() {
     if (this._supabaseClient) return this._supabaseClient;
-    const url = localStorage.getItem("worldcup_prode_supabase_url");
+    let url = localStorage.getItem("worldcup_prode_supabase_url");
     const key = localStorage.getItem("worldcup_prode_supabase_key");
     if (url && key && typeof supabase !== "undefined") {
       try {
+        // Limpiar URL: eliminar /rest/v1 duplicado y barras finales
+        url = url.trim();
+        if (url.endsWith("/rest/v1/")) url = url.slice(0, -9);
+        else if (url.endsWith("/rest/v1")) url = url.slice(0, -8);
+        if (url.endsWith("/")) url = url.slice(0, -1);
+
         this._supabaseClient = supabase.createClient(url, key);
         return this._supabaseClient;
       } catch (e) {
