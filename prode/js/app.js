@@ -936,13 +936,17 @@ const ProdeApp = {
         </div>
 
         <div class="match-card-footer">
-          <div>
+          <div style="display: flex; flex-direction: column; gap: 6px; align-items: flex-start;">
+            ${isFinished 
+              ? `<span style="color: var(--accent-green); font-weight:700; font-size: 0.75rem;"><i class="fa-solid fa-circle-check"></i> Finalizado</span>`
+              : (isStageLocked 
+                  ? `<span style="color: var(--accent-red); font-weight:700; font-size: 0.75rem;"><i class="fa-solid fa-lock"></i> Ventana Cerrada</span>`
+                  : `<span style="color: var(--text-muted); font-size: 0.75rem;"><i class="fa-regular fa-clock"></i> Abierto para pronósticos</span>`
+                )
+            }
             ${isFinished 
               ? `<div class="match-real-result-banner"><i class="fa-solid fa-square-poll-vertical"></i> Real: <span class="match-real-score">${match.result.goalsA} - ${match.result.goalsB}</span></div>` 
-              : (isStageLocked 
-                  ? `<span style="color: var(--accent-red); font-weight:700;"><i class="fa-solid fa-lock"></i> Ventana Cerrada</span>`
-                  : `<span style="color: var(--text-muted);"><i class="fa-regular fa-clock"></i> Abierto para pronósticos</span>`
-                )
+              : `<div class="match-real-result-banner" style="background: rgba(255, 255, 255, 0.015); border-color: rgba(255, 255, 255, 0.03); color: var(--text-muted); opacity: 0.75;"><i class="fa-solid fa-square-poll-vertical"></i> Real: <span class="match-real-score" style="color: var(--text-muted); font-style: italic;">Pendiente</span></div>`
             }
           </div>
           <div>
