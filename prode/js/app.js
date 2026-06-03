@@ -2229,10 +2229,13 @@ CREATE POLICY "Permitir gestion de partidos" ON prode_matches FOR ALL USING (tru
     }
 
     try {
+      let redirectUrl = window.location.origin + window.location.pathname;
+      if (redirectUrl.endsWith("/")) redirectUrl = redirectUrl.slice(0, -1);
+
       const { error } = await sb.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: window.location.origin + window.location.pathname
+          redirectTo: redirectUrl
         }
       });
       if (error) throw error;
