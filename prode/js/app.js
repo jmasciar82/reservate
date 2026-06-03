@@ -2211,6 +2211,11 @@ CREATE POLICY "Permitir gestion de partidos" ON prode_matches FOR ALL USING (tru
 
   // Inicia el flujo de Google Sign-In con Supabase Auth
   async handleGoogleLogin() {
+    if (window.location.protocol === "file:") {
+      this.showMicroNotification("No se puede iniciar sesión con Google desde un archivo local (file://). Debes usar tu URL de Vercel o un servidor local (localhost).", "error");
+      return;
+    }
+
     const sb = ProdeAPI.getSupabaseClient();
     if (!sb) {
       this.showMicroNotification("Conectá la base de datos Supabase primero (Panel de Admin → Base de Datos en la Nube).", "warning");
