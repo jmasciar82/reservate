@@ -945,8 +945,8 @@ const ProdeApp = {
                 )
             }
             ${isFinished 
-              ? `<div class="match-real-result-banner"><i class="fa-solid fa-square-poll-vertical"></i> Real: <span class="match-real-score">${match.result.goalsA} - ${match.result.goalsB}</span></div>` 
-              : `<div class="match-real-result-banner" style="background: rgba(255, 255, 255, 0.015); border-color: rgba(255, 255, 255, 0.03); color: var(--text-muted); opacity: 0.75;"><i class="fa-solid fa-square-poll-vertical"></i> Real: <span class="match-real-score" style="color: var(--text-muted); font-style: italic;">Pendiente</span></div>`
+              ? `<div class="match-real-result-banner"><i class="fa-solid fa-square-poll-vertical"></i> Resultado Real: <span class="match-real-score">${match.result.goalsA} - ${match.result.goalsB}</span></div>` 
+              : `<div class="match-real-result-banner" style="background: rgba(255, 255, 255, 0.015); border-color: rgba(255, 255, 255, 0.03); color: var(--text-muted); opacity: 0.75;"><i class="fa-solid fa-square-poll-vertical"></i> Resultado Real: <span class="match-real-score" style="color: var(--text-muted); font-style: italic;">Pendiente</span></div>`
             }
           </div>
           <div>
