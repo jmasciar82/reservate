@@ -2253,4 +2253,128 @@ body {
   }
 }
 
+/* ============================================================== */
+/* ESTILOS DE GOOGLE SIGN-IN Y ADMIN TOGGLE                       */
+/* ============================================================== */
 
+/* Botón de Google Sign-In Premium */
+.btn-google-login {
+  width: 100%;
+  padding: 16px 24px;
+  background: #ffffff;
+  color: #3c4043;
+  border: none;
+  border-radius: var(--border-radius-md);
+  font-size: 1.05rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  margin-top: 20px;
+  position: relative;
+  overflow: hidden;
+  font-family: 'Inter', 'Roboto', -apple-system, sans-serif;
+  letter-spacing: -0.01em;
+}
+
+.btn-google-login::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(135deg, rgba(66, 133, 244, 0.04), rgba(234, 67, 53, 0.04));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.btn-google-login:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(66, 133, 244, 0.15);
+}
+
+.btn-google-login:hover::before {
+  opacity: 1;
+}
+
+.btn-google-login:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.btn-google-login .google-icon {
+  flex-shrink: 0;
+}
+
+.btn-google-login:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Hint de Google Login */
+.google-login-hint {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 14px;
+  text-align: center;
+  line-height: 1.4;
+  opacity: 0.7;
+}
+
+/* Separador "o ingresá como administrador" */
+.login-divider {
+  display: flex;
+  align-items: center;
+  margin: 22px 0 18px;
+  gap: 14px;
+}
+
+.login-divider::before,
+.login-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.login-divider span {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Enlace para alternar modo administrador */
+.admin-toggle-link {
+  text-align: center;
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.admin-toggle-link a {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  opacity: 0.6;
+}
+
+.admin-toggle-link a:hover {
+  color: var(--primary-gold);
+  opacity: 1;
+}
+
+/* Spinner inline para el botón de Google */
+.btn-google-login .fa-spinner {
+  color: #4285F4;
+}

@@ -252,6 +252,72 @@ const ProdeEngine = {
     this._activeUserCache = null;
   },
 
+  // Registra/sincroniza un usuario autenticado por Google OAuth
+  async loginUserAfterOAuth(email, name) {
+    const cleanEmail = email.trim().toLowerCase();
+    const displayName = name || cleanEmail.split("@")[0];
+
+    let users = this.getUsers();
+    let user = users[cleanEmail];
+
+    if (!user) {
+      user = {
+        email: cleanEmail,
+        name: displayName,
+        paid: false,
+        paymentDate: null,
+        paymentMethod: null,
+        transactionId: null,
+        predictions: {}
+      };
+      users[cleanEmail] = user;
+      this.saveUsers(users);
+    } else {
+      // Actualizar nombre si cambió (ej: primera vez con Google después de registro manual)
+      if (displayName && user.name !== displayName) {
+        user.name = displayName;
+        users[cleanEmail] = user;
+        this.saveUsers(users);
+      }
+    }
+
+    const sb = ProdeAPI.getSupabaseClient();
+    if (sb) {
+      try {
+        const { data: existingUser } = await sb.from("prode_users").select("*").eq("email", cleanEmail).maybeSingle();
+        if (!existingUser) {
+          const { error } = await sb.from("prode_users").insert({
+            email: cleanEmail,
+            name: displayName,
+            paid: false,
+            payment_date: null,
+            payment_method: null,
+            transaction_id: null
+          });
+          if (error) throw error;
+        } else {
+          // Actualizar nombre en Supabase si cambió
+          if (displayName && existingUser.name !== displayName) {
+            await sb.from("prode_users").update({ name: displayName }).eq("email", cleanEmail);
+          }
+          // Sincronizar datos de pago desde Supabase
+          user.paid = existingUser.paid;
+          user.paymentDate = existingUser.payment_date;
+          user.paymentMethod = existingUser.payment_method;
+          user.transactionId = existingUser.transaction_id;
+          users[cleanEmail] = user;
+          this.saveUsers(users);
+        }
+      } catch (e) {
+        console.error("Error al sincronizar usuario OAuth en Supabase:", e);
+      }
+    }
+
+    this.setActiveUser(cleanEmail);
+    this._activeUserCache = user;
+    return user;
+  },
+
   // Guardar pronósticos
   async savePredictions(email, predictions) {
     const cleanEmail = email.trim().toLowerCase();
