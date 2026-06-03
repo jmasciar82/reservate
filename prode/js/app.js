@@ -476,11 +476,15 @@ const ProdeApp = {
     }
 
     const config = { alias, cvu, holder, paymentLink, commission };
-    await ProdeEngine.saveOrganizerConfig(config);
-    this.addAdminLog(`Configuración de cobros actualizada (Comisión: ${commission}%).`);
-    this.showMicroNotification("Credenciales del Organizador actualizadas con éxito", "success");
-    
-    this.refreshAppViews();
+    try {
+      await ProdeEngine.saveOrganizerConfig(config);
+      this.addAdminLog(`Configuración de cobros actualizada (Comisión: ${commission}%).`);
+      this.showMicroNotification("Credenciales del Organizador actualizadas con éxito", "success");
+      this.refreshAppViews();
+    } catch (e) {
+      console.error(e);
+      this.showMicroNotification("Error al guardar credenciales en la nube. Verifica que la tabla prode_config en Supabase tenga la columna commission.", "error");
+    }
   },
 
   fireConfetiEffect() {
@@ -1563,12 +1567,13 @@ CREATE TABLE IF NOT EXISTS prode_config (
   alias TEXT DEFAULT 'prode.mundial.2026',
   cvu TEXT DEFAULT '0000003100019283746501',
   holder TEXT DEFAULT 'Juan Pérez (Organizador)',
-  payment_link TEXT DEFAULT ''
+  payment_link TEXT DEFAULT '',
+  commission INT DEFAULT 20
 );
 
 -- Insertar configuración inicial predeterminada
-INSERT INTO prode_config (id, alias, cvu, holder, payment_link)
-VALUES (1, 'prode.mundial.2026', '0000003100019283746501', 'Juan Pérez (Organizador)', '')
+INSERT INTO prode_config (id, alias, cvu, holder, payment_link, commission)
+VALUES (1, 'prode.mundial.2026', '0000003100019283746501', 'Juan Pérez (Organizador)', '', 20)
 ON CONFLICT (id) DO NOTHING;
 
 -- 2. Tabla de Usuarios del Prode

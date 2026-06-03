@@ -582,10 +582,12 @@ const ProdeEngine = {
         if (error) throw error;
       } catch (e) {
         console.error("Error al guardar configuración del organizador en Supabase:", e);
+        throw e;
       }
     }
 
     window.dispatchEvent(new CustomEvent("prode_organizer_config_change", { detail: config }));
+    return true;
   },
 
   // Comprueba si una etapa está bloqueada para apuestas según la fecha/hora actual
