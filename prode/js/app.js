@@ -104,7 +104,7 @@ const ProdeApp = {
           passwordGroup.style.display = "block";
           passwordInput.required = true;
           
-          const savedPin = localStorage.getItem("worldcup_prode_admin_pin");
+          const savedPin = ProdeEngine.getOrganizerConfig().adminPasswordHash;
           const isValidHash = savedPin && savedPin.length === 64 && /^[0-9a-fA-F]+$/.test(savedPin);
           if (!isValidHash) {
             passwordLabel.textContent = "Definir nueva Contraseña de Administrador";
@@ -139,7 +139,7 @@ const ProdeApp = {
           // Si es Admin, validar contraseña
           if (ProdeEngine.isAdmin(email) && passwordInput) {
             const enteredPass = passwordInput.value.trim();
-            const savedPin = localStorage.getItem("worldcup_prode_admin_pin");
+            const savedPin = ProdeEngine.getOrganizerConfig().adminPasswordHash;
             const isValidHash = savedPin && savedPin.length === 64 && /^[0-9a-fA-F]+$/.test(savedPin);
 
             if (!isValidHash) {
@@ -149,7 +149,7 @@ const ProdeApp = {
                 return;
               }
               const hashed = await this.hashPassword(enteredPass);
-              localStorage.setItem("worldcup_prode_admin_pin", hashed);
+              await ProdeEngine.saveAdminPassword(hashed);
               sessionStorage.setItem("worldcup_prode_admin_authenticated", "true");
               this.showMicroNotification("¡Contraseña de administrador creada con éxito!", "success");
             } else {
@@ -484,6 +484,60 @@ const ProdeApp = {
     } catch (e) {
       console.error(e);
       this.showMicroNotification("Error al guardar credenciales en la nube. Verifica que la tabla prode_config en Supabase tenga la columna commission.", "error");
+    }
+  },
+
+  async changeAdminPassword() {
+    const currentPassEl = document.getElementById("admin-current-pass");
+    const newPassEl = document.getElementById("admin-new-pass");
+    const confirmPassEl = document.getElementById("admin-confirm-pass");
+    
+    if (!currentPassEl || !newPassEl || !confirmPassEl) return;
+    
+    const currentPass = currentPassEl.value.trim();
+    const newPass = newPassEl.value.trim();
+    const confirmPass = confirmPassEl.value.trim();
+    
+    if (!currentPass || !newPass || !confirmPass) {
+      this.showMicroNotification("Completa todos los campos.", "warning");
+      return;
+    }
+    
+    if (newPass.length < 8) {
+      this.showMicroNotification("La nueva contraseña debe tener al menos 8 caracteres.", "warning");
+      return;
+    }
+    
+    if (newPass !== confirmPass) {
+      this.showMicroNotification("Las contraseñas nuevas no coinciden.", "warning");
+      return;
+    }
+    
+    // Validar contraseña actual
+    const currentHash = await this.hashPassword(currentPass);
+    const savedPin = ProdeEngine.getOrganizerConfig().adminPasswordHash;
+    
+    if (savedPin && currentHash !== savedPin) {
+      this.showMicroNotification("La contraseña actual es incorrecta.", "error");
+      currentPassEl.value = "";
+      currentPassEl.focus();
+      return;
+    }
+    
+    // Cambiar contraseña
+    try {
+      const newHash = await this.hashPassword(newPass);
+      await ProdeEngine.saveAdminPassword(newHash);
+      this.addAdminLog("Contraseña de administrador actualizada.");
+      this.showMicroNotification("¡Contraseña de administrador actualizada con éxito!", "success");
+      
+      // Limpiar formulario
+      currentPassEl.value = "";
+      newPassEl.value = "";
+      confirmPassEl.value = "";
+    } catch (e) {
+      console.error(e);
+      this.showMicroNotification("Error al cambiar la contraseña.", "error");
     }
   },
 
@@ -1135,7 +1189,7 @@ const ProdeApp = {
       promptEl.style.display = "block";
       controlsEl.style.display = "none";
       
-      const savedPin = localStorage.getItem("worldcup_prode_admin_pin");
+      const savedPin = ProdeEngine.getOrganizerConfig().adminPasswordHash;
       const isValidHash = savedPin && savedPin.length === 64 && /^[0-9a-fA-F]+$/.test(savedPin);
       const titleEl = document.getElementById("admin-pin-title");
       const descEl = document.getElementById("admin-pin-desc");
@@ -1568,12 +1622,13 @@ CREATE TABLE IF NOT EXISTS prode_config (
   cvu TEXT DEFAULT '0000003100019283746501',
   holder TEXT DEFAULT 'Juan Pérez (Organizador)',
   payment_link TEXT DEFAULT '',
-  commission INT DEFAULT 20
+  commission INT DEFAULT 20,
+  admin_password_hash TEXT DEFAULT ''
 );
 
 -- Insertar configuración inicial predeterminada
-INSERT INTO prode_config (id, alias, cvu, holder, payment_link, commission)
-VALUES (1, 'prode.mundial.2026', '0000003100019283746501', 'Juan Pérez (Organizador)', '', 20)
+INSERT INTO prode_config (id, alias, cvu, holder, payment_link, commission, admin_password_hash)
+VALUES (1, 'prode.mundial.2026', '0000003100019283746501', 'Juan Pérez (Organizador)', '', 20, '')
 ON CONFLICT (id) DO NOTHING;
 
 -- 2. Tabla de Usuarios del Prode
@@ -1716,7 +1771,7 @@ CREATE POLICY "Permitir gestion de partidos" ON prode_matches FOR ALL USING (tru
     const enteredPass = input.value.trim();
     if (!enteredPass) return;
     
-    const savedPin = localStorage.getItem("worldcup_prode_admin_pin");
+    const savedPin = ProdeEngine.getOrganizerConfig().adminPasswordHash;
     const isValidHash = savedPin && savedPin.length === 64 && /^[0-9a-fA-F]+$/.test(savedPin);
     
     if (!isValidHash) {
@@ -1725,7 +1780,7 @@ CREATE POLICY "Permitir gestion de partidos" ON prode_matches FOR ALL USING (tru
         return;
       }
       const hashed = await this.hashPassword(enteredPass);
-      localStorage.setItem("worldcup_prode_admin_pin", hashed);
+      await ProdeEngine.saveAdminPassword(hashed);
       sessionStorage.setItem("worldcup_prode_admin_authenticated", "true");
       this.addAdminLog("Contraseña de administrador creada y activada.");
       this.fireConfetiEffect();

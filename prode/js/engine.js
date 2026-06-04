@@ -523,7 +523,8 @@ const ProdeEngine = {
       cvu: "0000003100019283746501",
       holder: "Juan Pérez (Organizador)",
       paymentLink: "",
-      commission: 20
+      commission: 20,
+      adminPasswordHash: ""
     };
     const saved = localStorage.getItem("worldcup_prode_organizer_config");
     if (saved) {
@@ -552,7 +553,8 @@ const ProdeEngine = {
             cvu: data.cvu || defaultConfig.cvu,
             holder: data.holder || defaultConfig.holder,
             paymentLink: data.payment_link || defaultConfig.paymentLink,
-            commission: data.commission !== undefined && data.commission !== null ? parseInt(data.commission) : defaultConfig.commission
+            commission: data.commission !== undefined && data.commission !== null ? parseInt(data.commission) : defaultConfig.commission,
+            adminPasswordHash: data.admin_password_hash || ""
           };
           localStorage.setItem("worldcup_prode_organizer_config", JSON.stringify(config));
           return config;
@@ -577,7 +579,8 @@ const ProdeEngine = {
           cvu: config.cvu,
           holder: config.holder,
           payment_link: config.paymentLink,
-          commission: config.commission
+          commission: config.commission,
+          admin_password_hash: config.adminPasswordHash || ""
         });
         if (error) throw error;
       } catch (e) {
@@ -588,6 +591,13 @@ const ProdeEngine = {
 
     window.dispatchEvent(new CustomEvent("prode_organizer_config_change", { detail: config }));
     return true;
+  },
+
+  // Guarda la contraseña de administrador
+  async saveAdminPassword(hashedPassword) {
+    const config = this.getOrganizerConfig();
+    config.adminPasswordHash = hashedPassword;
+    return await this.saveOrganizerConfig(config);
   },
 
   // Comprueba si una etapa está bloqueada para apuestas según la fecha/hora actual

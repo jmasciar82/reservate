@@ -671,6 +671,37 @@
             </form>
           </div>
 
+          <!-- CAMBIAR CONTRASEÑA DE ADMINISTRADOR (ADMIN) -->
+          <div class="glass-panel" style="padding: 25px; border-color: rgba(212, 175, 55, 0.25); background: rgba(212, 175, 55, 0.02); border-radius: var(--border-radius-md); margin-top: 20px;">
+            <div style="margin-bottom: 15px; border-bottom: 1px dashed rgba(255,255,255,0.06); padding-bottom: 10px;">
+              <h4 style="font-weight: 700; color: var(--primary-gold); margin-bottom: 5px;"><i class="fa-solid fa-lock"></i> Cambiar Contraseña del Administrador</h4>
+              <p style="color: var(--text-muted); font-size: 0.85rem;">Actualiza la contraseña global de seguridad para acceder al panel de administración.</p>
+            </div>
+
+            <form id="admin-change-password-form" onsubmit="event.preventDefault(); ProdeApp.changeAdminPassword();" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px;">
+              <div class="form-group" style="margin-bottom: 0;">
+                <label for="admin-current-pass">Contraseña Actual</label>
+                <input type="password" id="admin-current-pass" class="form-input" placeholder="Ingresa contraseña actual" required style="padding: 10px 14px; font-size: 0.9rem;">
+              </div>
+
+              <div class="form-group" style="margin-bottom: 0;">
+                <label for="admin-new-pass">Nueva Contraseña</label>
+                <input type="password" id="admin-new-pass" class="form-input" placeholder="Mínimo 8 caracteres" required style="padding: 10px 14px; font-size: 0.9rem;">
+              </div>
+
+              <div class="form-group" style="margin-bottom: 0;">
+                <label for="admin-confirm-pass">Confirmar Nueva Contraseña</label>
+                <input type="password" id="admin-confirm-pass" class="form-input" placeholder="Repite la contraseña" required style="padding: 10px 14px; font-size: 0.9rem;">
+              </div>
+
+              <div style="grid-column: 1 / -1; display: flex; justify-content: flex-end; margin-top: 10px;">
+                <button type="submit" class="btn-primary" style="width: auto; padding: 10px 24px; font-size: 0.85rem; background: var(--primary-gold-gradient); color: var(--bg-darker); font-weight:800;">
+                  <i class="fa-solid fa-key"></i> Cambiar Contraseña
+                </button>
+              </div>
+            </form>
+          </div>
+
           <!-- ENLACE DE BASE DE DATOS EN LA NUBE (SUPABASE) -->
           <div class="glass-panel" style="padding: 25px; border-color: rgba(16, 185, 129, 0.25); background: rgba(16, 185, 129, 0.02); border-radius: var(--border-radius-md); margin-top: 20px;">
             <div style="margin-bottom: 15px; border-bottom: 1px dashed rgba(255,255,255,0.06); padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
