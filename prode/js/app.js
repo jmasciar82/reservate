@@ -8,6 +8,7 @@ document.addEventListener("DOMContentLoaded", () => {
 const ProdeApp = {
   activeTab: "dashboard",
   selectedStage: "Fase de Grupos",
+  selectedLeaderboardFilter: null,
 
   async init() {
     // Inicializar bases de datos locales
@@ -354,17 +355,27 @@ const ProdeApp = {
     btn.disabled = true;
     btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Verificando transferencia...`;
 
+    const isGroupsLocked = ProdeEngine.isStageLocked("Fase de Grupos");
     const sb = ProdeAPI.getSupabaseClient();
     if (sb) {
       try {
-        const { error } = await sb.from("prode_users").upsert({
+        const upsertData = {
           email: activeUser.email,
-          name: activeUser.name,
-          paid: false, // Pendiente de verificación por el admin
-          payment_date: new Date().toISOString(),
-          payment_method: "MercadoPago_Transfer",
-          transaction_id: receiptId
-        });
+          name: activeUser.name
+        };
+        if (isGroupsLocked) {
+          upsertData.paid_knockout = false;
+          upsertData.payment_date_knockout = new Date().toISOString();
+          upsertData.payment_method_knockout = "MercadoPago_Transfer";
+          upsertData.transaction_id_knockout = receiptId;
+        } else {
+          upsertData.paid = false;
+          upsertData.payment_date = new Date().toISOString();
+          upsertData.payment_method = "MercadoPago_Transfer";
+          upsertData.transaction_id = receiptId;
+        }
+        
+        const { error } = await sb.from("prode_users").upsert(upsertData);
         if (error) throw error;
         
         await ProdeEngine.syncActiveUser();
@@ -657,20 +668,43 @@ const ProdeApp = {
     // Actualizar Info de Perfil en Barra Lateral / Header
     document.getElementById("user-display-email").textContent = activeUser.email;
     const statusText = document.getElementById("user-display-status");
-    if (activeUser.paid) {
-      const config = ProdeEngine.getOrganizerConfig();
-      const cost = config.entryCost !== undefined ? config.entryCost : 1000;
-      statusText.innerHTML = `<i class="fa-solid fa-circle-check"></i> Activo ($${cost})`;
+    
+    const isGroupsLocked = ProdeEngine.isStageLocked("Fase de Grupos");
+    const isPaid = isGroupsLocked ? !!activeUser.paid_knockout : !!activeUser.paid;
+    const hasPending = isGroupsLocked 
+      ? (!activeUser.paid_knockout && activeUser.transaction_id_knockout)
+      : (!activeUser.paid && activeUser.transaction_id);
+
+    const config = ProdeEngine.getOrganizerConfig();
+    const cost = config.entryCost !== undefined ? config.entryCost : 1000;
+
+    if (isPaid) {
+      statusText.innerHTML = `<i class="fa-solid fa-circle-check"></i> Activo ($${cost}) ${isGroupsLocked ? "(Elim.)" : "(Grupos)"}`;
       statusText.className = "profile-status";
+    } else if (hasPending) {
+      statusText.innerHTML = `<i class="fa-solid fa-hourglass-half"></i> Pág. Pendiente`;
+      statusText.className = "profile-status pending";
     } else {
-      statusText.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> Inactivo`;
+      statusText.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> Inactivo ${isGroupsLocked ? "(Elim.)" : "(Grupos)"}`;
       statusText.className = "profile-status unpaid";
     }
 
     // Sincronizar banner de cuenta impaga
     const unpaidBanner = document.getElementById("unpaid-warning-banner");
-    if (!activeUser.paid) {
+    const unpaidTitle = document.getElementById("unpaid-banner-title");
+    const unpaidDesc = document.getElementById("unpaid-banner-desc");
+    
+    if (!isPaid) {
       unpaidBanner.style.display = "flex";
+      if (unpaidTitle && unpaidDesc) {
+        if (isGroupsLocked) {
+          unpaidTitle.textContent = "Inscripción Pendiente (Fase Eliminatoria)";
+          unpaidDesc.innerHTML = `Tus predicciones están guardadas, pero debes abonar la inscripción de $${cost} de la <strong>Fase Eliminatoria</strong> para figurar en esta nueva clasificación y disputar el pozo de playoffs.`;
+        } else {
+          unpaidTitle.textContent = "Inscripción Pendiente (Fase de Grupos)";
+          unpaidDesc.innerHTML = `Tus predicciones están guardadas, pero debes abonar la inscripción de $${cost} de la <strong>Fase de Grupos</strong> para figurar en la clasificación y disputar el pozo.`;
+        }
+      }
     } else {
       unpaidBanner.style.display = "none";
     }
@@ -1113,18 +1147,63 @@ const ProdeApp = {
     const activeUser = ProdeEngine.getActiveUser();
     if (!activeUser) return;
 
-    const boardData = await ProdeEngine.getLeaderboard();
+    if (this.selectedLeaderboardFilter === null) {
+      this.selectedLeaderboardFilter = ProdeEngine.isStageLocked("Fase de Grupos") ? "knockout" : "groups";
+    }
+
+    // Sincronizar botones de filtro activos en la clasificación
+    document.querySelectorAll(".btn-board-filter").forEach(btn => {
+      const isMatch = btn.getAttribute("onclick").includes(`'${this.selectedLeaderboardFilter}'`);
+      if (isMatch) {
+        btn.classList.add("active");
+      } else {
+        btn.classList.remove("active");
+      }
+    });
+
+    const boardData = await ProdeEngine.getLeaderboard(this.selectedLeaderboardFilter);
     
-    // Rellenar pozo acumulado en la cabecera
-    document.getElementById("board-total-pool").textContent = `$${boardData.totalPool.toLocaleString()} ARS`;
+    // Actualizar etiquetas dinámicamente según la fase seleccionada
+    const poolLabel = document.getElementById("board-pool-label");
+    if (poolLabel) {
+      if (this.selectedLeaderboardFilter === "knockout") {
+        poolLabel.innerHTML = `<i class="fa-solid fa-trophy" style="color: var(--primary-gold);"></i> Pozo Eliminatorias`;
+      } else {
+        poolLabel.innerHTML = `<i class="fa-solid fa-trophy" style="color: var(--primary-gold);"></i> Pozo Fase de Grupos`;
+      }
+    }
+
+    const leaderboardDesc = document.querySelector("#tab-leaderboard .leaderboard-intro p");
+    if (leaderboardDesc) {
+      if (this.selectedLeaderboardFilter === "knockout") {
+        leaderboardDesc.textContent = "Clasificación oficial de los playoffs de eliminación directa (8vos a Final).";
+      } else {
+        leaderboardDesc.textContent = "Clasificación oficial de los partidos de la Fase de Grupos (Grupos A al L).";
+      }
+    }
 
     // Sincronizar aviso de cobro en Leaderboard
     const unpaidNotice = document.getElementById("leaderboard-unpaid-notice");
-    if (!activeUser.paid) {
-      unpaidNotice.style.display = "flex";
-    } else {
-      unpaidNotice.style.display = "none";
+    const isPaidForSelected = this.selectedLeaderboardFilter === "knockout" ? !!activeUser.paid_knockout : !!activeUser.paid;
+    
+    const config = ProdeEngine.getOrganizerConfig();
+    const cost = config.entryCost !== undefined ? config.entryCost : 1000;
+
+    if (unpaidNotice) {
+      if (!isPaidForSelected) {
+        unpaidNotice.style.display = "flex";
+        const descText = unpaidNotice.querySelector("p");
+        if (descText) {
+          const stageName = this.selectedLeaderboardFilter === "knockout" ? "Fase Eliminatoria" : "Fase de Grupos";
+          descText.innerHTML = `💡 <strong>Tus predicciones están registradas y guardadas.</strong> Sin embargo, no figuras en esta clasificación oficial de la <strong>${stageName}</strong> porque no has realizado tu pago de $<span class="entry-cost-display">${cost}</span> correspondiente a este pozo. Los competidores activos que ves abajo han abonado su cuota para esta etapa. ¡Registra tu transferencia en cualquier momento para ingresar con tus puntos!`;
+        }
+      } else {
+        unpaidNotice.style.display = "none";
+      }
     }
+
+    // Rellenar pozo acumulado en la cabecera
+    document.getElementById("board-total-pool").textContent = `$${boardData.totalPool.toLocaleString()} ARS`;
 
     const tbody = document.getElementById("leaderboard-tbody");
     tbody.innerHTML = "";
@@ -1190,6 +1269,11 @@ const ProdeApp = {
     });
   },
 
+  changeLeaderboardFilter(filter) {
+    this.selectedLeaderboardFilter = filter;
+    this.renderLeaderboard();
+  },
+
   async loadExcelJS() {
     if (window.ExcelJS) return window.ExcelJS;
     return new Promise((resolve, reject) => {
@@ -1208,19 +1292,29 @@ const ProdeApp = {
       return;
     }
 
-    const boardData = await ProdeEngine.getLeaderboard();
+    if (this.selectedLeaderboardFilter === null) {
+      this.selectedLeaderboardFilter = ProdeEngine.isStageLocked("Fase de Grupos") ? "knockout" : "groups";
+    }
+    const filter = this.selectedLeaderboardFilter;
+    const boardData = await ProdeEngine.getLeaderboard(filter);
     const activePlayers = boardData.rankings.filter(p => p.paid);
     
     if (activePlayers.length === 0) {
-      this.showMicroNotification("No hay participantes activos con inscripción abonada.", "warning");
+      this.showMicroNotification(`No hay participantes activos con inscripción abonada para la ${filter === "knockout" ? "Fase Eliminatoria" : "Fase de Grupos"}.`, "warning");
       return;
     }
 
     this.showMicroNotification("Preparando planilla Excel...", "info");
 
     const matches = await ProdeAPI.getMatches();
+    const filteredMatches = matches.filter(m => {
+      if (filter === "groups") return m.stage === "Fase de Grupos";
+      if (filter === "knockout") return m.stage !== "Fase de Grupos";
+      return true;
+    });
+    
     let header = ["Participante", "Email"];
-    const sortedMatches = [...matches].sort((a, b) => new Date(a.date) - new Date(b.date));
+    const sortedMatches = [...filteredMatches].sort((a, b) => new Date(a.date) - new Date(b.date));
     
     sortedMatches.forEach(m => {
       const label = `${m.teamA} vs ${m.teamB} (${m.stage})`;
@@ -1462,9 +1556,10 @@ const ProdeApp = {
     document.getElementById("admin-mp-commission").value = config.commission !== undefined ? config.commission : 20;
     document.getElementById("admin-mp-entry-cost").value = config.entryCost !== undefined ? config.entryCost : 1000;
 
-    // Calcular y renderizar resumen financiero del administrador
-    const boardData = await ProdeEngine.getLeaderboard();
-    document.getElementById("admin-fin-participants").textContent = boardData.participantsCount;
+    // Calcular y renderizar resumen financiero del administrador (según el pozo activo)
+    const activePhase = ProdeEngine.isStageLocked("Fase de Grupos") ? "knockout" : "groups";
+    const boardData = await ProdeEngine.getLeaderboard(activePhase);
+    document.getElementById("admin-fin-participants").textContent = `${boardData.participantsCount} (${activePhase === "knockout" ? "Elim." : "Grupos"})`;
     document.getElementById("admin-fin-gross").textContent = `$${boardData.totalGrossPool.toLocaleString()}`;
     document.getElementById("admin-fin-commission").textContent = `$${boardData.adminCommissionAmount.toLocaleString()}`;
     document.getElementById("admin-fin-net").textContent = `$${boardData.totalPool.toLocaleString()}`;
@@ -1495,40 +1590,70 @@ const ProdeApp = {
     if (sb) {
       paymentsPanel.style.display = "block";
       try {
-        const { data: unpaidUsers, error } = await sb
+        const { data: dbUsers, error } = await sb
           .from("prode_users")
-          .select("*")
-          .eq("paid", false)
-          .not("transaction_id", "is", null);
+          .select("*");
         
         if (error) throw error;
 
-        if (unpaidUsers && unpaidUsers.length > 0) {
-          unpaidUsers.forEach(user => {
+        // Filtrar localmente transferencias pendientes de aprobar para Grupos o Eliminatorias
+        const pendingApprovals = [];
+        if (dbUsers) {
+          dbUsers.forEach(user => {
+            if (!user.paid && user.transaction_id) {
+              pendingApprovals.push({
+                email: user.email,
+                name: user.name,
+                transactionId: user.transaction_id,
+                date: user.payment_date,
+                phase: "groups",
+                phaseLabel: "Grupos"
+              });
+            }
+            if (!user.paid_knockout && user.transaction_id_knockout) {
+              pendingApprovals.push({
+                email: user.email,
+                name: user.name,
+                transactionId: user.transaction_id_knockout,
+                date: user.payment_date_knockout,
+                phase: "knockout",
+                phaseLabel: "Eliminatorias"
+              });
+            }
+          });
+        }
+
+        if (pendingApprovals.length > 0) {
+          pendingApprovals.forEach(item => {
             const tr = document.createElement("tr");
             
-            const dateStr = user.payment_date 
-              ? new Date(user.payment_date).toLocaleDateString("es-ES", { day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" }) + " hs"
+            const dateStr = item.date 
+              ? new Date(item.date).toLocaleDateString("es-ES", { day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" }) + " hs"
               : "-";
 
             tr.innerHTML = `
               <td>
-                <div style="font-weight: 700; color: #fff;">${user.name}</div>
-                <div style="font-size: 0.75rem; color: var(--text-muted);">${user.email}</div>
+                <div style="font-weight: 700; color: #fff;">${item.name}</div>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">${item.email}</div>
               </td>
-              <td style="font-family: monospace; font-weight: 600; color: var(--primary-gold);">${user.transaction_id}</td>
+              <td>
+                <span class="match-stage-badge" style="font-size: 0.7rem; font-weight: 800; padding: 2px 6px; background: rgba(255,255,255,0.05); border-radius: 4px; display: inline-block;">
+                  ${item.phaseLabel}
+                </span>
+              </td>
+              <td style="font-family: monospace; font-weight: 600; color: var(--primary-gold);">${item.transactionId}</td>
               <td style="color: var(--text-muted);">${dateStr}</td>
               <td style="text-align: center;">
                 <div style="display: flex; gap: 8px; justify-content: center;">
-                  <button class="btn-sm-action btn-gold-action" style="padding: 4px 10px; font-size: 0.75rem; background: var(--accent-green); color: #000; font-weight: 700;" onclick="ProdeApp.approvePayment('${user.email}')">Aprobar</button>
-                  <button class="btn-sm-action btn-gray-action" style="padding: 4px 10px; font-size: 0.75rem; background: rgba(239,68,68,0.1); color: var(--accent-red); border-color: rgba(239,68,68,0.2);" onclick="ProdeApp.rejectPayment('${user.email}')">Rechazar</button>
+                  <button class="btn-sm-action btn-gold-action" style="padding: 4px 10px; font-size: 0.75rem; background: var(--accent-green); color: #000; font-weight: 700;" onclick="ProdeApp.approvePayment('${item.email}', '${item.phase}')">Aprobar</button>
+                  <button class="btn-sm-action btn-gray-action" style="padding: 4px 10px; font-size: 0.75rem; background: rgba(239,68,68,0.1); color: var(--accent-red); border-color: rgba(239,68,68,0.2);" onclick="ProdeApp.rejectPayment('${item.email}', '${item.phase}')">Rechazar</button>
                 </div>
               </td>
             `;
             paymentsTbody.appendChild(tr);
           });
         } else {
-          paymentsTbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 15px;">No hay transferencias pendientes de verificación.</td></tr>`;
+          paymentsTbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 15px;">No hay transferencias pendientes de verificación.</td></tr>`;
         }
       } catch (e) {
         console.error("Error al obtener transferencias pendientes:", e);
@@ -1873,16 +1998,26 @@ INSERT INTO prode_config (id, alias, cvu, holder, payment_link, commission, admi
 VALUES (1, 'prode.mundial.2026', '0000003100019283746501', 'Juan Pérez (Organizador)', '', 20, '', 1000)
 ON CONFLICT (id) DO NOTHING;
 
--- 2. Tabla de Usuarios del Prode
+-- 2. Tabla de Usuarios del Prode (Soporta múltiples pozos independientes)
 CREATE TABLE IF NOT EXISTS prode_users (
   email TEXT PRIMARY KEY,
   name TEXT NOT NULL,
-  paid BOOLEAN DEFAULT FALSE,
+  paid BOOLEAN DEFAULT FALSE, -- Grupos
   payment_date TIMESTAMPTZ,
   payment_method TEXT,
   transaction_id TEXT,
+  paid_knockout BOOLEAN DEFAULT FALSE, -- Eliminatorias
+  payment_date_knockout TIMESTAMPTZ,
+  payment_method_knockout TEXT,
+  transaction_id_knockout TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Habilitar compatibilidad en bases de datos existentes
+ALTER TABLE prode_users ADD COLUMN IF NOT EXISTS paid_knockout BOOLEAN DEFAULT FALSE;
+ALTER TABLE prode_users ADD COLUMN IF NOT EXISTS payment_date_knockout TIMESTAMPTZ;
+ALTER TABLE prode_users ADD COLUMN IF NOT EXISTS payment_method_knockout TEXT;
+ALTER TABLE prode_users ADD COLUMN IF NOT EXISTS transaction_id_knockout TEXT;
 
 -- 3. Tabla de Predicciones de Goles
 CREATE TABLE IF NOT EXISTS prode_predictions (
@@ -1949,20 +2084,27 @@ CREATE POLICY "Permitir gestion de partidos" ON prode_matches FOR ALL USING (tru
     });
   },
 
-  async approvePayment(email) {
-    if (!confirm(`¿Estás seguro de que quieres aprobar el pago de inscripción para ${email}?`)) return;
+  async approvePayment(email, phase) {
+    if (!confirm(`¿Estás seguro de que quieres aprobar el pago de inscripción para ${email} (${phase === "knockout" ? "Fase Eliminatoria" : "Fase de Grupos"})?`)) return;
     
     const sb = ProdeAPI.getSupabaseClient();
     if (sb) {
       try {
+        const updateData = {};
+        if (phase === "knockout") {
+          updateData.paid_knockout = true;
+        } else {
+          updateData.paid = true;
+        }
+
         const { error } = await sb
           .from("prode_users")
-          .update({ paid: true })
+          .update(updateData)
           .eq("email", email);
         
         if (error) throw error;
         
-        this.addAdminLog(`Inscripción aprobada: ${email}`);
+        this.addAdminLog(`Inscripción aprobada (${phase === "knockout" ? "Eliminatorias" : "Grupos"}): ${email}`);
         this.showMicroNotification(`¡Inscripción de ${email} aprobada con éxito!`, "success");
         await ProdeEngine.syncActiveUser();
         this.refreshAppViews();
@@ -1973,24 +2115,33 @@ CREATE POLICY "Permitir gestion de partidos" ON prode_matches FOR ALL USING (tru
     }
   },
 
-  async rejectPayment(email) {
-    if (!confirm(`¿Estás seguro de que quieres rechazar el pago de ${email}? El usuario deberá registrar sus datos de transferencia nuevamente.`)) return;
+  async rejectPayment(email, phase) {
+    if (!confirm(`¿Estás seguro de que quieres rechazar el pago de ${email} (${phase === "knockout" ? "Fase Eliminatoria" : "Fase de Grupos"})? El usuario deberá registrar sus datos de transferencia nuevamente.`)) return;
     
     const sb = ProdeAPI.getSupabaseClient();
     if (sb) {
       try {
+        const updateData = {};
+        if (phase === "knockout") {
+          updateData.transaction_id_knockout = null;
+          updateData.payment_date_knockout = null;
+          updateData.payment_method_knockout = null;
+          updateData.paid_knockout = false;
+        } else {
+          updateData.transaction_id = null;
+          updateData.payment_date = null;
+          updateData.payment_method = null;
+          updateData.paid = false;
+        }
+
         const { error } = await sb
           .from("prode_users")
-          .update({
-            transaction_id: null,
-            payment_date: null,
-            payment_method: null
-          })
+          .update(updateData)
           .eq("email", email);
         
         if (error) throw error;
         
-        this.addAdminLog(`Inscripción rechazada: ${email}`);
+        this.addAdminLog(`Inscripción rechazada (${phase === "knockout" ? "Eliminatorias" : "Grupos"}): ${email}`);
         this.showMicroNotification(`Pago de ${email} rechazado.`, "info");
         await ProdeEngine.syncActiveUser();
         this.refreshAppViews();

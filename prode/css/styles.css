@@ -541,6 +541,10 @@ body {
   color: var(--accent-red);
 }
 
+.profile-status.pending {
+  color: var(--primary-gold);
+}
+
 .btn-logout {
   width: 100%;
   padding: 10px;

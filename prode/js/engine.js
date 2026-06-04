@@ -112,6 +112,10 @@ const ProdeEngine = {
             paymentDate: u.payment_date,
             paymentMethod: u.payment_method,
             transactionId: u.transaction_id,
+            paid_knockout: u.paid_knockout,
+            paymentDateKnockout: u.payment_date_knockout,
+            paymentMethodKnockout: u.payment_method_knockout,
+            transactionIdKnockout: u.transaction_id_knockout,
             predictions: predictions
           };
           
@@ -147,6 +151,10 @@ const ProdeEngine = {
         paymentDate: null,
         paymentMethod: null,
         transactionId: null,
+        paid_knockout: false,
+        paymentDateKnockout: null,
+        paymentMethodKnockout: null,
+        transactionIdKnockout: null,
         predictions: {}
       };
       users[cleanEmail] = user;
@@ -173,6 +181,10 @@ const ProdeEngine = {
           user.paymentDate = fullUser.payment_date;
           user.paymentMethod = fullUser.payment_method;
           user.transactionId = fullUser.transaction_id;
+          user.paid_knockout = fullUser.paid_knockout;
+          user.paymentDateKnockout = fullUser.payment_date_knockout;
+          user.paymentMethodKnockout = fullUser.payment_method_knockout;
+          user.transactionIdKnockout = fullUser.transaction_id_knockout;
           users[cleanEmail] = user;
           this.saveUsers(users);
         }
@@ -196,31 +208,54 @@ const ProdeEngine = {
     }
     
     const paymentDate = new Date().toISOString();
+    const isGroupsLocked = this.isStageLocked("Fase de Grupos");
     
-    users[cleanEmail].paid = true;
-    users[cleanEmail].paymentDate = paymentDate;
-    users[cleanEmail].paymentMethod = paymentMethod;
-    users[cleanEmail].transactionId = transactionId;
+    if (isGroupsLocked) {
+      users[cleanEmail].paid_knockout = true;
+      users[cleanEmail].paymentDateKnockout = paymentDate;
+      users[cleanEmail].paymentMethodKnockout = paymentMethod;
+      users[cleanEmail].transactionIdKnockout = transactionId;
+    } else {
+      users[cleanEmail].paid = true;
+      users[cleanEmail].paymentDate = paymentDate;
+      users[cleanEmail].paymentMethod = paymentMethod;
+      users[cleanEmail].transactionId = transactionId;
+    }
     this.saveUsers(users);
     
     if (this._activeUserCache && this._activeUserCache.email === cleanEmail) {
-      this._activeUserCache.paid = true;
-      this._activeUserCache.paymentDate = paymentDate;
-      this._activeUserCache.paymentMethod = paymentMethod;
-      this._activeUserCache.transactionId = transactionId;
+      if (isGroupsLocked) {
+        this._activeUserCache.paid_knockout = true;
+        this._activeUserCache.paymentDateKnockout = paymentDate;
+        this._activeUserCache.paymentMethodKnockout = paymentMethod;
+        this._activeUserCache.transactionIdKnockout = transactionId;
+      } else {
+        this._activeUserCache.paid = true;
+        this._activeUserCache.paymentDate = paymentDate;
+        this._activeUserCache.paymentMethod = paymentMethod;
+        this._activeUserCache.transactionId = transactionId;
+      }
     }
 
     const sb = ProdeAPI.getSupabaseClient();
     if (sb) {
       try {
-        const { error } = await sb.from("prode_users").upsert({
+        const upsertData = {
           email: cleanEmail,
-          name: users[cleanEmail].name || cleanEmail.split("@")[0],
-          paid: true,
-          payment_date: paymentDate,
-          payment_method: paymentMethod,
-          transaction_id: transactionId
-        });
+          name: users[cleanEmail].name || cleanEmail.split("@")[0]
+        };
+        if (isGroupsLocked) {
+          upsertData.paid_knockout = true;
+          upsertData.payment_date_knockout = paymentDate;
+          upsertData.payment_method_knockout = paymentMethod;
+          upsertData.transaction_id_knockout = transactionId;
+        } else {
+          upsertData.paid = true;
+          upsertData.payment_date = paymentDate;
+          upsertData.payment_method = paymentMethod;
+          upsertData.transaction_id = transactionId;
+        }
+        const { error } = await sb.from("prode_users").upsert(upsertData);
         if (error) throw error;
       } catch (e) {
         console.error("Error al registrar pago en Supabase:", e);
@@ -268,6 +303,10 @@ const ProdeEngine = {
         paymentDate: null,
         paymentMethod: null,
         transactionId: null,
+        paid_knockout: false,
+        paymentDateKnockout: null,
+        paymentMethodKnockout: null,
+        transactionIdKnockout: null,
         predictions: {}
       };
       users[cleanEmail] = user;
@@ -305,6 +344,10 @@ const ProdeEngine = {
           user.paymentDate = existingUser.payment_date;
           user.paymentMethod = existingUser.payment_method;
           user.transactionId = existingUser.transaction_id;
+          user.paid_knockout = existingUser.paid_knockout;
+          user.paymentDateKnockout = existingUser.payment_date_knockout;
+          user.paymentMethodKnockout = existingUser.payment_method_knockout;
+          user.transactionIdKnockout = existingUser.transaction_id_knockout;
           users[cleanEmail] = user;
           this.saveUsers(users);
         }
@@ -391,7 +434,7 @@ const ProdeEngine = {
   },
 
   // CALCULA Y ORDENA LA TABLA DE POSICIONES
-  async getLeaderboard() {
+  async getLeaderboard(stageType = "groups") {
     const sb = ProdeAPI.getSupabaseClient();
     let users = {};
     let realMatches = await ProdeAPI.getMatches();
@@ -412,6 +455,10 @@ const ProdeEngine = {
             paymentDate: u.payment_date,
             paymentMethod: u.payment_method,
             transactionId: u.transaction_id,
+            paid_knockout: u.paid_knockout,
+            paymentDateKnockout: u.payment_date_knockout,
+            paymentMethodKnockout: u.payment_method_knockout,
+            transactionIdKnockout: u.transaction_id_knockout,
             predictions: {}
           };
         });
@@ -441,7 +488,9 @@ const ProdeEngine = {
         return;
       }
 
-      if (user.paid) {
+      const isPaidForStage = stageType === "knockout" ? !!user.paid_knockout : !!user.paid;
+
+      if (isPaidForStage) {
         totalPaidParticipants++;
       }
       
@@ -451,6 +500,10 @@ const ProdeEngine = {
 
       realMatches.forEach(match => {
         if (match.status === "FINALIZADO") {
+          // Filtro por fase
+          if (stageType === "groups" && match.stage !== "Fase de Grupos") return;
+          if (stageType === "knockout" && match.stage === "Fase de Grupos") return;
+
           const pred = user.predictions[match.id];
           if (pred) {
             const pts = this.calculateMatchPoints(pred, match);
@@ -467,8 +520,8 @@ const ProdeEngine = {
         points: points,
         exactHits: exactHits,
         partialHits: partialHits,
-        paymentDate: user.paymentDate,
-        paid: !!user.paid
+        paymentDate: stageType === "knockout" ? user.paymentDateKnockout : user.paymentDate,
+        paid: isPaidForStage
       });
     });
 
