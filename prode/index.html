@@ -108,7 +108,7 @@
       <div class="payment-header">
         <div class="payment-badge" style="background: rgba(212, 175, 55, 0.1); border-color: var(--primary-gold); color: var(--primary-gold);"><i class="fa-solid fa-money-bill-transfer"></i> Pago por Transferencia</div>
         <h2>Valida tu Cuenta para el Pozo</h2>
-        <p>Abona los $1000 de inscripción a los datos detallados a continuación para ingresar a la clasificación y competir por el pozo.</p>
+        <p>Abona los $<span class="entry-cost-display">1000</span> de inscripción a los datos detallados a continuación para ingresar a la clasificación y competir por el pozo.</p>
       </div>
 
       <!-- Panel: Transferencia Directa (CVU/Alias) -->
@@ -146,7 +146,7 @@
           <div class="mp-transfer-row-plain">
             <div class="mp-transfer-field">
               <span class="mp-transfer-label">MONTO ESTABLECIDO</span>
-              <span class="mp-transfer-value-plain" style="color: var(--primary-gold); font-size: 1.15rem; font-weight: 800;">$1000 ARS</span>
+              <span class="mp-transfer-value-plain" style="color: var(--primary-gold); font-size: 1.15rem; font-weight: 800;">$<span class="entry-cost-display">1000</span> ARS</span>
             </div>
           </div>
         </div>
@@ -275,11 +275,11 @@
           <i class="fa-solid fa-circle-exclamation" style="color: var(--primary-gold); font-size: 1.3rem;"></i>
           <div>
             <strong style="color: var(--primary-gold); font-weight: 700; font-size: 0.95rem;">Modo de Demostración Activo</strong>
-            <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 2px;">Tus predicciones están guardadas, pero debes abonar la inscripción de $1000 para figurar en la clasificación y disputar el pozo.</p>
+            <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 2px;">Tus predicciones están guardadas, pero debes abonar la inscripción de $<span class="entry-cost-display">1000</span> para figurar en la clasificación y disputar el pozo.</p>
           </div>
         </div>
         <button class="btn-primary" onclick="ProdeApp.goToPaymentScreen()" style="width: auto; padding: 8px 16px; font-size: 0.8rem; text-transform: none; font-weight: 700; box-shadow: 0 4px 10px rgba(212,175,55,0.25);">
-          Abonar $1000 y Competir
+          Abonar $<span class="entry-cost-display">1000</span> y Competir
         </button>
       </div>
 
@@ -475,7 +475,7 @@
           <i class="fa-solid fa-circle-question" style="color: var(--primary-gold); font-size: 1.3rem;"></i>
           <div style="flex: 1;">
             <p style="color: var(--text-muted); font-size: 0.85rem; line-height: 1.4;">
-              💡 <strong>Tus predicciones están registradas y guardadas.</strong> Sin embargo, no figuras en esta clasificación oficial porque no has realizado tu pago de $1000. Los competidores activos que ves abajo han abonado sus respectivas cuotas. ¡Paga en cualquier momento antes de que terminen los partidos para ingresar con tus puntos!
+              💡 <strong>Tus predicciones están registradas y guardadas.</strong> Sin embargo, no figuras en esta clasificación oficial porque no has realizado tu pago de $<span class="entry-cost-display">1000</span>. Los competidores activos que ves abajo han abonado sus respectivas cuotas. ¡Paga en cualquier momento antes de que terminen los partidos para ingresar con tus puntos!
             </p>
           </div>
         </div>
@@ -661,6 +661,11 @@
               <div class="form-group" style="margin-bottom: 0;">
                 <label for="admin-mp-commission">Comisión de Organización (%)</label>
                 <input type="number" id="admin-mp-commission" class="form-input" placeholder="0" min="0" max="100" required style="padding: 10px 14px; font-size: 0.9rem;">
+              </div>
+
+              <div class="form-group" style="margin-bottom: 0;">
+                <label for="admin-mp-entry-cost">Monto de Inscripción ($)</label>
+                <input type="number" id="admin-mp-entry-cost" class="form-input" placeholder="1000" min="0" required style="padding: 10px 14px; font-size: 0.9rem;">
               </div>
 
               <div style="grid-column: 1 / -1; display: flex; justify-content: flex-end; margin-top: 10px;">

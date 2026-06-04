@@ -469,13 +469,14 @@ const ProdeApp = {
     const holder = document.getElementById("admin-mp-holder").value.trim();
     const paymentLink = document.getElementById("admin-mp-link").value.trim();
     const commission = parseInt(document.getElementById("admin-mp-commission").value) || 0;
+    const entryCost = parseInt(document.getElementById("admin-mp-entry-cost").value) || 1000;
 
     if (!alias || !cvu || !holder) {
       this.showMicroNotification("Completa todos los campos obligatorios", "warning");
       return;
     }
 
-    const config = { alias, cvu, holder, paymentLink, commission };
+    const config = { alias, cvu, holder, paymentLink, commission, entryCost };
     try {
       await ProdeEngine.saveOrganizerConfig(config);
       this.addAdminLog(`Configuración de cobros actualizada (Comisión: ${commission}%).`);
@@ -604,12 +605,23 @@ const ProdeApp = {
     this.refreshAppViews();
   },
 
+  updateDynamicEntryCosts() {
+    const config = ProdeEngine.getOrganizerConfig();
+    const cost = config.entryCost !== undefined ? config.entryCost : 1000;
+    document.querySelectorAll(".entry-cost-display").forEach(el => {
+      el.textContent = cost;
+    });
+  },
+
   // -------------------------------------------------------------
   // REFRESH DE VISTAS (SINCRONIZACIÓN DE LA SPA)
   // -------------------------------------------------------------
   async refreshAppViews() {
     const activeUser = ProdeEngine.getActiveUser();
     if (!activeUser) return;
+
+    // Actualizar todos los montos dinámicos de inscripción
+    this.updateDynamicEntryCosts();
 
     // Controlar visibilidad del tab Admin según el rol
     const adminSidebarItem = document.querySelector(".nav-item[data-tab='admin']");
@@ -646,7 +658,9 @@ const ProdeApp = {
     document.getElementById("user-display-email").textContent = activeUser.email;
     const statusText = document.getElementById("user-display-status");
     if (activeUser.paid) {
-      statusText.innerHTML = `<i class="fa-solid fa-circle-check"></i> Activo ($1000)`;
+      const config = ProdeEngine.getOrganizerConfig();
+      const cost = config.entryCost !== undefined ? config.entryCost : 1000;
+      statusText.innerHTML = `<i class="fa-solid fa-circle-check"></i> Activo ($${cost})`;
       statusText.className = "profile-status";
     } else {
       statusText.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> Inactivo`;
@@ -1220,6 +1234,7 @@ const ProdeApp = {
     document.getElementById("admin-mp-holder").value = config.holder;
     document.getElementById("admin-mp-link").value = config.paymentLink;
     document.getElementById("admin-mp-commission").value = config.commission !== undefined ? config.commission : 20;
+    document.getElementById("admin-mp-entry-cost").value = config.entryCost !== undefined ? config.entryCost : 1000;
 
     // Calcular y renderizar resumen financiero del administrador
     const boardData = await ProdeEngine.getLeaderboard();
@@ -1623,12 +1638,13 @@ CREATE TABLE IF NOT EXISTS prode_config (
   holder TEXT DEFAULT 'Juan Pérez (Organizador)',
   payment_link TEXT DEFAULT '',
   commission INT DEFAULT 20,
-  admin_password_hash TEXT DEFAULT ''
+  admin_password_hash TEXT DEFAULT '',
+  entry_cost INT DEFAULT 1000
 );
 
 -- Insertar configuración inicial predeterminada
-INSERT INTO prode_config (id, alias, cvu, holder, payment_link, commission, admin_password_hash)
-VALUES (1, 'prode.mundial.2026', '0000003100019283746501', 'Juan Pérez (Organizador)', '', 20, '')
+INSERT INTO prode_config (id, alias, cvu, holder, payment_link, commission, admin_password_hash, entry_cost)
+VALUES (1, 'prode.mundial.2026', '0000003100019283746501', 'Juan Pérez (Organizador)', '', 20, '', 1000)
 ON CONFLICT (id) DO NOTHING;
 
 -- 2. Tabla de Usuarios del Prode

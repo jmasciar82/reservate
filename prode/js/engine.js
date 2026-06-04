@@ -479,8 +479,9 @@ const ProdeEngine = {
 
     const config = this.getOrganizerConfig();
     const commissionPct = config.commission !== undefined ? parseInt(config.commission) : 20;
+    const entryCost = config.entryCost !== undefined ? parseInt(config.entryCost) : 1000;
 
-    const grossPool = totalPaidParticipants * 1000;
+    const grossPool = totalPaidParticipants * entryCost;
     const adminCut = grossPool * (commissionPct / 100);
     const netPool = grossPool - adminCut;
 
@@ -524,7 +525,8 @@ const ProdeEngine = {
       holder: "Juan Pérez (Organizador)",
       paymentLink: "",
       commission: 20,
-      adminPasswordHash: ""
+      adminPasswordHash: "",
+      entryCost: 1000
     };
     const saved = localStorage.getItem("worldcup_prode_organizer_config");
     if (saved) {
@@ -554,7 +556,8 @@ const ProdeEngine = {
             holder: data.holder || defaultConfig.holder,
             paymentLink: data.payment_link || defaultConfig.paymentLink,
             commission: data.commission !== undefined && data.commission !== null ? parseInt(data.commission) : defaultConfig.commission,
-            adminPasswordHash: data.admin_password_hash || ""
+            adminPasswordHash: data.admin_password_hash || "",
+            entryCost: data.entry_cost !== undefined && data.entry_cost !== null ? parseInt(data.entry_cost) : defaultConfig.entryCost
           };
           localStorage.setItem("worldcup_prode_organizer_config", JSON.stringify(config));
           return config;
@@ -580,7 +583,8 @@ const ProdeEngine = {
           holder: config.holder,
           payment_link: config.paymentLink,
           commission: config.commission,
-          admin_password_hash: config.adminPasswordHash || ""
+          admin_password_hash: config.adminPasswordHash || "",
+          entry_cost: config.entryCost || 1000
         });
         if (error) throw error;
       } catch (e) {
