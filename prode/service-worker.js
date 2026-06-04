@@ -1,4 +1,4 @@
-const CACHE_NAME = "prode-wc-v5";
+const CACHE_NAME = "prode-wc-v6";
 const ASSETS = [
   "./",
   "./index.html",

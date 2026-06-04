@@ -436,6 +436,11 @@ const ProdeEngine = {
     let totalPaidParticipants = 0;
 
     Object.values(users).forEach(user => {
+      // Excluir administradores de la clasificación
+      if (this.isAdmin(user.email)) {
+        return;
+      }
+
       if (user.paid) {
         totalPaidParticipants++;
       }
