@@ -955,6 +955,16 @@ body {
   background: rgba(0, 0, 0, 0.6);
 }
 
+/* Ocultar spinners de input number */
+.goals-field::-webkit-outer-spin-button,
+.goals-field::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.goals-field {
+  -moz-appearance: textfield;
+}
+
 .versus-label {
   font-size: 0.8rem;
   font-weight: 800;
@@ -1381,7 +1391,7 @@ body {
     display: flex;
   }
   .matches-container {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   .featured-match-card {
     grid-column: span 1;
@@ -1456,7 +1466,7 @@ body {
 
   /* Match cards container */
   .matches-container {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: minmax(0, 1fr) !important;
     gap: 14px;
   }
 
@@ -1474,11 +1484,11 @@ body {
 
   /* Match row: key fix for overflow */
   .match-row-grid {
-    gap: 6px;
+    gap: 4px;
   }
 
   .team-block {
-    width: 70px;
+    width: 65px;
     min-width: 0;
   }
 
@@ -1572,6 +1582,8 @@ body {
   .bracket-wrapper {
     gap: 16px;
     padding: 10px 4px;
+    min-width: 0;
+    max-width: 100%;
   }
 
   .bracket-round {
@@ -2300,6 +2312,8 @@ body {
   padding: 20px 10px;
   scroll-behavior: smooth;
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   scrollbar-width: thin;
 }
 
