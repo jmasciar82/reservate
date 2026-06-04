@@ -1215,7 +1215,8 @@ const ProdeApp = {
       const label = `${m.teamA} vs ${m.teamB} (${m.stage})`;
       header.push(label);
     });
-    csvRows.push(header.join(","));
+    const escapedHeader = header.map(h => `"${h.replace(/"/g, '""')}"`);
+    csvRows.push(escapedHeader.join(";"));
 
     const sb = ProdeAPI.getSupabaseClient();
     let allPredictionsMap = {};
@@ -1274,7 +1275,7 @@ const ProdeApp = {
         }
       });
 
-      csvRows.push(row.join(","));
+      csvRows.push(row.join(";"));
     });
 
     const csvContent = "\uFEFF" + csvRows.join("\n");
