@@ -1669,7 +1669,7 @@ const ProdeApp = {
     const matches = await ProdeAPI.getMatches();
 
     const realTeamKeys = Object.keys(WORLDCUP_TEAMS).filter(key => 
-      !key.includes("1") && !key.includes("2") && !key.startsWith("W_")
+      key.length === 2 && !/^\d/.test(key) && !key.startsWith("W_")
     );
 
     matches.forEach(match => {
@@ -2335,7 +2335,9 @@ CREATE POLICY "Permitir gestion de partidos" ON prode_matches FOR ALL USING (tru
     const isStageLocked = ProdeEngine.isStageLocked("Bracket Visual");
 
     const rounds = {
-      "Octavos de Final": ["o1", "o2", "o3", "o4"],
+      "16avos de Final": ["ds1", "ds2", "ds3", "ds4", "ds5", "ds6", "ds7", "ds8", "ds9", "ds10", "ds11", "ds12", "ds13", "ds14", "ds15", "ds16"],
+      "Octavos de Final": ["o1", "o2", "o3", "o4", "o5", "o6", "o7", "o8"],
+      "Cuartos de Final": ["cf1", "cf2", "cf3", "cf4"],
       "Semifinales": ["s1", "s2"],
       "Gran Final": ["fn1"]
     };

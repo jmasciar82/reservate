@@ -39,8 +39,8 @@ const ProdeAPI = {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (parsed && parsed.length > 0 && (parsed[0].teamA === "QA" || parsed[0].id === "g1")) {
-          // Detectado fixture antiguo. Reseteando a la nueva versión 2026 de 72 partidos...
+        if (parsed && parsed.length > 0 && (parsed[0].teamA === "QA" || parsed[0].id === "g1" || !parsed.find(m => m.id === "ds1"))) {
+          // Detectado fixture antiguo o sin 16avos. Reseteando a la nueva versión 2026 de 103 partidos...
           localStorage.removeItem(API_STORAGE_KEY);
           localStorage.removeItem("worldcup_prode_users"); // Reset bots also to get new predictions
           saved = null;

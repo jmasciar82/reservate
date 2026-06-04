@@ -2340,7 +2340,7 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: space-around;
-  min-width: 260px;
+  min-width: 200px;
   flex: 1;
 }
 

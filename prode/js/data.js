@@ -62,43 +62,81 @@ const WORLDCUP_TEAMS = {
   GH: { name: "Ghana", flag: "https://flagcdn.com/gh.svg" },
   PA: { name: "Panamá", flag: "https://flagcdn.com/pa.svg" },
 
-  // MARCADORES DE POSICIÓN PARA FASE ELIMINATORIA
-  "1A": { name: "1° Grupo A", flag: "https://flagcdn.com/un.svg" },
-  "2B": { name: "2° Grupo B", flag: "https://flagcdn.com/un.svg" },
-  "1B": { name: "1° Grupo B", flag: "https://flagcdn.com/un.svg" },
-  "2A": { name: "2° Grupo A", flag: "https://flagcdn.com/un.svg" },
-  "1C": { name: "1° Grupo C", flag: "https://flagcdn.com/un.svg" },
-  "2D": { name: "2° Grupo D", flag: "https://flagcdn.com/un.svg" },
-  "1D": { name: "1° Grupo D", flag: "https://flagcdn.com/un.svg" },
-  "2C": { name: "2° Grupo C", flag: "https://flagcdn.com/un.svg" },
-  "1E": { name: "1° Grupo E", flag: "https://flagcdn.com/un.svg" },
-  "2F": { name: "2° Grupo F", flag: "https://flagcdn.com/un.svg" },
-  "1F": { name: "1° Grupo F", flag: "https://flagcdn.com/un.svg" },
-  "2E": { name: "2° Grupo E", flag: "https://flagcdn.com/un.svg" },
-  "1G": { name: "1° Grupo G", flag: "https://flagcdn.com/un.svg" },
-  "2H": { name: "2° Grupo H", flag: "https://flagcdn.com/un.svg" },
-  "1H": { name: "1° Grupo H", flag: "https://flagcdn.com/un.svg" },
-  "2G": { name: "2° Grupo G", flag: "https://flagcdn.com/un.svg" },
-  "1I": { name: "1° Grupo I", flag: "https://flagcdn.com/un.svg" },
-  "2J": { name: "2° Grupo J", flag: "https://flagcdn.com/un.svg" },
-  "1J": { name: "1° Grupo J", flag: "https://flagcdn.com/un.svg" },
-  "2I": { name: "2° Grupo I", flag: "https://flagcdn.com/un.svg" },
-  "1K": { name: "1° Grupo K", flag: "https://flagcdn.com/un.svg" },
-  "2L": { name: "2° Grupo L", flag: "https://flagcdn.com/un.svg" },
-  "1L": { name: "1° Grupo L", flag: "https://flagcdn.com/un.svg" },
-  "2K": { name: "2° Grupo K", flag: "https://flagcdn.com/un.svg" },
+  // ==================== MARCADORES DE POSICIÓN PARA FASE ELIMINATORIA ====================
 
-  // Marcadores de fase avanzada
-  W_O1: { name: "Ganador Octavos 1", flag: "https://flagcdn.com/un.svg" },
-  W_O2: { name: "Ganador Octavos 2", flag: "https://flagcdn.com/un.svg" },
-  W_O3: { name: "Ganador Octavos 3", flag: "https://flagcdn.com/un.svg" },
-  W_O4: { name: "Ganador Octavos 4", flag: "https://flagcdn.com/un.svg" },
-  
-  W_C1: { name: "Ganador Cuartos 1", flag: "https://flagcdn.com/un.svg" },
-  W_C2: { name: "Ganador Cuartos 2", flag: "https://flagcdn.com/un.svg" },
-  
-  W_S1: { name: "Ganador Semifinal 1", flag: "https://flagcdn.com/un.svg" },
-  W_S2: { name: "Ganador Semifinal 2", flag: "https://flagcdn.com/un.svg" }
+  // 1° y 2° de cada grupo
+  "1A": { name: "1° Grupo A", flag: "https://flagcdn.com/un.svg" },
+  "2A": { name: "2° Grupo A", flag: "https://flagcdn.com/un.svg" },
+  "1B": { name: "1° Grupo B", flag: "https://flagcdn.com/un.svg" },
+  "2B": { name: "2° Grupo B", flag: "https://flagcdn.com/un.svg" },
+  "1C": { name: "1° Grupo C", flag: "https://flagcdn.com/un.svg" },
+  "2C": { name: "2° Grupo C", flag: "https://flagcdn.com/un.svg" },
+  "1D": { name: "1° Grupo D", flag: "https://flagcdn.com/un.svg" },
+  "2D": { name: "2° Grupo D", flag: "https://flagcdn.com/un.svg" },
+  "1E": { name: "1° Grupo E", flag: "https://flagcdn.com/un.svg" },
+  "2E": { name: "2° Grupo E", flag: "https://flagcdn.com/un.svg" },
+  "1F": { name: "1° Grupo F", flag: "https://flagcdn.com/un.svg" },
+  "2F": { name: "2° Grupo F", flag: "https://flagcdn.com/un.svg" },
+  "1G": { name: "1° Grupo G", flag: "https://flagcdn.com/un.svg" },
+  "2G": { name: "2° Grupo G", flag: "https://flagcdn.com/un.svg" },
+  "1H": { name: "1° Grupo H", flag: "https://flagcdn.com/un.svg" },
+  "2H": { name: "2° Grupo H", flag: "https://flagcdn.com/un.svg" },
+  "1I": { name: "1° Grupo I", flag: "https://flagcdn.com/un.svg" },
+  "2I": { name: "2° Grupo I", flag: "https://flagcdn.com/un.svg" },
+  "1J": { name: "1° Grupo J", flag: "https://flagcdn.com/un.svg" },
+  "2J": { name: "2° Grupo J", flag: "https://flagcdn.com/un.svg" },
+  "1K": { name: "1° Grupo K", flag: "https://flagcdn.com/un.svg" },
+  "2K": { name: "2° Grupo K", flag: "https://flagcdn.com/un.svg" },
+  "1L": { name: "1° Grupo L", flag: "https://flagcdn.com/un.svg" },
+  "2L": { name: "2° Grupo L", flag: "https://flagcdn.com/un.svg" },
+
+  // Mejores 3° clasificados (8 de 12 grupos avanzan)
+  "3_P1": { name: "3° Mejor 1", flag: "https://flagcdn.com/un.svg" },
+  "3_P2": { name: "3° Mejor 2", flag: "https://flagcdn.com/un.svg" },
+  "3_P3": { name: "3° Mejor 3", flag: "https://flagcdn.com/un.svg" },
+  "3_P4": { name: "3° Mejor 4", flag: "https://flagcdn.com/un.svg" },
+  "3_P5": { name: "3° Mejor 5", flag: "https://flagcdn.com/un.svg" },
+  "3_P6": { name: "3° Mejor 6", flag: "https://flagcdn.com/un.svg" },
+  "3_P7": { name: "3° Mejor 7", flag: "https://flagcdn.com/un.svg" },
+  "3_P8": { name: "3° Mejor 8", flag: "https://flagcdn.com/un.svg" },
+
+  // Ganadores de Dieciseisavos de Final (16avos)
+  W_DS1:  { name: "Gan. 16avos 1",  flag: "https://flagcdn.com/un.svg" },
+  W_DS2:  { name: "Gan. 16avos 2",  flag: "https://flagcdn.com/un.svg" },
+  W_DS3:  { name: "Gan. 16avos 3",  flag: "https://flagcdn.com/un.svg" },
+  W_DS4:  { name: "Gan. 16avos 4",  flag: "https://flagcdn.com/un.svg" },
+  W_DS5:  { name: "Gan. 16avos 5",  flag: "https://flagcdn.com/un.svg" },
+  W_DS6:  { name: "Gan. 16avos 6",  flag: "https://flagcdn.com/un.svg" },
+  W_DS7:  { name: "Gan. 16avos 7",  flag: "https://flagcdn.com/un.svg" },
+  W_DS8:  { name: "Gan. 16avos 8",  flag: "https://flagcdn.com/un.svg" },
+  W_DS9:  { name: "Gan. 16avos 9",  flag: "https://flagcdn.com/un.svg" },
+  W_DS10: { name: "Gan. 16avos 10", flag: "https://flagcdn.com/un.svg" },
+  W_DS11: { name: "Gan. 16avos 11", flag: "https://flagcdn.com/un.svg" },
+  W_DS12: { name: "Gan. 16avos 12", flag: "https://flagcdn.com/un.svg" },
+  W_DS13: { name: "Gan. 16avos 13", flag: "https://flagcdn.com/un.svg" },
+  W_DS14: { name: "Gan. 16avos 14", flag: "https://flagcdn.com/un.svg" },
+  W_DS15: { name: "Gan. 16avos 15", flag: "https://flagcdn.com/un.svg" },
+  W_DS16: { name: "Gan. 16avos 16", flag: "https://flagcdn.com/un.svg" },
+
+  // Ganadores de Octavos de Final
+  W_O1: { name: "Gan. Octavos 1", flag: "https://flagcdn.com/un.svg" },
+  W_O2: { name: "Gan. Octavos 2", flag: "https://flagcdn.com/un.svg" },
+  W_O3: { name: "Gan. Octavos 3", flag: "https://flagcdn.com/un.svg" },
+  W_O4: { name: "Gan. Octavos 4", flag: "https://flagcdn.com/un.svg" },
+  W_O5: { name: "Gan. Octavos 5", flag: "https://flagcdn.com/un.svg" },
+  W_O6: { name: "Gan. Octavos 6", flag: "https://flagcdn.com/un.svg" },
+  W_O7: { name: "Gan. Octavos 7", flag: "https://flagcdn.com/un.svg" },
+  W_O8: { name: "Gan. Octavos 8", flag: "https://flagcdn.com/un.svg" },
+
+  // Ganadores de Cuartos de Final
+  W_C1: { name: "Gan. Cuartos 1", flag: "https://flagcdn.com/un.svg" },
+  W_C2: { name: "Gan. Cuartos 2", flag: "https://flagcdn.com/un.svg" },
+  W_C3: { name: "Gan. Cuartos 3", flag: "https://flagcdn.com/un.svg" },
+  W_C4: { name: "Gan. Cuartos 4", flag: "https://flagcdn.com/un.svg" },
+
+  // Ganadores de Semifinales
+  W_S1: { name: "Gan. Semifinal 1", flag: "https://flagcdn.com/un.svg" },
+  W_S2: { name: "Gan. Semifinal 2", flag: "https://flagcdn.com/un.svg" }
 };
 
 const WORLDCUP_MATCHES = [
@@ -199,81 +237,46 @@ const WORLDCUP_MATCHES = [
   { id: "l6", stage: "Fase de Grupos", group: "Grupo L", teamA: "HR", teamB: "GH", date: "2026-06-27T18:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
 
 
-  // ==================== FASES ELIMINATORIAS (CON PLACEHOLDERS) ====================
+  // ==================== FASES ELIMINATORIAS (FORMATO 48 EQUIPOS) ====================
 
-  // OCTAVOS DE FINAL (REPRESENTADO POR 4 CRUCES PRINCIPALES PARA EL PRODE)
-  {
-    id: "o1",
-    stage: "Octavos de Final",
-    group: "Eliminatoria",
-    teamA: "1A",
-    teamB: "2B",
-    date: "2026-06-28T16:00:00-03:00",
-    status: "PENDIENTE",
-    result: { goalsA: null, goalsB: null }
-  },
-  {
-    id: "o2",
-    stage: "Octavos de Final",
-    group: "Eliminatoria",
-    teamA: "1C",
-    teamB: "2D",
-    date: "2026-06-29T19:00:00-03:00",
-    status: "PENDIENTE",
-    result: { goalsA: null, goalsB: null }
-  },
-  {
-    id: "o3",
-    stage: "Octavos de Final",
-    group: "Eliminatoria",
-    teamA: "1E",
-    teamB: "2F",
-    date: "2026-06-30T16:00:00-03:00",
-    status: "PENDIENTE",
-    result: { goalsA: null, goalsB: null }
-  },
-  {
-    id: "o4",
-    stage: "Octavos de Final",
-    group: "Eliminatoria",
-    teamA: "1G",
-    teamB: "2H",
-    date: "2026-07-01T19:00:00-03:00",
-    status: "PENDIENTE",
-    result: { goalsA: null, goalsB: null }
-  },
+  // DIECISEISAVOS DE FINAL (16avos) — 16 PARTIDOS — Jun 28 a Jul 1
+  { id: "ds1",  stage: "Dieciseisavos de Final", group: "Eliminatoria", teamA: "1A",   teamB: "3_P1", date: "2026-06-28T13:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "ds2",  stage: "Dieciseisavos de Final", group: "Eliminatoria", teamA: "1B",   teamB: "3_P2", date: "2026-06-28T16:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "ds3",  stage: "Dieciseisavos de Final", group: "Eliminatoria", teamA: "1C",   teamB: "3_P3", date: "2026-06-28T19:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "ds4",  stage: "Dieciseisavos de Final", group: "Eliminatoria", teamA: "1D",   teamB: "3_P4", date: "2026-06-28T22:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "ds5",  stage: "Dieciseisavos de Final", group: "Eliminatoria", teamA: "1E",   teamB: "3_P5", date: "2026-06-29T13:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "ds6",  stage: "Dieciseisavos de Final", group: "Eliminatoria", teamA: "1F",   teamB: "3_P6", date: "2026-06-29T16:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "ds7",  stage: "Dieciseisavos de Final", group: "Eliminatoria", teamA: "1G",   teamB: "3_P7", date: "2026-06-29T19:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "ds8",  stage: "Dieciseisavos de Final", group: "Eliminatoria", teamA: "1H",   teamB: "3_P8", date: "2026-06-29T22:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "ds9",  stage: "Dieciseisavos de Final", group: "Eliminatoria", teamA: "1I",   teamB: "2L",   date: "2026-06-30T13:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "ds10", stage: "Dieciseisavos de Final", group: "Eliminatoria", teamA: "1J",   teamB: "2K",   date: "2026-06-30T16:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "ds11", stage: "Dieciseisavos de Final", group: "Eliminatoria", teamA: "1K",   teamB: "2J",   date: "2026-06-30T19:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "ds12", stage: "Dieciseisavos de Final", group: "Eliminatoria", teamA: "1L",   teamB: "2I",   date: "2026-06-30T22:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "ds13", stage: "Dieciseisavos de Final", group: "Eliminatoria", teamA: "2A",   teamB: "2H",   date: "2026-07-01T13:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "ds14", stage: "Dieciseisavos de Final", group: "Eliminatoria", teamA: "2B",   teamB: "2G",   date: "2026-07-01T16:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "ds15", stage: "Dieciseisavos de Final", group: "Eliminatoria", teamA: "2C",   teamB: "2F",   date: "2026-07-01T19:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "ds16", stage: "Dieciseisavos de Final", group: "Eliminatoria", teamA: "2D",   teamB: "2E",   date: "2026-07-01T22:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
 
-  // SEMIFINALES
-  {
-    id: "s1",
-    stage: "Semifinales",
-    group: "Eliminatoria",
-    teamA: "W_O1",
-    teamB: "W_O2",
-    date: "2026-07-12T19:00:00-03:00",
-    status: "PENDIENTE",
-    result: { goalsA: null, goalsB: null }
-  },
-  {
-    id: "s2",
-    stage: "Semifinales",
-    group: "Eliminatoria",
-    teamA: "W_O3",
-    teamB: "W_O4",
-    date: "2026-07-13T20:00:00-03:00",
-    status: "PENDIENTE",
-    result: { goalsA: null, goalsB: null }
-  },
+  // OCTAVOS DE FINAL — 8 PARTIDOS — Jul 4 a Jul 6
+  { id: "o1", stage: "Octavos de Final", group: "Eliminatoria", teamA: "W_DS1",  teamB: "W_DS2",  date: "2026-07-04T16:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "o2", stage: "Octavos de Final", group: "Eliminatoria", teamA: "W_DS3",  teamB: "W_DS4",  date: "2026-07-04T20:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "o3", stage: "Octavos de Final", group: "Eliminatoria", teamA: "W_DS5",  teamB: "W_DS6",  date: "2026-07-05T13:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "o4", stage: "Octavos de Final", group: "Eliminatoria", teamA: "W_DS7",  teamB: "W_DS8",  date: "2026-07-05T16:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "o5", stage: "Octavos de Final", group: "Eliminatoria", teamA: "W_DS9",  teamB: "W_DS10", date: "2026-07-05T20:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "o6", stage: "Octavos de Final", group: "Eliminatoria", teamA: "W_DS11", teamB: "W_DS12", date: "2026-07-06T13:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "o7", stage: "Octavos de Final", group: "Eliminatoria", teamA: "W_DS13", teamB: "W_DS14", date: "2026-07-06T16:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "o8", stage: "Octavos de Final", group: "Eliminatoria", teamA: "W_DS15", teamB: "W_DS16", date: "2026-07-06T20:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
 
-  // GRAN FINAL
-  {
-    id: "fn1",
-    stage: "Gran Final",
-    group: "Copa del Mundo",
-    teamA: "W_S1",
-    teamB: "W_S2",
-    date: "2026-07-19T18:00:00-03:00",
-    status: "PENDIENTE",
-    result: { goalsA: null, goalsB: null }
-  }
+  // CUARTOS DE FINAL — 4 PARTIDOS — Jul 9 a Jul 10
+  { id: "cf1", stage: "Cuartos de Final", group: "Eliminatoria", teamA: "W_O1", teamB: "W_O2", date: "2026-07-09T16:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "cf2", stage: "Cuartos de Final", group: "Eliminatoria", teamA: "W_O3", teamB: "W_O4", date: "2026-07-09T20:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "cf3", stage: "Cuartos de Final", group: "Eliminatoria", teamA: "W_O5", teamB: "W_O6", date: "2026-07-10T16:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "cf4", stage: "Cuartos de Final", group: "Eliminatoria", teamA: "W_O7", teamB: "W_O8", date: "2026-07-10T20:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+
+  // SEMIFINALES — 2 PARTIDOS — Jul 14 a Jul 15
+  { id: "s1", stage: "Semifinales", group: "Eliminatoria", teamA: "W_C1", teamB: "W_C2", date: "2026-07-14T19:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "s2", stage: "Semifinales", group: "Eliminatoria", teamA: "W_C3", teamB: "W_C4", date: "2026-07-15T20:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+
+  // GRAN FINAL — Jul 19
+  { id: "fn1", stage: "Gran Final", group: "Copa del Mundo", teamA: "W_S1", teamB: "W_S2", date: "2026-07-19T18:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } }
 ];

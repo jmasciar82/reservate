@@ -672,8 +672,8 @@ const ProdeEngine = {
       return currentTime >= limitGroup;
     }
 
-    // 2. Fase Eliminatoria
-    const limitKnockout = new Date("2026-06-28T16:00:00-03:00");
+    // 2. Fase Eliminatoria (16avos en adelante)
+    const limitKnockout = new Date("2026-06-28T13:00:00-03:00");
     return currentTime >= limitKnockout;
   }
 };
