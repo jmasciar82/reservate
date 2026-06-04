@@ -1190,6 +1190,17 @@ const ProdeApp = {
     });
   },
 
+  async loadExcelJS() {
+    if (window.ExcelJS) return window.ExcelJS;
+    return new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src = "https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js";
+      script.onload = () => resolve(window.ExcelJS);
+      script.onerror = (err) => reject(err);
+      document.head.appendChild(script);
+    });
+  },
+
   async downloadAllPredictionsCsv() {
     const activeUser = ProdeEngine.getActiveUser();
     if (!activeUser) {
@@ -1205,18 +1216,16 @@ const ProdeApp = {
       return;
     }
 
+    this.showMicroNotification("Preparando planilla Excel...", "info");
+
     const matches = await ProdeAPI.getMatches();
-    let csvRows = [];
     let header = ["Participante", "Email"];
-    
     const sortedMatches = [...matches].sort((a, b) => new Date(a.date) - new Date(b.date));
     
     sortedMatches.forEach(m => {
       const label = `${m.teamA} vs ${m.teamB} (${m.stage})`;
       header.push(label);
     });
-    const escapedHeader = header.map(h => `"${h.replace(/"/g, '""')}"`);
-    csvRows.push(escapedHeader.join(";"));
 
     const sb = ProdeAPI.getSupabaseClient();
     let allPredictionsMap = {};
@@ -1251,11 +1260,12 @@ const ProdeApp = {
       });
     }
 
+    let rawRows = [];
     activePlayers.forEach(player => {
       const emailClean = player.email.toLowerCase();
-      let row = [
-        `"${player.name.replace(/"/g, '""')}"`,
-        `"${player.email.replace(/"/g, '""')}"`
+      let rowData = [
+        player.name,
+        player.email
       ];
 
       const userPreds = allPredictionsMap[emailClean] || {};
@@ -1266,16 +1276,130 @@ const ProdeApp = {
         if (isLocked) {
           const pred = userPreds[m.id];
           if (pred !== undefined && pred.goalsA !== null && pred.goalsB !== null && pred.goalsA !== undefined && pred.goalsB !== undefined) {
-            row.push(`"${pred.goalsA} - ${pred.goalsB}"`);
+            rowData.push(`${pred.goalsA} - ${pred.goalsB}`);
           } else {
-            row.push(`"-"`);
+            rowData.push("-");
           }
         } else {
-          row.push(`"Oculto (Apuestas abiertas)"`);
+          rowData.push("Oculto (Apuestas abiertas)");
         }
       });
+      rawRows.push(rowData);
+    });
 
-      csvRows.push(row.join(";"));
+    // Cargar ExcelJS dinámicamente
+    let ExcelJS = null;
+    try {
+      ExcelJS = await this.loadExcelJS();
+    } catch (e) {
+      console.warn("No se pudo cargar ExcelJS desde CDN, usando fallback de CSV:", e);
+    }
+
+    if (ExcelJS) {
+      try {
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet("Pronósticos Mundial");
+
+        // Fila de encabezado
+        const headerRow = worksheet.addRow(header);
+        headerRow.height = 30;
+
+        // Estilo de encabezados
+        headerRow.eachCell((cell) => {
+          cell.font = { name: "Segoe UI", size: 10, bold: true, color: { argb: "FFFFFFFF" } };
+          cell.fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: "FF8C6B1C" } // Dorado premium / bronce oscuro
+          };
+          cell.alignment = { vertical: "middle", horizontal: "center", wrapText: true };
+          cell.border = {
+            top: { style: "thin", color: { argb: "FFD4AF37" } },
+            left: { style: "thin", color: { argb: "FFD4AF37" } },
+            bottom: { style: "medium", color: { argb: "FF8C6B1C" } },
+            right: { style: "thin", color: { argb: "FFD4AF37" } }
+          };
+        });
+
+        // Filas de datos
+        rawRows.forEach((rowData, rowIndex) => {
+          const r = worksheet.addRow(rowData);
+          r.height = 22;
+          
+          const isEven = rowIndex % 2 === 0;
+          const bgArgb = isEven ? "FFF9FAFB" : "FFFFFFFF"; // Zebra striping ultra sutil
+
+          r.eachCell((cell, colIndex) => {
+            cell.font = { name: "Segoe UI", size: 10, color: { argb: "FF1F2937" } };
+            cell.fill = {
+              type: "pattern",
+              pattern: "solid",
+              fgColor: { argb: bgArgb }
+            };
+            cell.border = {
+              top: { style: "thin", color: { argb: "FFE5E7EB" } },
+              left: { style: "thin", color: { argb: "FFE5E7EB" } },
+              bottom: { style: "thin", color: { argb: "FFE5E7EB" } },
+              right: { style: "thin", color: { argb: "FFE5E7EB" } }
+            };
+
+            if (colIndex > 2) {
+              cell.alignment = { vertical: "middle", horizontal: "center" };
+              if (cell.value === "Oculto (Apuestas abiertas)") {
+                cell.font = { name: "Segoe UI", size: 9, italic: true, color: { argb: "FFA0AEC0" } };
+              } else if (cell.value === "-") {
+                cell.font = { name: "Segoe UI", size: 10, color: { argb: "FFA0AEC0" } };
+              } else {
+                cell.font = { name: "Segoe UI", size: 10, bold: true, color: { argb: "FF1E3A8A" } }; // Predicciones reales en azul oscuro bold
+              }
+            } else {
+              cell.alignment = { vertical: "middle", horizontal: "left" };
+            }
+          });
+        });
+
+        // Ajustar anchos de columnas
+        worksheet.columns.forEach((column, colIdx) => {
+          let maxLength = 0;
+          column.eachCell({ includeEmpty: true }, (cell) => {
+            const valStr = cell.value ? String(cell.value) : "";
+            if (valStr.length > maxLength) {
+              maxLength = valStr.length;
+            }
+          });
+          if (colIdx >= 2) {
+            column.width = Math.min(Math.max(maxLength + 4, 14), 26);
+          } else {
+            column.width = Math.max(maxLength + 4, 18);
+          }
+        });
+
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `pronosticos_prode_mundial_${new Date().toISOString().split('T')[0]}.xlsx`);
+        link.style.visibility = "hidden";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        this.showMicroNotification("Planilla Excel (.xlsx) generada con éxito", "success");
+        return;
+      } catch (err) {
+        console.error("Error al generar ExcelJS, usando fallback de CSV:", err);
+      }
+    }
+
+    // Fallback de CSV
+    let csvRows = [];
+    const escapedHeader = header.map(h => `"${h.replace(/"/g, '""')}"`);
+    csvRows.push(escapedHeader.join(";"));
+
+    rawRows.forEach(rowData => {
+      const escapedRow = rowData.map(val => `"${String(val).replace(/"/g, '""')}"`);
+      csvRows.push(escapedRow.join(";"));
     });
 
     const csvContent = "\uFEFF" + csvRows.join("\n");
@@ -1289,7 +1413,7 @@ const ProdeApp = {
     link.click();
     document.body.removeChild(link);
 
-    this.showMicroNotification("Archivo de pronósticos descargado con éxito", "success");
+    this.showMicroNotification("Archivo CSV descargado con éxito", "success");
   },
 
   // -------------------------------------------------------------
@@ -2309,7 +2433,7 @@ CREATE POLICY "Permitir gestion de partidos" ON prode_matches FOR ALL USING (tru
     }
   },
 
-  // D1. Exportar Leaderboard a CSV
+  // D1. Exportar Leaderboard a Excel (.xlsx) con formato premium
   async exportLeaderboardCsv() {
     const boardData = await ProdeEngine.getLeaderboard();
     if (!boardData || boardData.rankings.length === 0) {
@@ -2317,25 +2441,143 @@ CREATE POLICY "Permitir gestion de partidos" ON prode_matches FOR ALL USING (tru
       return;
     }
 
-    let csvContent = "\ufeff"; // BOM para soportar tildes y eñes
-    csvContent += "Puesto,Nombre,Email,Exactos (3 pts),Parciales (1 pt),Puntos Totales\n";
+    this.showMicroNotification("Preparando planilla Excel...", "info");
 
+    const header = ["Puesto", "Nombre", "Email", "Exactos (3 pts)", "Parciales (1 pt)", "Puntos Totales"];
+    let rawRows = [];
     boardData.rankings.forEach((player, idx) => {
-      csvContent += `${idx + 1},"${player.name}","${player.email}",${player.exactHits},${player.partialHits},${player.points}\n`;
+      rawRows.push([
+        idx + 1,
+        player.name,
+        player.email,
+        player.exactHits,
+        player.partialHits,
+        player.points
+      ]);
+    });
+
+    // Cargar ExcelJS dinámicamente
+    let ExcelJS = null;
+    try {
+      ExcelJS = await this.loadExcelJS();
+    } catch (e) {
+      console.warn("No se pudo cargar ExcelJS, usando fallback de CSV:", e);
+    }
+
+    if (ExcelJS) {
+      try {
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet("Tabla de Posiciones");
+
+        const headerRow = worksheet.addRow(header);
+        headerRow.height = 26;
+
+        headerRow.eachCell((cell) => {
+          cell.font = { name: "Segoe UI", size: 10, bold: true, color: { argb: "FFFFFFFF" } };
+          cell.fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: "FF1E3A8A" }
+          };
+          cell.alignment = { vertical: "middle", horizontal: "center" };
+          cell.border = {
+            top: { style: "thin", color: { argb: "FF3B82F6" } },
+            left: { style: "thin", color: { argb: "FF3B82F6" } },
+            bottom: { style: "medium", color: { argb: "FF1E3A8A" } },
+            right: { style: "thin", color: { argb: "FF3B82F6" } }
+          };
+        });
+
+        rawRows.forEach((rowData, rowIndex) => {
+          const r = worksheet.addRow(rowData);
+          r.height = 20;
+
+          const isEven = rowIndex % 2 === 0;
+          const bgArgb = isEven ? "FFF9FAFB" : "FFFFFFFF";
+          const isWinner = rowIndex === 0;
+
+          r.eachCell((cell, colIndex) => {
+            cell.font = { name: "Segoe UI", size: 10, color: { argb: "FF1F2937" } };
+
+            if (isWinner) {
+              cell.fill = {
+                type: "pattern",
+                pattern: "solid",
+                fgColor: { argb: "FFFDF2E9" }
+              };
+              cell.font = { name: "Segoe UI", size: 10, bold: true, color: { argb: "FF92400E" } };
+            } else {
+              cell.fill = {
+                type: "pattern",
+                pattern: "solid",
+                fgColor: { argb: bgArgb }
+              };
+            }
+
+            cell.border = {
+              top: { style: "thin", color: { argb: "FFE5E7EB" } },
+              left: { style: "thin", color: { argb: "FFE5E7EB" } },
+              bottom: { style: "thin", color: { argb: "FFE5E7EB" } },
+              right: { style: "thin", color: { argb: "FFE5E7EB" } }
+            };
+
+            if (colIndex === 1 || colIndex >= 4) {
+              cell.alignment = { vertical: "middle", horizontal: "center" };
+            } else {
+              cell.alignment = { vertical: "middle", horizontal: "left" };
+            }
+          });
+        });
+
+        worksheet.columns.forEach((column) => {
+          let maxLength = 0;
+          column.eachCell({ includeEmpty: true }, (cell) => {
+            const valStr = cell.value ? String(cell.value) : "";
+            if (valStr.length > maxLength) {
+              maxLength = valStr.length;
+            }
+          });
+          column.width = Math.max(maxLength + 4, 12);
+        });
+
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", "tabla-posiciones-prode-2026.xlsx");
+        link.style.visibility = "hidden";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        this.addAdminLog("Leaderboard exportado a Excel (.xlsx).");
+        this.showMicroNotification("Leaderboard Excel descargado correctamente", "success");
+        return;
+      } catch (err) {
+        console.error("Error al generar ExcelJS para Leaderboard, usando fallback de CSV:", err);
+      }
+    }
+
+    // Fallback de CSV con punto y coma
+    let csvContent = "\ufeff";
+    csvContent += "Puesto;Nombre;Email;Exactos (3 pts);Parciales (1 pt);Puntos Totales\n";
+
+    rawRows.forEach(rowData => {
+      const escapedRow = rowData.map(val => `"${String(val).replace(/"/g, '""')}"`);
+      csvContent += escapedRow.join(";") + "\n";
     });
 
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
-    
     const link = document.createElement("a");
     link.setAttribute("href", url);
     link.setAttribute("download", "tabla-posiciones-prode-2026.csv");
     link.style.visibility = "hidden";
-    
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    
+
     this.addAdminLog("Leaderboard exportado a CSV.");
     this.showMicroNotification("Leaderboard CSV descargado correctamente", "success");
   },
