@@ -1190,6 +1190,107 @@ const ProdeApp = {
     });
   },
 
+  async downloadAllPredictionsCsv() {
+    const activeUser = ProdeEngine.getActiveUser();
+    if (!activeUser) {
+      this.showMicroNotification("Debes iniciar sesión para descargar el archivo.", "warning");
+      return;
+    }
+
+    const boardData = await ProdeEngine.getLeaderboard();
+    const activePlayers = boardData.rankings.filter(p => p.paid);
+    
+    if (activePlayers.length === 0) {
+      this.showMicroNotification("No hay participantes activos con inscripción abonada.", "warning");
+      return;
+    }
+
+    const matches = await ProdeAPI.getMatches();
+    let csvRows = [];
+    let header = ["Participante", "Email"];
+    
+    const sortedMatches = [...matches].sort((a, b) => new Date(a.date) - new Date(b.date));
+    
+    sortedMatches.forEach(m => {
+      const label = `${m.teamA} vs ${m.teamB} (${m.stage})`;
+      header.push(label);
+    });
+    csvRows.push(header.join(","));
+
+    const sb = ProdeAPI.getSupabaseClient();
+    let allPredictionsMap = {};
+    
+    if (sb) {
+      try {
+        const { data: dbPreds, error } = await sb.from("prode_predictions").select("*");
+        if (error) throw error;
+        
+        if (dbPreds) {
+          dbPreds.forEach(p => {
+            if (!allPredictionsMap[p.user_email]) {
+              allPredictionsMap[p.user_email] = {};
+            }
+            allPredictionsMap[p.user_email][p.match_id] = {
+              goalsA: p.goals_a,
+              goalsB: p.goals_b
+            };
+          });
+        }
+      } catch (e) {
+        console.error("Error al descargar pronósticos de Supabase, usando local storage:", e);
+        const localUsers = ProdeEngine.getUsers();
+        Object.keys(localUsers).forEach(email => {
+          allPredictionsMap[email] = localUsers[email].predictions || {};
+        });
+      }
+    } else {
+      const localUsers = ProdeEngine.getUsers();
+      Object.keys(localUsers).forEach(email => {
+        allPredictionsMap[email] = localUsers[email].predictions || {};
+      });
+    }
+
+    activePlayers.forEach(player => {
+      const emailClean = player.email.toLowerCase();
+      let row = [
+        `"${player.name.replace(/"/g, '""')}"`,
+        `"${player.email.replace(/"/g, '""')}"`
+      ];
+
+      const userPreds = allPredictionsMap[emailClean] || {};
+
+      sortedMatches.forEach(m => {
+        const isLocked = ProdeEngine.isStageLocked(m.stage);
+        
+        if (isLocked) {
+          const pred = userPreds[m.id];
+          if (pred !== undefined && pred.goalsA !== null && pred.goalsB !== null && pred.goalsA !== undefined && pred.goalsB !== undefined) {
+            row.push(`"${pred.goalsA} - ${pred.goalsB}"`);
+          } else {
+            row.push(`"-"`);
+          }
+        } else {
+          row.push(`"Oculto (Apuestas abiertas)"`);
+        }
+      });
+
+      csvRows.push(row.join(","));
+    });
+
+    const csvContent = "\uFEFF" + csvRows.join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `pronosticos_prode_mundial_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    this.showMicroNotification("Archivo de pronósticos descargado con éxito", "success");
+  },
+
   // -------------------------------------------------------------
   // SECCIÓN 4: SIMULADOR DE API DE RESULTADOS (ADMIN PANEL)
   // -------------------------------------------------------------
