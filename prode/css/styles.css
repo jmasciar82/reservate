@@ -1371,6 +1371,8 @@ body {
   .app-content {
     margin-left: 0;
     padding: 90px 20px 90px 20px; /* Margen para Top bar y Bottom bar */
+    overflow-x: hidden;
+    max-width: 100vw;
   }
   .mobile-top-bar {
     display: flex;
@@ -1412,6 +1414,174 @@ body {
   }
   .user-avatar-lbl {
     display: none;
+  }
+
+  /* === FIXTURE / PRONÓSTICOS: Mobile overflow fixes === */
+
+  /* Fixture header: stack vertically */
+  .fixture-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .fixture-header h2 {
+    font-size: 1.4rem !important;
+    word-break: break-word;
+  }
+
+  .fixture-header p {
+    font-size: 0.85rem !important;
+  }
+
+  /* Fixture tabs: horizontal scroll */
+  .fixture-tabs {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    width: 100%;
+  }
+
+  .fixture-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .btn-filter {
+    white-space: nowrap;
+    padding: 7px 14px;
+    font-size: 0.78rem;
+    flex-shrink: 0;
+  }
+
+  /* Match cards container */
+  .matches-container {
+    grid-template-columns: 1fr !important;
+    gap: 14px;
+  }
+
+  /* Match cards: compact */
+  .match-card {
+    padding: 16px 12px;
+    overflow: hidden;
+  }
+
+  .match-card-header {
+    font-size: 0.68rem;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  /* Match row: key fix for overflow */
+  .match-row-grid {
+    gap: 6px;
+  }
+
+  .team-block {
+    width: 70px;
+    min-width: 0;
+  }
+
+  .team-flag {
+    width: 44px;
+    height: 30px;
+  }
+
+  .team-name {
+    font-size: 0.75rem;
+  }
+
+  /* Prediction inputs: smaller */
+  .goals-field {
+    width: 40px;
+    height: 40px;
+    font-size: 1.15rem;
+    border-radius: 8px;
+  }
+
+  .btn-number-step {
+    width: 20px;
+    height: 20px;
+    font-size: 0.7rem;
+  }
+
+  .versus-label {
+    font-size: 0.7rem;
+    margin: 0 2px;
+  }
+
+  .prediction-inputs-block {
+    gap: 4px;
+  }
+
+  .goals-input-container {
+    gap: 2px;
+  }
+
+  /* Match footer: wrap */
+  .match-card-footer {
+    flex-wrap: wrap;
+    gap: 6px;
+    font-size: 0.72rem;
+  }
+
+  /* Floating save button: full width on mobile */
+  .floating-save-area {
+    left: 20px;
+    right: 20px;
+  }
+
+  .btn-floating-save {
+    width: 100%;
+    justify-content: center;
+    padding: 14px 20px;
+    font-size: 0.9rem;
+  }
+
+  /* Dashboard grid: single column */
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .welcome-banner h2 {
+    font-size: 1.5rem;
+  }
+
+  .welcome-banner p {
+    font-size: 0.9rem;
+  }
+
+  /* Countdown widgets: stack */
+  .countdown-container {
+    min-width: unset !important;
+    width: 100%;
+  }
+
+  /* Leaderboard intro: stack */
+  .leaderboard-intro {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  /* Groups grid */
+  .groups-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Bracket wrapper: allow scroll */
+  .bracket-wrapper {
+    gap: 16px;
+    padding: 10px 4px;
+  }
+
+  .bracket-round {
+    min-width: 220px;
+  }
+
+  /* Admin panel: prevent overflow */
+  .admin-card {
+    overflow-x: hidden;
+    word-break: break-word;
   }
 }
 
