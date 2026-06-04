@@ -2337,7 +2337,7 @@ CREATE POLICY "Permitir gestion de partidos" ON prode_matches FOR ALL USING (tru
     const rounds = {
       "Octavos de Final": ["o1", "o2", "o3", "o4"],
       "Semifinales": ["s1", "s2"],
-      "Gran Final": ["f1"]
+      "Gran Final": ["fn1"]
     };
 
     const wrapper = document.createElement("div");

@@ -2319,6 +2319,21 @@ body {
   max-width: 100%;
   min-width: 0;
   scrollbar-width: thin;
+  grid-column: 1 / -1; /* Ocupar todo el ancho en CSS Grid (Evita compresión en celdas de grilla) */
+}
+
+.bracket-wrapper::-webkit-scrollbar {
+  height: 6px;
+}
+.bracket-wrapper::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02);
+}
+.bracket-wrapper::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+}
+.bracket-wrapper::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-gold);
 }
 
 .bracket-round {

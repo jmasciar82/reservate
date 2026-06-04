@@ -267,7 +267,7 @@ const WORLDCUP_MATCHES = [
 
   // GRAN FINAL
   {
-    id: "f1",
+    id: "fn1",
     stage: "Gran Final",
     group: "Copa del Mundo",
     teamA: "W_S1",
