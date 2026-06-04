@@ -484,7 +484,7 @@ const ProdeApp = {
       this.refreshAppViews();
     } catch (e) {
       console.error(e);
-      this.showMicroNotification("Error al guardar credenciales en la nube. Verifica que la tabla prode_config en Supabase tenga la columna commission.", "error");
+      this.showMicroNotification("Error al guardar credenciales. Verifica que prode_config tenga las columnas commission, admin_password_hash y entry_cost.", "error");
     }
   },
 
