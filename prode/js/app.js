@@ -296,8 +296,8 @@ const ProdeApp = {
     // Resetear campos
     document.getElementById("mp-transaction-id").value = "";
     
-    // Pestaña inicial
-    this.switchPaymentTab("express");
+    // Pestaña inicial (ahora siempre transferencia)
+    this.switchPaymentTab("transfer");
   },
 
   switchPaymentTab(tabType) {
@@ -309,16 +309,16 @@ const ProdeApp = {
     const paneExpress = document.getElementById("mp-pane-express");
     const paneTransfer = document.getElementById("mp-pane-transfer");
     
-    if (tabType === "express") {
+    if (tabType === "express" && btnExpress && paneExpress) {
       btnExpress.classList.add("active");
-      btnTransfer.classList.remove("active");
+      if (btnTransfer) btnTransfer.classList.remove("active");
       paneExpress.classList.add("active");
-      paneTransfer.classList.remove("active");
+      if (paneTransfer) paneTransfer.classList.remove("active");
     } else {
-      btnExpress.classList.remove("active");
-      btnTransfer.classList.add("active");
-      paneExpress.classList.remove("active");
-      paneTransfer.classList.add("active");
+      if (btnExpress) btnExpress.classList.remove("active");
+      if (btnTransfer) btnTransfer.classList.add("active");
+      if (paneExpress) paneExpress.classList.remove("active");
+      if (paneTransfer) paneTransfer.classList.add("active");
     }
   },
 

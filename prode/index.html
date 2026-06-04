@@ -102,59 +102,23 @@
       </div>
     </div>
   </section>
-
-  <!-- ================= PANTALLA DE PAGO MERCADO PAGO ================= -->
+  <!-- ================= PANTALLA DE PAGO POR TRANSFERENCIA ================= -->
   <section id="payment-screen" class="app-screen">
     <div class="glass-panel payment-card gold-glow">
       <div class="payment-header">
-        <div class="payment-badge" style="background: rgba(0, 158, 227, 0.1); border-color: #009ee3; color: #009ee3;">Inscripción con Mercado Pago</div>
+        <div class="payment-badge" style="background: rgba(212, 175, 55, 0.1); border-color: var(--primary-gold); color: var(--primary-gold);"><i class="fa-solid fa-money-bill-transfer"></i> Pago por Transferencia</div>
         <h2>Valida tu Cuenta para el Pozo</h2>
-        <p>Abona los $1000 de inscripción para activar tu presencia en el Leaderboard oficial y competir por el pozo acumulado.</p>
+        <p>Abona los $1000 de inscripción a los datos detallados a continuación para ingresar a la clasificación y competir por el pozo.</p>
       </div>
 
-      <!-- Selector de métodos de Mercado Pago -->
-      <div class="mp-tabs">
-        <button type="button" class="mp-tab-btn active" id="btn-tab-mp-express" onclick="ProdeApp.switchPaymentTab('express')">
-          <i class="fa-solid fa-bolt"></i> Pago Exprés
-        </button>
-        <button type="button" class="mp-tab-btn" id="btn-tab-mp-transfer" onclick="ProdeApp.switchPaymentTab('transfer')">
-          <i class="fa-solid fa-money-bill-transfer"></i> Transferencia
-        </button>
-      </div>
-
-      <!-- Panel 1: Pago Exprés (Checkout Pro Simulado) -->
-      <div id="mp-pane-express" class="mp-pane active">
-        <div class="mp-express-content">
-          <div class="mp-logo-display">
-            <span class="mp-logo-text">mercado <span class="mp-logo-bold">pago</span></span>
-          </div>
-          
-          <div class="mp-info-bullet">
-            <i class="fa-solid fa-circle-check" style="color: var(--accent-green);"></i>
-            <span>Activación 100% instantánea y automática en el Prode.</span>
-          </div>
-          <div class="mp-info-bullet">
-            <i class="fa-solid fa-circle-check" style="color: var(--accent-green);"></i>
-            <span>Simulador de Checkout Pro integrado o enlace real.</span>
-          </div>
-
-          <div style="margin: 25px 0 15px 0;">
-            <button type="button" id="btn-mp-express-pay" onclick="ProdeApp.startMpExpressFlow()" class="btn-mp-express-pay">
-              <i class="fa-solid fa-wallet"></i> Pagar con Mercado Pago
-            </button>
-          </div>
-          <p style="color: var(--text-muted); font-size: 0.8rem; text-align: center;">Se abrirá la pasarela para procesar tu transferencia de $1000 ARS.</p>
-        </div>
-      </div>
-
-      <!-- Panel 2: Transferencia Directa (CVU/Alias) -->
-      <div id="mp-pane-transfer" class="mp-pane">
+      <!-- Panel: Transferencia Directa (CVU/Alias) -->
+      <div id="mp-pane-transfer" class="mp-pane active">
         <div class="mp-transfer-card">
           <div class="mp-transfer-header">Datos de Cobro del Organizador</div>
           
           <div class="mp-transfer-row">
             <div class="mp-transfer-field">
-              <span class="mp-transfer-label">ALIAS MERCADO PAGO</span>
+              <span class="mp-transfer-label">ALIAS DE CUENTA</span>
               <span class="mp-transfer-value" id="mp-display-alias">prode.mundial.2026</span>
             </div>
             <button type="button" onclick="ProdeApp.copyToClipboard('Alias', 'mp-display-alias')" class="btn-copy-mp">
@@ -164,7 +128,7 @@
 
           <div class="mp-transfer-row">
             <div class="mp-transfer-field">
-              <span class="mp-transfer-label">CVU MERCADO PAGO</span>
+              <span class="mp-transfer-label">CVU DE CUENTA</span>
               <span class="mp-transfer-value" id="mp-display-cvu">0000003100019283746501</span>
             </div>
             <button type="button" onclick="ProdeApp.copyToClipboard('CVU', 'mp-display-cvu')" class="btn-copy-mp">
@@ -668,38 +632,35 @@
               </button>
             </div>
           </div>
-
-          <!-- CONFIGURACIÓN DE COBROS DE MERCADO PAGO (ADMIN) -->
+          <!-- CONFIGURACIÓN DE COBROS POR TRANSFERENCIA (ADMIN) -->
           <div class="glass-panel" style="padding: 25px; border-color: rgba(0, 158, 227, 0.25); background: rgba(0, 158, 227, 0.02); border-radius: var(--border-radius-md); margin-top: 20px;">
             <div style="margin-bottom: 15px; border-bottom: 1px dashed rgba(255,255,255,0.06); padding-bottom: 10px;">
-              <h4 style="font-weight: 700; color: #00aae4; margin-bottom: 5px;"><i class="fa-solid fa-wallet"></i> Configuración de Cobros de Mercado Pago</h4>
-              <p style="color: var(--text-muted); font-size: 0.85rem;">Define tus credenciales de cobro reales. Los usuarios verán estos datos al intentar activar su cuenta en el pozo.</p>
+              <h4 style="font-weight: 700; color: #00aae4; margin-bottom: 5px;"><i class="fa-solid fa-money-bill-transfer"></i> Configuración de Cobros por Transferencia</h4>
+              <p style="color: var(--text-muted); font-size: 0.85rem;">Define tus datos de cobro reales. Los usuarios verán estos datos al intentar validar su cuenta.</p>
             </div>
 
             <form id="admin-mp-config-form" onsubmit="event.preventDefault(); ProdeApp.saveAdminMpConfig();" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px;">
               <div class="form-group" style="margin-bottom: 0;">
-                <label for="admin-mp-alias">Alias de Mercado Pago</label>
-                <input type="text" id="admin-mp-alias" class="form-input" placeholder="prode.mundial.2026" required style="padding: 10px 14px; font-size: 0.9rem;">
+                <label for="admin-mp-alias">Alias de la Cuenta</label>
+                <input type="text" id="admin-mp-alias" class="form-input" placeholder="Alias del banco/billetera" required style="padding: 10px 14px; font-size: 0.9rem;">
               </div>
 
               <div class="form-group" style="margin-bottom: 0;">
-                <label for="admin-mp-cvu">CVU de Mercado Pago</label>
-                <input type="text" id="admin-mp-cvu" class="form-input" placeholder="0000003100019283746501" required style="padding: 10px 14px; font-size: 0.9rem;">
+                <label for="admin-mp-cvu">CVU / CBU de la Cuenta</label>
+                <input type="text" id="admin-mp-cvu" class="form-input" placeholder="Número de 22 dígitos" required style="padding: 10px 14px; font-size: 0.9rem;">
               </div>
 
               <div class="form-group" style="margin-bottom: 0;">
-                <label for="admin-mp-holder">Titular de Cuenta</label>
-                <input type="text" id="admin-mp-holder" class="form-input" placeholder="Juan Pérez (Organizador)" required style="padding: 10px 14px; font-size: 0.9rem;">
+                <label for="admin-mp-holder">Titular de la Cuenta</label>
+                <input type="text" id="admin-mp-holder" class="form-input" placeholder="Nombre completo" required style="padding: 10px 14px; font-size: 0.9rem;">
               </div>
 
-              <div class="form-group" style="margin-bottom: 0;">
-                <label for="admin-mp-link">Link de Pago (Opcional)</label>
-                <input type="url" id="admin-mp-link" class="form-input" placeholder="https://mpago.la/..." style="padding: 10px 14px; font-size: 0.9rem;">
-              </div>
+              <!-- Campo oculto para compatibilidad con código JS de configuración -->
+              <input type="hidden" id="admin-mp-link" value="">
 
               <div class="form-group" style="margin-bottom: 0;">
                 <label for="admin-mp-commission">Comisión de Organización (%)</label>
-                <input type="number" id="admin-mp-commission" class="form-input" placeholder="20" min="0" max="100" required style="padding: 10px 14px; font-size: 0.9rem;">
+                <input type="number" id="admin-mp-commission" class="form-input" placeholder="0" min="0" max="100" required style="padding: 10px 14px; font-size: 0.9rem;">
               </div>
 
               <div style="grid-column: 1 / -1; display: flex; justify-content: flex-end; margin-top: 10px;">
