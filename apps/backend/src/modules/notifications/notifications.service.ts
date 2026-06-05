@@ -22,6 +22,20 @@ export class NotificationsService {
     const port = this.configService.get<number>('SMTP_PORT') || 587;
     const user = this.configService.get<string>('SMTP_USER');
     const pass = this.configService.get<string>('SMTP_PASS');
+    const sendgridApiKey = this.configService.get<string>('SENDGRID_API_KEY');
+    const brevoApiKey = this.configService.get<string>('BREVO_API_KEY');
+
+    if (sendgridApiKey) {
+      this.isTesting = false;
+      console.log('Servicio de Email inicializado en modo REAL (API REST de SendGrid por puerto 443).');
+      return;
+    }
+
+    if (brevoApiKey) {
+      this.isTesting = false;
+      console.log('Servicio de Email inicializado en modo REAL (API REST de Brevo por puerto 443).');
+      return;
+    }
 
     if (user && pass && host) {
       if (pass.startsWith('re_')) {
@@ -297,7 +311,82 @@ export class NotificationsService {
     `;
 
     const pass = this.configService.get<string>('SMTP_PASS');
+    const sendgridApiKey = this.configService.get<string>('SENDGRID_API_KEY');
+    const brevoApiKey = this.configService.get<string>('BREVO_API_KEY');
 
+    // Parse "Name" <email@domain.com> format
+    let fromName = 'Club Reservate';
+    let fromEmail = 'noreply@reservate.com';
+    const fromMatch = from.match(/"?([^"]*)"?\s*<([^>]*)>/);
+    if (fromMatch) {
+      fromName = fromMatch[1];
+      fromEmail = fromMatch[2];
+    } else {
+      fromEmail = from;
+    }
+
+    // SendGrid HTTP API Client
+    if (sendgridApiKey) {
+      try {
+        console.log(`Enviando email via API REST de SendGrid a: ${toEmail}...`);
+        const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${sendgridApiKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            personalizations: [{ to: [{ email: toEmail }] }],
+            from: { email: fromEmail, name: fromName },
+            subject: subject,
+            content: [{ type: 'text/html', value: htmlContent }]
+          })
+        });
+
+        if (response.ok) {
+          console.log(`✅ Email enviado con éxito via API de SendGrid a: ${toEmail}.`);
+        } else {
+          const errData = await response.json() as any;
+          console.error('❌ Error de la API de SendGrid:', errData);
+        }
+        return;
+      } catch (apiError) {
+        console.error('❌ Error al conectar con la API REST de SendGrid:', apiError);
+      }
+    }
+
+    // Brevo HTTP API Client
+    if (brevoApiKey) {
+      try {
+        console.log(`Enviando email via API REST de Brevo a: ${toEmail}...`);
+        const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+          method: 'POST',
+          headers: {
+            'api-key': brevoApiKey,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            sender: { name: fromName, email: fromEmail },
+            to: [{ email: toEmail, name: customerName }],
+            subject: subject,
+            htmlContent: htmlContent
+          })
+        });
+
+        if (response.ok) {
+          const data = await response.json() as any;
+          console.log(`✅ Email enviado con éxito via API de Brevo a: ${toEmail}. MessageId: ${data.messageId}`);
+        } else {
+          const errData = await response.json() as any;
+          console.error('❌ Error de la API de Brevo:', errData);
+        }
+        return;
+      } catch (apiError) {
+        console.error('❌ Error al conectar con la API REST de Brevo:', apiError);
+      }
+    }
+
+    // Resend HTTP API Client
     if (pass && pass.startsWith('re_')) {
       try {
         console.log(`Enviando email via API REST de Resend a: ${toEmail}...`);
@@ -326,7 +415,6 @@ export class NotificationsService {
         return;
       } catch (apiError) {
         console.error('❌ Error al conectar con la API REST de Resend:', apiError);
-        // Fallback al transportador si falla la API
       }
     }
 
