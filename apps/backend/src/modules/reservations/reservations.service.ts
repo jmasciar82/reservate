@@ -172,13 +172,13 @@ export class ReservationsService {
             endTime: week.end,
             totalPrice: weekTotalPrice,
             paymentStatus: (weekDeposit >= weekTotalPrice) ? 'paid' : 'pending',
-            paymentDate: (isPaid && isFirst) ? new Date() : undefined,
+            paymentDate: ((isPaid || weekDeposit > 0) && isFirst) ? new Date() : undefined,
             depositAmount: weekDeposit,
-            status: (isPaid && isFirst) ? 'confirmed' : (createReservationDto.status || 'pending'),
+            status: ((isPaid || weekDeposit > 0) && isFirst) ? 'confirmed' : (createReservationDto.status || 'pending'),
             isRecurring: true,
             recurrenceGroupId,
             products: isFirst ? productsList : [],
-            productsPrice: weekProductsPrice,
+            productsPrice: isFirst ? productsPrice : 0,
           });
         }
       });
@@ -247,8 +247,8 @@ export class ReservationsService {
         products: productsList,
         productsPrice,
         paymentStatus: depositAmount >= totalPrice ? 'paid' : 'pending',
-        paymentDate: isPaid ? new Date() : undefined,
-        status: isPaid ? 'confirmed' : (createReservationDto.status || 'pending'),
+        paymentDate: (isPaid || depositAmount > 0) ? new Date() : undefined,
+        status: (isPaid || depositAmount > 0) ? 'confirmed' : (createReservationDto.status || 'pending'),
       });
 
       const saved = await createdReservation.save();
@@ -474,12 +474,11 @@ export class ReservationsService {
       updateReservationDto.paymentStatus = 'pending';
     }
 
-    if (
-      updateReservationDto.paymentStatus === 'paid' &&
-      (existingReservation.paymentStatus !== 'paid' ||
-        (updateReservationDto.depositAmount !== undefined &&
-          updateReservationDto.depositAmount !== existingReservation.depositAmount))
-    ) {
+    const hasNewPayment = 
+      (updateReservationDto.paymentStatus === 'paid' && existingReservation.paymentStatus !== 'paid') ||
+      (updateReservationDto.depositAmount !== undefined && updateReservationDto.depositAmount !== existingReservation.depositAmount);
+
+    if (hasNewPayment) {
       updateReservationDto.paymentDate = new Date();
     }
 
