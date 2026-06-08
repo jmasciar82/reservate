@@ -24,6 +24,8 @@ export class NotificationsService {
     const pass = this.configService.get<string>('SMTP_PASS');
     const sendgridApiKey = this.configService.get<string>('SENDGRID_API_KEY');
     const brevoApiKey = this.configService.get<string>('BREVO_API_KEY');
+    const mailjetApiKey = this.configService.get<string>('MAILJET_API_KEY');
+    const mailjetApiSecret = this.configService.get<string>('MAILJET_API_SECRET');
 
     if (sendgridApiKey) {
       this.isTesting = false;
@@ -34,6 +36,12 @@ export class NotificationsService {
     if (brevoApiKey) {
       this.isTesting = false;
       console.log('Servicio de Email inicializado en modo REAL (API REST de Brevo por puerto 443).');
+      return;
+    }
+
+    if (mailjetApiKey && mailjetApiSecret) {
+      this.isTesting = false;
+      console.log('Servicio de Email inicializado en modo REAL (API REST de Mailjet por puerto 443).');
       return;
     }
 
@@ -313,6 +321,8 @@ export class NotificationsService {
     const pass = this.configService.get<string>('SMTP_PASS');
     const sendgridApiKey = this.configService.get<string>('SENDGRID_API_KEY');
     const brevoApiKey = this.configService.get<string>('BREVO_API_KEY');
+    const mailjetApiKey = this.configService.get<string>('MAILJET_API_KEY');
+    const mailjetApiSecret = this.configService.get<string>('MAILJET_API_SECRET');
 
     // Parse "Name" <email@domain.com> format
     let fromName = 'Club Reservate';
@@ -323,6 +333,50 @@ export class NotificationsService {
       fromEmail = fromMatch[2];
     } else {
       fromEmail = from;
+    }
+
+    // Mailjet HTTP API Client
+    if (mailjetApiKey && mailjetApiSecret) {
+      try {
+        console.log(`Enviando email via API REST de Mailjet a: ${toEmail}...`);
+        const authBase64 = Buffer.from(`${mailjetApiKey}:${mailjetApiSecret}`).toString('base64');
+        const response = await fetch('https://api.mailjet.com/v3.1/send', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Basic ${authBase64}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            Messages: [
+              {
+                From: {
+                  Email: fromEmail,
+                  Name: fromName
+                },
+                To: [
+                  {
+                    Email: toEmail,
+                    Name: customerName
+                  }
+                ],
+                Subject: subject,
+                HTMLPart: htmlContent
+              }
+            ]
+          })
+        });
+
+        if (response.ok) {
+          const data = await response.json() as any;
+          console.log(`✅ Email enviado con éxito via API de Mailjet a: ${toEmail}.`);
+        } else {
+          const errData = await response.text();
+          console.error('❌ Error de la API de Mailjet:', errData);
+        }
+        return;
+      } catch (apiError) {
+        console.error('❌ Error al conectar con la API REST de Mailjet:', apiError);
+      }
     }
 
     // SendGrid HTTP API Client
