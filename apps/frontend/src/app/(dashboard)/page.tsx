@@ -144,23 +144,16 @@ export default async function Dashboard({
       ? `${Math.round((occupiedCourtsCount / totalCourtsCount) * 100)}%`
       : "0%";
 
-  // 3. Calcular los ingresos cobrados (cobros realizados HOY)
-  const totalRevenue = clubReservations
-    .filter((reservation) => {
-      if (reservation.paymentStatus !== "paid") return false;
-
-      // Fallback: si no tiene paymentDate (datos semilla/viejos), usamos startTime
-      const pDateStr = reservation.paymentDate || reservation.startTime;
-      const { year, month, day } = getArtTime(pDateStr);
-      const pDateStrFormatted = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-      return pDateStrFormatted === date;
-    })
-    .reduce((sum, reservation) => {
-      const amountPaid = (reservation.depositAmount && reservation.depositAmount > 0)
-        ? reservation.depositAmount
-        : (reservation.totalPrice || 0);
-      return sum + amountPaid;
-    }, 0);
+  // 3. Calcular los ingresos cobrados para las reservas del día seleccionado (incluye señas y pagos totales)
+  const totalRevenue = playingTodayReservations.reduce((sum, reservation) => {
+    let amountPaid = 0;
+    if (reservation.paymentStatus === "paid") {
+      amountPaid = reservation.totalPrice || 0;
+    } else if (reservation.depositAmount && reservation.depositAmount > 0) {
+      amountPaid = reservation.depositAmount;
+    }
+    return sum + amountPaid;
+  }, 0);
 
   const revenueStat = `$${totalRevenue.toLocaleString("es-AR")}`;
 
