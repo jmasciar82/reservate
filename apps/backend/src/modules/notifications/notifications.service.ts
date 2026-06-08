@@ -26,6 +26,13 @@ export class NotificationsService {
     const brevoApiKey = this.configService.get<string>('BREVO_API_KEY');
     const mailjetApiKey = this.configService.get<string>('MAILJET_API_KEY');
     const mailjetApiSecret = this.configService.get<string>('MAILJET_API_SECRET');
+    const gmailScriptUrl = this.configService.get<string>('GMAIL_SCRIPT_URL');
+
+    if (gmailScriptUrl) {
+      this.isTesting = false;
+      console.log('Servicio de Email inicializado en modo REAL (Google Apps Script Relay por puerto 443).');
+      return;
+    }
 
     if (sendgridApiKey) {
       this.isTesting = false;
@@ -323,6 +330,8 @@ export class NotificationsService {
     const brevoApiKey = this.configService.get<string>('BREVO_API_KEY');
     const mailjetApiKey = this.configService.get<string>('MAILJET_API_KEY');
     const mailjetApiSecret = this.configService.get<string>('MAILJET_API_SECRET');
+    const gmailScriptUrl = this.configService.get<string>('GMAIL_SCRIPT_URL');
+    const gmailScriptToken = this.configService.get<string>('GMAIL_SCRIPT_TOKEN');
 
     // Parse "Name" <email@domain.com> format
     let fromName = 'Club Reservate';
@@ -333,6 +342,41 @@ export class NotificationsService {
       fromEmail = fromMatch[2];
     } else {
       fromEmail = from;
+    }
+
+    // Google Apps Script Relay
+    if (gmailScriptUrl) {
+      try {
+        console.log(`Enviando email via Google Apps Script a: ${toEmail}...`);
+        const response = await fetch(gmailScriptUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            to: toEmail,
+            subject: subject,
+            html: htmlContent,
+            replyTo: fromEmail,
+            token: gmailScriptToken
+          })
+        });
+
+        if (response.ok) {
+          const resData = await response.json() as any;
+          if (resData.status === 'success') {
+            console.log(`✅ Email enviado con éxito via Google Apps Script a: ${toEmail}.`);
+          } else {
+            console.error('❌ Error devuelto por Google Apps Script:', resData.message);
+          }
+        } else {
+          const errData = await response.text();
+          console.error('❌ Error de conexión con Google Apps Script:', errData);
+        }
+        return;
+      } catch (apiError) {
+        console.error('❌ Error al conectar con la URL de Google Apps Script:', apiError);
+      }
     }
 
     // Mailjet HTTP API Client
