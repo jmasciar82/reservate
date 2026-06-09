@@ -475,6 +475,7 @@ const ProdeApp = {
   },
 
   async saveAdminMpConfig() {
+    const freeMode = document.getElementById("admin-mp-free-mode").checked;
     const alias = document.getElementById("admin-mp-alias").value.trim();
     const cvu = document.getElementById("admin-mp-cvu").value.trim();
     const holder = document.getElementById("admin-mp-holder").value.trim();
@@ -482,20 +483,20 @@ const ProdeApp = {
     const commission = parseInt(document.getElementById("admin-mp-commission").value) || 0;
     const entryCost = parseInt(document.getElementById("admin-mp-entry-cost").value) || 1000;
 
-    if (!alias || !cvu || !holder) {
+    if (!freeMode && (!alias || !cvu || !holder)) {
       this.showMicroNotification("Completa todos los campos obligatorios", "warning");
       return;
     }
 
-    const config = { alias, cvu, holder, paymentLink, commission, entryCost };
+    const config = { alias, cvu, holder, paymentLink, commission, entryCost, freeMode };
     try {
       await ProdeEngine.saveOrganizerConfig(config);
-      this.addAdminLog(`Configuración de cobros actualizada (Comisión: ${commission}%).`);
+      this.addAdminLog(`Configuración de cobros actualizada (Modo Gratuito: ${freeMode ? "Sí" : "No"}, Comisión: ${commission}%).`);
       this.showMicroNotification("Credenciales del Organizador actualizadas con éxito", "success");
       this.refreshAppViews();
     } catch (e) {
       console.error(e);
-      this.showMicroNotification("Error al guardar credenciales. Verifica que prode_config tenga las columnas commission, admin_password_hash y entry_cost.", "error");
+      this.showMicroNotification("Error al guardar credenciales. Verifica que prode_config tenga las columnas commission, admin_password_hash, entry_cost y free_mode.", "error");
     }
   },
 
@@ -667,6 +668,9 @@ const ProdeApp = {
 
     // Actualizar Info de Perfil en Barra Lateral / Header
     document.getElementById("user-display-email").textContent = activeUser.email;
+    const config = ProdeEngine.getOrganizerConfig();
+    const isFreeMode = !!config.freeMode;
+
     const statusText = document.getElementById("user-display-status");
     
     const isGroupsLocked = ProdeEngine.isStageLocked("Fase de Grupos");
@@ -675,18 +679,22 @@ const ProdeApp = {
       ? (!activeUser.paid_knockout && activeUser.transaction_id_knockout)
       : (!activeUser.paid && activeUser.transaction_id);
 
-    const config = ProdeEngine.getOrganizerConfig();
     const cost = config.entryCost !== undefined ? config.entryCost : 1000;
 
-    if (isPaid) {
-      statusText.innerHTML = `<i class="fa-solid fa-circle-check"></i> Activo ($${cost}) ${isGroupsLocked ? "(Elim.)" : "(Grupos)"}`;
+    if (isFreeMode) {
+      statusText.innerHTML = `<i class="fa-solid fa-circle-check"></i> Activo (Juego Gratuito)`;
       statusText.className = "profile-status";
-    } else if (hasPending) {
-      statusText.innerHTML = `<i class="fa-solid fa-hourglass-half"></i> Pág. Pendiente`;
-      statusText.className = "profile-status pending";
     } else {
-      statusText.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> Inactivo ${isGroupsLocked ? "(Elim.)" : "(Grupos)"}`;
-      statusText.className = "profile-status unpaid";
+      if (isPaid) {
+        statusText.innerHTML = `<i class="fa-solid fa-circle-check"></i> Activo ($${cost}) ${isGroupsLocked ? "(Elim.)" : "(Grupos)"}`;
+        statusText.className = "profile-status";
+      } else if (hasPending) {
+        statusText.innerHTML = `<i class="fa-solid fa-hourglass-half"></i> Pág. Pendiente`;
+        statusText.className = "profile-status pending";
+      } else {
+        statusText.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> Inactivo ${isGroupsLocked ? "(Elim.)" : "(Grupos)"}`;
+        statusText.className = "profile-status unpaid";
+      }
     }
 
     // Sincronizar banner de cuenta impaga
@@ -694,7 +702,7 @@ const ProdeApp = {
     const unpaidTitle = document.getElementById("unpaid-banner-title");
     const unpaidDesc = document.getElementById("unpaid-banner-desc");
     
-    if (!isPaid) {
+    if (!isFreeMode && !isPaid) {
       unpaidBanner.style.display = "flex";
       if (unpaidTitle && unpaidDesc) {
         if (isGroupsLocked) {
@@ -757,14 +765,26 @@ const ProdeApp = {
     document.getElementById("dashboard-user-name").textContent = activeUser.name;
 
     // Obtener estadísticas del Leaderboard y pozo
+    const config = ProdeEngine.getOrganizerConfig();
+    const isFreeMode = !!config.freeMode;
     const boardData = await ProdeEngine.getLeaderboard();
-    document.getElementById("dash-total-pool").textContent = `$${boardData.totalPool.toLocaleString()} ARS`;
+    
+    if (isFreeMode) {
+      document.getElementById("dash-total-pool").textContent = `Juego Gratuito`;
+    } else {
+      document.getElementById("dash-total-pool").textContent = `$${boardData.totalPool.toLocaleString()} ARS`;
+    }
     
     const isUserAdmin = ProdeEngine.isAdmin(activeUser.email);
     const participantsDisplay = document.getElementById("dash-pool-participants");
     if (participantsDisplay) {
-      participantsDisplay.innerHTML = `<i class="fa-solid fa-users"></i> ${boardData.participantsCount} participantes activos en el pozo`;
-      participantsDisplay.style.display = isUserAdmin ? "flex" : "none";
+      if (isFreeMode) {
+        participantsDisplay.innerHTML = `<i class="fa-solid fa-users"></i> ${boardData.participantsCount} participantes activos`;
+        participantsDisplay.style.display = "flex";
+      } else {
+        participantsDisplay.innerHTML = `<i class="fa-solid fa-users"></i> ${boardData.participantsCount} participantes activos en el pozo`;
+        participantsDisplay.style.display = isUserAdmin ? "flex" : "none";
+      }
     }
 
     // Buscar posición y puntos del usuario
@@ -806,9 +826,11 @@ const ProdeApp = {
 
     pointsText.textContent = `${currentPoints} pts`;
 
-    if (activeUser.paid && rankIndex !== -1) {
+    const isPaid = isFreeMode ? true : !!activeUser.paid;
+
+    if (isPaid && rankIndex !== -1) {
       rankText.innerHTML = `<i class="fa-solid fa-trophy"></i> Posición: <strong>#${rankIndex + 1}</strong> de ${boardData.participantsCount}`;
-    } else if (!activeUser.paid) {
+    } else if (!isPaid) {
       rankText.innerHTML = `<i class="fa-solid fa-eye"></i> Puntos informativos (Sin activar pozo)`;
     } else {
       rankText.textContent = "Calculando...";
@@ -1163,10 +1185,15 @@ const ProdeApp = {
 
     const boardData = await ProdeEngine.getLeaderboard(this.selectedLeaderboardFilter);
     
+    const config = ProdeEngine.getOrganizerConfig();
+    const isFreeMode = !!config.freeMode;
+
     // Actualizar etiquetas dinámicamente según la fase seleccionada
     const poolLabel = document.getElementById("board-pool-label");
     if (poolLabel) {
-      if (this.selectedLeaderboardFilter === "knockout") {
+      if (isFreeMode) {
+        poolLabel.innerHTML = `<i class="fa-solid fa-gift" style="color: var(--accent-blue);"></i> Modalidad de Juego`;
+      } else if (this.selectedLeaderboardFilter === "knockout") {
         poolLabel.innerHTML = `<i class="fa-solid fa-trophy" style="color: var(--primary-gold);"></i> Pozo Eliminatorias`;
       } else {
         poolLabel.innerHTML = `<i class="fa-solid fa-trophy" style="color: var(--primary-gold);"></i> Pozo Fase de Grupos`;
@@ -1186,11 +1213,10 @@ const ProdeApp = {
     const unpaidNotice = document.getElementById("leaderboard-unpaid-notice");
     const isPaidForSelected = this.selectedLeaderboardFilter === "knockout" ? !!activeUser.paid_knockout : !!activeUser.paid;
     
-    const config = ProdeEngine.getOrganizerConfig();
     const cost = config.entryCost !== undefined ? config.entryCost : 1000;
 
     if (unpaidNotice) {
-      if (!isPaidForSelected) {
+      if (!isFreeMode && !isPaidForSelected) {
         unpaidNotice.style.display = "flex";
         const descText = unpaidNotice.querySelector("p");
         if (descText) {
@@ -1203,7 +1229,11 @@ const ProdeApp = {
     }
 
     // Rellenar pozo acumulado en la cabecera
-    document.getElementById("board-total-pool").textContent = `$${boardData.totalPool.toLocaleString()} ARS`;
+    if (isFreeMode) {
+      document.getElementById("board-total-pool").textContent = `Juego Gratuito`;
+    } else {
+      document.getElementById("board-total-pool").textContent = `$${boardData.totalPool.toLocaleString()} ARS`;
+    }
 
     const tbody = document.getElementById("leaderboard-tbody");
     tbody.innerHTML = "";
@@ -1237,23 +1267,38 @@ const ProdeApp = {
       if (rowClass) tr.className = rowClass;
       
       // Aplicar estilos de fila según estado de pago y si es el usuario activo
-      if (isPaid) {
-        tr.style.borderLeft = "3px solid var(--primary-gold)";
-        tr.style.background = isYou ? "rgba(212, 175, 55, 0.08)" : "rgba(212, 175, 55, 0.02)";
-      } else if (isYou) {
-        tr.style.borderLeft = "3px solid var(--text-muted)";
-        tr.style.background = "rgba(255, 255, 255, 0.03)";
+      if (isFreeMode) {
+        if (isYou) {
+          tr.style.borderLeft = "3px solid var(--accent-blue)";
+          tr.style.background = "rgba(0, 170, 228, 0.08)";
+        } else {
+          tr.style.borderLeft = "none";
+          tr.style.background = "transparent";
+        }
+      } else {
+        if (isPaid) {
+          tr.style.borderLeft = "3px solid var(--primary-gold)";
+          tr.style.background = isYou ? "rgba(212, 175, 55, 0.08)" : "rgba(212, 175, 55, 0.02)";
+        } else if (isYou) {
+          tr.style.borderLeft = "3px solid var(--text-muted)";
+          tr.style.background = "rgba(255, 255, 255, 0.03)";
+        }
       }
+
+      const showCrown = !isFreeMode && isPaid;
+      const avatarStyle = showCrown ? 'style="border-color: var(--primary-gold); color: var(--primary-gold); background: rgba(212, 175, 55, 0.05);"' : '';
+      const emailStyle = showCrown ? 'style="color: var(--primary-gold); font-weight: 700;"' : '';
+      const pointsStyle = (!isFreeMode && !isPaid) ? 'style="color: var(--text-muted);"' : '';
 
       tr.innerHTML = `
         <td class="rank-cell">${rankDisplay}</td>
         <td>
           <div class="user-cell">
-            <span class="user-avatar-lbl" ${isPaid ? 'style="border-color: var(--primary-gold); color: var(--primary-gold); background: rgba(212, 175, 55, 0.05);"' : ''}>${emailInitial}</span>
+            <span class="user-avatar-lbl" ${avatarStyle}>${emailInitial}</span>
             <div>
-              <span class="user-main-email" ${isPaid ? 'style="color: var(--primary-gold); font-weight: 700;"' : ''}>
+              <span class="user-main-email" ${emailStyle}>
                 ${player.name}
-                ${isPaid ? `<i class="fa-solid fa-crown" style="color: var(--primary-gold); margin-left: 4px; font-size: 0.8rem;" title="Inscripción Abonada"></i>` : ""}
+                ${showCrown ? `<i class="fa-solid fa-crown" style="color: var(--primary-gold); margin-left: 4px; font-size: 0.8rem;" title="Inscripción Abonada"></i>` : ""}
               </span>
               ${isYou ? `<span class="user-is-you-tag">Tú</span>` : ""}
               <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">${player.email}</div>
@@ -1262,7 +1307,7 @@ const ProdeApp = {
         </td>
         <td style="text-align: center;" class="hits-cell">${player.exactHits}</td>
         <td style="text-align: center;" class="hits-cell">${player.partialHits}</td>
-        <td style="text-align: center;" class="points-cell" ${!isPaid ? 'style="color: var(--text-muted);"' : ''}>${player.points} pts</td>
+        <td style="text-align: center;" class="points-cell" ${pointsStyle}>${player.points} pts</td>
       `;
 
       tbody.appendChild(tr);
@@ -1549,10 +1594,47 @@ const ProdeApp = {
 
     // Sincronizar campos de cobros de Mercado Pago
     const config = ProdeEngine.getOrganizerConfig();
-    document.getElementById("admin-mp-alias").value = config.alias;
-    document.getElementById("admin-mp-cvu").value = config.cvu;
-    document.getElementById("admin-mp-holder").value = config.holder;
-    document.getElementById("admin-mp-link").value = config.paymentLink;
+    
+    const freeModeCheckbox = document.getElementById("admin-mp-free-mode");
+    if (freeModeCheckbox) {
+      freeModeCheckbox.checked = !!config.freeMode;
+      
+      const updateAdminFieldsRequired = () => {
+        const isFree = freeModeCheckbox.checked;
+        const inputs = [
+          document.getElementById("admin-mp-alias"),
+          document.getElementById("admin-mp-cvu"),
+          document.getElementById("admin-mp-holder"),
+          document.getElementById("admin-mp-commission"),
+          document.getElementById("admin-mp-entry-cost")
+        ];
+        inputs.forEach(input => {
+          if (input) {
+            if (isFree) {
+              input.removeAttribute("required");
+              input.disabled = true;
+              input.style.opacity = "0.5";
+            } else {
+              input.setAttribute("required", "required");
+              input.disabled = false;
+              input.style.opacity = "1";
+            }
+          }
+        });
+      };
+
+      if (!freeModeCheckbox.dataset.listenerAdded) {
+        freeModeCheckbox.addEventListener("change", updateAdminFieldsRequired);
+        freeModeCheckbox.dataset.listenerAdded = "true";
+      }
+      
+      setTimeout(updateAdminFieldsRequired, 0);
+    }
+
+    document.getElementById("admin-mp-alias").value = config.alias || "";
+    document.getElementById("admin-mp-cvu").value = config.cvu || "";
+    document.getElementById("admin-mp-holder").value = config.holder || "";
+    document.getElementById("admin-mp-link").value = config.paymentLink || "";
     document.getElementById("admin-mp-commission").value = config.commission !== undefined ? config.commission : 20;
     document.getElementById("admin-mp-entry-cost").value = config.entryCost !== undefined ? config.entryCost : 1000;
 
@@ -1587,7 +1669,7 @@ const ProdeApp = {
     const paymentsTbody = document.getElementById("admin-payments-tbody");
     paymentsTbody.innerHTML = "";
 
-    if (sb) {
+    if (sb && !config.freeMode) {
       paymentsPanel.style.display = "block";
       try {
         const { data: dbUsers, error } = await sb
@@ -1990,13 +2072,17 @@ CREATE TABLE IF NOT EXISTS prode_config (
   payment_link TEXT DEFAULT '',
   commission INT DEFAULT 20,
   admin_password_hash TEXT DEFAULT '',
-  entry_cost INT DEFAULT 1000
+  entry_cost INT DEFAULT 1000,
+  free_mode BOOLEAN DEFAULT FALSE
 );
 
 -- Insertar configuración inicial predeterminada
-INSERT INTO prode_config (id, alias, cvu, holder, payment_link, commission, admin_password_hash, entry_cost)
-VALUES (1, 'prode.mundial.2026', '0000003100019283746501', 'Juan Pérez (Organizador)', '', 20, '', 1000)
+INSERT INTO prode_config (id, alias, cvu, holder, payment_link, commission, admin_password_hash, entry_cost, free_mode)
+VALUES (1, 'prode.mundial.2026', '0000003100019283746501', 'Juan Pérez (Organizador)', '', 20, '', 1000, FALSE)
 ON CONFLICT (id) DO NOTHING;
+
+-- Habilitar compatibilidad en bases de datos existentes
+ALTER TABLE prode_config ADD COLUMN IF NOT EXISTS free_mode BOOLEAN DEFAULT FALSE;
 
 -- 2. Tabla de Usuarios del Prode (Soporta múltiples pozos independientes)
 CREATE TABLE IF NOT EXISTS prode_users (
@@ -2571,8 +2657,18 @@ CREATE POLICY "Permitir gestion de partidos" ON prode_matches FOR ALL USING (tru
       }
     });
 
-    const rankText = activeUser.paid && rankIndex !== -1 ? `puesto #${rankIndex + 1} de la clasificación` : "pozo de premios";
-    const shareText = `🏆 PRODE MUNDIAL 2026 🏆\n\n¡Estoy compitiendo en el Prode Oficial del Mundial 2026!\nLlevo acumulados ${points} puntos y estoy en el ${rankText}. ⚽💥\n\n¿Te animas a ganarme? ¡Regístrate, ingresa tus pronósticos y súmate al pozo! 🤑👇`;
+    const config = ProdeEngine.getOrganizerConfig();
+    const isFreeMode = !!config.freeMode;
+    const isPaid = isFreeMode ? true : !!activeUser.paid;
+    
+    const rankText = isPaid && rankIndex !== -1 ? `puesto #${rankIndex + 1} de la clasificación` : (isFreeMode ? "juego" : "pozo de premios");
+    
+    let shareText = "";
+    if (isFreeMode) {
+      shareText = `🏆 PRODE MUNDIAL 2026 🏆\n\n¡Estoy compitiendo en el Prode Oficial del Mundial 2026!\nLlevo acumulados ${points} puntos y estoy en el ${rankText}. ⚽💥\n\n¿Te animas a ganarme? ¡Regístrate gratis e ingresa tus pronósticos! 🎮👇`;
+    } else {
+      shareText = `🏆 PRODE MUNDIAL 2026 🏆\n\n¡Estoy compitiendo en el Prode Oficial del Mundial 2026!\nLlevo acumulados ${points} puntos y estoy en el ${rankText}. ⚽💥\n\n¿Te animas a ganarme? ¡Regístrate, ingresa tus pronósticos y súmate al pozo! 🤑👇`;
+    }
 
     if (type === "whatsapp") {
       const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`;

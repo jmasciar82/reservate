@@ -481,6 +481,8 @@ const ProdeEngine = {
     
     const leaderboard = [];
     let totalPaidParticipants = 0;
+    const config = this.getOrganizerConfig();
+    const isFreeMode = !!config.freeMode;
 
     Object.values(users).forEach(user => {
       // Excluir administradores de la clasificación
@@ -488,7 +490,7 @@ const ProdeEngine = {
         return;
       }
 
-      const isPaidForStage = stageType === "knockout" ? !!user.paid_knockout : !!user.paid;
+      const isPaidForStage = isFreeMode ? true : (stageType === "knockout" ? !!user.paid_knockout : !!user.paid);
 
       if (isPaidForStage) {
         totalPaidParticipants++;
@@ -535,13 +537,12 @@ const ProdeEngine = {
       return dateA - dateB;
     });
 
-    const config = this.getOrganizerConfig();
     const commissionPct = config.commission !== undefined ? parseInt(config.commission) : 20;
     const entryCost = config.entryCost !== undefined ? parseInt(config.entryCost) : 1000;
 
-    const grossPool = totalPaidParticipants * entryCost;
-    const adminCut = grossPool * (commissionPct / 100);
-    const netPool = grossPool - adminCut;
+    const grossPool = isFreeMode ? 0 : totalPaidParticipants * entryCost;
+    const adminCut = isFreeMode ? 0 : grossPool * (commissionPct / 100);
+    const netPool = isFreeMode ? 0 : grossPool - adminCut;
 
     return {
       rankings: leaderboard,
@@ -584,7 +585,8 @@ const ProdeEngine = {
       paymentLink: "",
       commission: 20,
       adminPasswordHash: "",
-      entryCost: 1000
+      entryCost: 1000,
+      freeMode: false
     };
     const saved = localStorage.getItem("worldcup_prode_organizer_config");
     if (saved) {
@@ -615,7 +617,8 @@ const ProdeEngine = {
             paymentLink: data.payment_link || defaultConfig.paymentLink,
             commission: data.commission !== undefined && data.commission !== null ? parseInt(data.commission) : defaultConfig.commission,
             adminPasswordHash: data.admin_password_hash || "",
-            entryCost: data.entry_cost !== undefined && data.entry_cost !== null ? parseInt(data.entry_cost) : defaultConfig.entryCost
+            entryCost: data.entry_cost !== undefined && data.entry_cost !== null ? parseInt(data.entry_cost) : defaultConfig.entryCost,
+            freeMode: data.free_mode !== undefined && data.free_mode !== null ? !!data.free_mode : defaultConfig.freeMode
           };
           localStorage.setItem("worldcup_prode_organizer_config", JSON.stringify(config));
           return config;
@@ -642,7 +645,8 @@ const ProdeEngine = {
           payment_link: config.paymentLink,
           commission: config.commission,
           admin_password_hash: config.adminPasswordHash || "",
-          entry_cost: config.entryCost || 1000
+          entry_cost: config.entryCost || 1000,
+          free_mode: config.freeMode || false
         });
         if (error) throw error;
       } catch (e) {
