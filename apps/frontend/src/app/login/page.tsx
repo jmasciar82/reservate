@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
-import { Trophy, Lock, Mail } from "lucide-react";
+import { Trophy, Lock, Mail, Download, X } from "lucide-react";
 import { apiUrl } from "@/lib/api";
 
 export default function LoginPage() {
@@ -11,7 +11,43 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [installPrompt, setInstallPrompt] = useState<any>(null);
+  const [isIOS, setIsIOS] = useState(false);
+  const [isInstalled, setIsInstalled] = useState(false);
+  const [showIOSModal, setShowIOSModal] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    // Detect if already installed/standalone
+    if (window.matchMedia("(display-mode: standalone)").matches) {
+      setIsInstalled(true);
+    }
+
+    // Detect iOS
+    const userAgent = window.navigator.userAgent.toLowerCase();
+    const ios = /iphone|ipad|ipod/.test(userAgent);
+    setIsIOS(ios);
+
+    // Listen for install prompt on Android/Chrome/Windows
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+    };
+
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    const { outcome } = await installPrompt.userChoice;
+    console.log("Install choice outcome:", outcome);
+    setInstallPrompt(null);
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -110,7 +146,77 @@ export default function LoginPage() {
             {loading ? "Iniciando sesión..." : "Ingresar"}
           </button>
         </form>
+
+        {/* PWA Install Button */}
+        {!isInstalled && (installPrompt || isIOS) && (
+          <div className="mt-6 pt-6 border-t border-zinc-800/50 flex flex-col items-center">
+            {installPrompt && (
+              <button
+                type="button"
+                onClick={handleInstallClick}
+                className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-primary/30 transition-all text-sm font-bold text-zinc-300 hover:text-white"
+              >
+                <Download className="w-4 h-4 text-primary" />
+                Instalar App de Reservate
+              </button>
+            )}
+            {isIOS && (
+              <button
+                type="button"
+                onClick={() => setShowIOSModal(true)}
+                className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-primary/30 transition-all text-sm font-bold text-zinc-300 hover:text-white"
+              >
+                <Download className="w-4 h-4 text-primary" />
+                Instalar App en tu iPhone/iPad
+              </button>
+            )}
+          </div>
+        )}
       </div>
+
+      {/* iOS Install Instruction Modal */}
+      {showIOSModal && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setShowIOSModal(false)}
+          />
+          <div className="relative w-full max-w-sm bg-zinc-900 border border-zinc-800 rounded-2xl p-6 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 text-white">
+            <button
+              onClick={() => setShowIOSModal(false)}
+              className="absolute top-4 right-4 text-zinc-500 hover:text-white transition-all p-1 bg-zinc-800 hover:bg-zinc-700 rounded-lg"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            <div className="flex flex-col items-center text-center mt-2">
+              <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+                <Download className="w-6 h-6 text-primary" />
+              </div>
+              <h3 className="text-lg font-bold">Instalar en iOS</h3>
+              <p className="text-zinc-400 text-xs mt-2 leading-relaxed">
+                Sigue estos sencillos pasos para agregar **Reservate** a tu pantalla de inicio:
+              </p>
+              <div className="w-full text-left space-y-3 mt-5 bg-zinc-950/50 p-4 rounded-xl border border-zinc-800/50 text-xs">
+                <div className="flex items-start gap-2.5">
+                  <span className="w-5 h-5 bg-primary/20 text-primary font-bold rounded-full flex items-center justify-center shrink-0">1</span>
+                  <p className="text-zinc-300">Presiona el botón **Compartir** en Safari (el icono del cuadrado con una flecha hacia arriba abajo en tu pantalla).</p>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <span className="w-5 h-5 bg-primary/20 text-primary font-bold rounded-full flex items-center justify-center shrink-0">2</span>
+                  <p className="text-zinc-300">Desplázate hacia abajo y selecciona **"Añadir a la pantalla de inicio"**.</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowIOSModal(false)}
+                className="w-full py-2.5 bg-primary text-primary-foreground font-bold rounded-lg mt-5 hover:opacity-90 transition-all text-xs"
+              >
+                Entendido
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
