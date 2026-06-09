@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/providers/ThemeProvider";
 import "./globals.css";
@@ -13,9 +13,22 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+export const viewport: Viewport = {
+  themeColor: "#09090b",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
+
 export const metadata: Metadata = {
   title: "Reservate | Panel de Control",
   description: "Sistema de gestión de reservas deportivas",
+  appleWebApp: {
+    capable: true,
+    title: "Reservate",
+    statusBarStyle: "default",
+  },
 };
 
 export default function RootLayout({
@@ -42,7 +55,16 @@ export default function RootLayout({
                     document.documentElement.classList.remove('dark');
                   }
                 } catch (_) {}
-              })()
+              })();
+
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.register('/sw.js').then(
+                    function(reg) { console.log('PWA ServiceWorker registered'); },
+                    function(err) { console.log('PWA ServiceWorker failed', err); }
+                  );
+                });
+              }
             `,
           }}
         />
