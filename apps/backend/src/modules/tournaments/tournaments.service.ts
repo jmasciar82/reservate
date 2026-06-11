@@ -686,14 +686,7 @@ export class TournamentsService {
   }
 
   async remove(id: string): Promise<{ deleted: boolean }> {
-    const tournament = await this.findOne(id);
-
-    if (tournament.status === 'active' || tournament.status === 'completed') {
-      throw new BadRequestException(
-        'No se puede eliminar un torneo activo o completado. Cambiá su estado primero.',
-      );
-    }
-
+    await this.findOne(id);
     await this.tournamentModel.findByIdAndDelete(id).exec();
     return { deleted: true };
   }

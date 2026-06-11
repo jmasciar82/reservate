@@ -590,8 +590,8 @@ export default function TournamentsPage() {
                 </div>
 
                 <div className="flex justify-between items-center pt-4 border-t border-zinc-200/55 dark:border-white/[0.03]">
-                  {(torneo.status === 'draft' || torneo.status === 'registration') && (
-                    <div className="flex gap-2">
+                  <div className="flex gap-2">
+                    {(torneo.status === 'draft' || torneo.status === 'registration') && (
                       <button
                         onClick={(e) => { e.stopPropagation(); handleEditTournament(torneo); }}
                         className="flex items-center gap-1 px-2.5 py-1.5 bg-blue-500/10 text-blue-400 font-bold text-[10px] rounded-lg hover:bg-blue-500/20 transition-all"
@@ -599,15 +599,15 @@ export default function TournamentsPage() {
                         <Edit3 className="w-3 h-3" />
                         Editar
                       </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleDeleteTournament(torneo._id); }}
-                        className="flex items-center gap-1 px-2.5 py-1.5 bg-red-500/10 text-red-400 font-bold text-[10px] rounded-lg hover:bg-red-500/20 transition-all"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                        Eliminar
-                      </button>
-                    </div>
-                  )}
+                    )}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleDeleteTournament(torneo._id); }}
+                      className="flex items-center gap-1 px-2.5 py-1.5 bg-red-500/10 text-red-400 font-bold text-[10px] rounded-lg hover:bg-red-500/20 transition-all"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                      Eliminar
+                    </button>
+                  </div>
                   <div className="text-xs font-black text-primary group-hover:translate-x-1.5 transition-all ml-auto">
                     Ver Detalles ➔
                   </div>
