@@ -976,17 +976,30 @@ const ProdeApp = {
     const lockAlert = document.getElementById("fixture-lock-alert");
     const btnSaveFixture = document.getElementById("btn-save-fixture-predictions");
 
-    if (isStageLocked) {
-      lockAlert.style.display = "flex";
-      btnSaveFixture.style.display = "none";
-    } else {
-      lockAlert.style.display = "none";
-      btnSaveFixture.style.display = "flex";
-    }
-
     // Obtener los partidos reales de la API
     const matches = await ProdeAPI.getMatches();
     const filteredMatches = matches.filter(m => m.stage === this.selectedStage);
+
+    // Cierres individuales: ver si hay alguno abierto y alguno cerrado
+    const anyOpen = filteredMatches.some(m => m.status !== "FINALIZADO" && !ProdeEngine.isMatchLocked(m));
+    const anyLocked = filteredMatches.some(m => m.status === "FINALIZADO" || ProdeEngine.isMatchLocked(m));
+
+    if (filteredMatches.length > 0) {
+      if (!anyOpen) {
+        lockAlert.style.display = "flex";
+        lockAlert.querySelector("strong").textContent = "Apuestas Cerradas";
+        lockAlert.querySelector("p").textContent = "Todos los partidos de esta fase han comenzado. Ya no se pueden realizar modificaciones.";
+        btnSaveFixture.style.display = "none";
+      } else if (anyLocked) {
+        lockAlert.style.display = "flex";
+        lockAlert.querySelector("strong").textContent = "Apuestas Parcialmente Cerradas";
+        lockAlert.querySelector("p").textContent = "Los partidos que ya comenzaron están bloqueados. Puedes seguir pronosticando los restantes hasta su hora de inicio.";
+        btnSaveFixture.style.display = "flex";
+      } else {
+        lockAlert.style.display = "none";
+        btnSaveFixture.style.display = "flex";
+      }
+    }
 
     if (filteredMatches.length === 0) {
       container.innerHTML = `<p style="color: var(--text-muted); text-align: center; grid-column: 1 / -1; padding: 40px;">No hay partidos definidos para esta fase.</p>`;
@@ -1013,8 +1026,9 @@ const ProdeApp = {
         pointsEarnedBadge = `<span class="pts-earned-badge ${pts === 0 ? "zero-pts" : ""}">${pts} pt${pts !== 1 ? "s" : ""} obtenido${pts !== 1 ? "s" : ""}</span>`;
       }
 
-      // El marcador es editable si el partido no ha terminado Y si la etapa entera no está bloqueada por tiempo
-      const canEdit = !isFinished && !isStageLocked;
+      // El marcador es editable si el partido no ha terminado Y si no está bloqueado individualmente
+      const isLocked = ProdeEngine.isMatchLocked(match);
+      const canEdit = !isFinished && !isLocked;
 
       const matchCard = document.createElement("div");
       matchCard.className = "glass-panel match-card";
@@ -1076,8 +1090,8 @@ const ProdeApp = {
           <div style="display: flex; flex-direction: column; gap: 6px; align-items: flex-start;">
             ${isFinished 
               ? `<span style="color: var(--accent-green); font-weight:700; font-size: 0.75rem;"><i class="fa-solid fa-circle-check"></i> Finalizado</span>`
-              : (isStageLocked 
-                  ? `<span style="color: var(--accent-red); font-weight:700; font-size: 0.75rem;"><i class="fa-solid fa-lock"></i> Ventana Cerrada</span>`
+              : (isLocked 
+                  ? `<span style="color: var(--accent-red); font-weight:700; font-size: 0.75rem;"><i class="fa-solid fa-lock"></i> Cerrado</span>`
                   : `<span style="color: var(--text-muted); font-size: 0.75rem;"><i class="fa-regular fa-clock"></i> Abierto para pronósticos</span>`
                 )
             }
@@ -1114,22 +1128,28 @@ const ProdeApp = {
     const activeUser = ProdeEngine.getActiveUser();
     if (!activeUser) return;
 
-    // Verificar si la etapa está cerrada antes de guardar
-    if (ProdeEngine.isStageLocked(this.selectedStage)) {
-      this.showMicroNotification("La ventana de apuestas ya está cerrada para esta fase.", "error");
-      return;
-    }
+    // Obtener los partidos reales de la API para poder validar la fecha
+    const matches = await ProdeAPI.getMatches();
 
     const predictions = {};
     const inputsA = document.querySelectorAll(".match-pred-a");
 
     let itemsSaved = 0;
+    let ignoredCount = 0;
 
     inputsA.forEach(inputA => {
       const matchId = inputA.getAttribute("data-match-id");
       const inputB = document.getElementById(`pred-b-${matchId}`);
       
       if (inputA.value !== "" && inputB.value !== "") {
+        const match = matches.find(m => m.id === matchId);
+        const isLocked = match && (match.status === "FINALIZADO" || ProdeEngine.isMatchLocked(match));
+        
+        if (isLocked) {
+          ignoredCount++;
+          return;
+        }
+
         predictions[matchId] = {
           goalsA: parseInt(inputA.value),
           goalsB: parseInt(inputB.value)
@@ -1139,7 +1159,11 @@ const ProdeApp = {
     });
 
     if (itemsSaved === 0) {
-      this.showMicroNotification("Completa al menos un marcador para guardar", "warning");
+      if (ignoredCount > 0) {
+        this.showMicroNotification("No se guardaron cambios porque los partidos ya han comenzado", "warning");
+      } else {
+        this.showMicroNotification("Completa al menos un marcador para guardar", "warning");
+      }
       return;
     }
 
@@ -1410,7 +1434,7 @@ const ProdeApp = {
       const userPreds = allPredictionsMap[emailClean] || {};
 
       sortedMatches.forEach(m => {
-        const isLocked = ProdeEngine.isStageLocked(m.stage);
+        const isLocked = ProdeEngine.isMatchLocked(m) || m.status === "FINALIZADO";
         
         if (isLocked) {
           const pred = userPreds[m.id];

@@ -679,5 +679,13 @@ const ProdeEngine = {
     // 2. Fase Eliminatoria (16avos en adelante)
     const limitKnockout = new Date("2026-06-28T13:00:00-03:00");
     return currentTime >= limitKnockout;
+  },
+
+  // Comprueba si un partido individual está bloqueado para apuestas (ya comenzó)
+  isMatchLocked(match) {
+    if (!match || !match.date) return false;
+    const currentTime = this.getCurrentTime();
+    const matchTime = new Date(match.date);
+    return currentTime >= matchTime;
   }
 };
