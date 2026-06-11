@@ -979,6 +979,13 @@ const ProdeApp = {
     // Obtener los partidos reales de la API
     const matches = await ProdeAPI.getMatches();
     const filteredMatches = matches.filter(m => m.stage === this.selectedStage);
+    
+    // Ordenar cronológicamente por fecha y hora de juego
+    filteredMatches.sort((a, b) => {
+      const diff = new Date(a.date) - new Date(b.date);
+      if (diff !== 0) return diff;
+      return a.id.localeCompare(b.id);
+    });
 
     // Cierres individuales: ver si hay alguno abierto y alguno cerrado
     const anyOpen = filteredMatches.some(m => m.status !== "FINALIZADO" && !ProdeEngine.isMatchLocked(m));
@@ -1773,12 +1780,19 @@ const ProdeApp = {
     container.innerHTML = "";
 
     const matches = await ProdeAPI.getMatches();
+    
+    // Ordenar cronológicamente por fecha y hora de juego para el administrador
+    const sortedMatches = [...matches].sort((a, b) => {
+      const diff = new Date(a.date) - new Date(b.date);
+      if (diff !== 0) return diff;
+      return a.id.localeCompare(b.id);
+    });
 
     const realTeamKeys = Object.keys(WORLDCUP_TEAMS).filter(key => 
       key.length === 2 && !/^\d/.test(key) && !key.startsWith("W_")
     );
 
-    matches.forEach(match => {
+    sortedMatches.forEach(match => {
       const teamA = WORLDCUP_TEAMS[match.teamA];
       const teamB = WORLDCUP_TEAMS[match.teamB];
 
