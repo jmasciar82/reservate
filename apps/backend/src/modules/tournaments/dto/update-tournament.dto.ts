@@ -6,5 +6,6 @@ export class UpdateTournamentDto {
   endDate?: string;
   registrationFee?: number;
   maxTeams?: number;
+  type?: 'elimination' | 'round_robin' | 'groups_playoff' | 'americano';
   status?: 'draft' | 'registration' | 'active' | 'completed';
 }

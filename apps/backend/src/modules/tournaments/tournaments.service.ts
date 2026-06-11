@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { Tournament, TournamentDocument, TournamentTeam, TournamentMatch } from './schemas/tournament.schema';
+import { Tournament, TournamentDocument, TournamentTeam, TournamentMatch, TournamentPlayer } from './schemas/tournament.schema';
 import { CreateTournamentDto } from './dto/create-tournament.dto';
 import { UpdateTournamentDto } from './dto/update-tournament.dto';
 import { RegisterTeamDto } from './dto/register-team.dto';
@@ -73,7 +73,7 @@ export class TournamentsService {
       _id: new Types.ObjectId() as any,
       name: registerTeamDto.name,
       player1: registerTeamDto.player1,
-      player2: registerTeamDto.player2,
+      player2: registerTeamDto.player2 || registerTeamDto.player1,
       registeredAt: new Date(),
     };
 
@@ -81,7 +81,44 @@ export class TournamentsService {
 
     // Si se completaron las parejas, generamos las llaves e iniciamos el torneo
     if (tournament.teams.length === tournament.maxTeams) {
-      tournament.bracket = this.generateInitialBracket(tournament.teams, tournament.maxTeams);
+      if (tournament.type === 'elimination') {
+        tournament.bracket = this.generateInitialBracket(tournament.teams, tournament.maxTeams);
+      } else if (tournament.type === 'round_robin') {
+        tournament.bracket = this.generateRoundRobinMatches(tournament.teams, 'round_robin');
+      } else if (tournament.type === 'americano') {
+        tournament.bracket = this.generateAmericanoMatches(tournament.teams);
+      } else if (tournament.type === 'groups_playoff') {
+        // Asignar parejas a grupos (A/B para 8, A/B/C/D para 16)
+        const groups: { [key: string]: TournamentTeam[] } = {};
+        if (tournament.maxTeams === 8) {
+          groups['A'] = [];
+          groups['B'] = [];
+          tournament.teams.forEach((t, i) => {
+            const groupName = i % 2 === 0 ? 'A' : 'B';
+            t.group = groupName;
+            groups[groupName].push(t);
+          });
+        } else {
+          groups['A'] = [];
+          groups['B'] = [];
+          groups['C'] = [];
+          groups['D'] = [];
+          tournament.teams.forEach((t, i) => {
+            const groupNames = ['A', 'B', 'C', 'D'];
+            const groupName = groupNames[i % 4];
+            t.group = groupName;
+            groups[groupName].push(t);
+          });
+        }
+
+        // Generar partidos todos contra todos para cada grupo
+        const allGroupMatches: TournamentMatch[] = [];
+        Object.entries(groups).forEach(([groupName, groupTeams]) => {
+          const groupMatches = this.generateRoundRobinMatches(groupTeams, 'groups');
+          allGroupMatches.push(...groupMatches);
+        });
+        tournament.bracket = allGroupMatches;
+      }
       tournament.status = 'active';
     }
 
@@ -122,10 +159,10 @@ export class TournamentsService {
       winner = match.teamB;
       match.winnerId = (match.teamB._id as any).toString();
     } else {
-      throw new BadRequestException('Los partidos eliminatorios no pueden terminar en empate.');
+      throw new BadRequestException('Los partidos no pueden terminar en empate.');
     }
 
-    // Avanzar de ronda al ganador si tiene un siguiente partido programado
+    // Avanzar de ronda al ganador o completar torneo
     if (match.nextMatchId) {
       const nextMatchIndex = tournament.bracket.findIndex(m => m.matchId === match.nextMatchId);
       if (nextMatchIndex !== -1) {
@@ -137,8 +174,18 @@ export class TournamentsService {
         }
       }
     } else {
-      // Si no hay siguiente partido, es la gran final
-      tournament.status = 'completed';
+      if (tournament.type === 'elimination') {
+        tournament.status = 'completed';
+      } else if (tournament.type === 'round_robin' || tournament.type === 'americano') {
+        const allPlayed = tournament.bracket.every(m => m.scoreA !== null && m.scoreB !== null);
+        if (allPlayed) {
+          tournament.status = 'completed';
+        }
+      } else if (tournament.type === 'groups_playoff') {
+        if (match.stage === 'playoff' && match.matchId === 'F-1') {
+          tournament.status = 'completed';
+        }
+      }
     }
 
     // Forzar actualización en Mongoose debido al nesting
@@ -146,22 +193,257 @@ export class TournamentsService {
     return tournament.save();
   }
 
+  async advanceToPlayoffs(id: string): Promise<TournamentDocument> {
+    const tournament = await this.findOne(id);
+
+    if (tournament.status !== 'active') {
+      throw new BadRequestException('El torneo debe estar activo para avanzar a eliminatorias.');
+    }
+
+    if (tournament.type !== 'groups_playoff') {
+      throw new BadRequestException('Solo los torneos de fase de grupos pueden avanzar a eliminatorias.');
+    }
+
+    const groupMatches = tournament.bracket.filter(m => m.stage === 'groups');
+    if (groupMatches.length === 0) {
+      throw new BadRequestException('No se encontraron partidos de fase de grupos.');
+    }
+
+    const allGroupMatchesPlayed = groupMatches.every(m => m.scoreA !== null && m.scoreB !== null);
+    if (!allGroupMatchesPlayed) {
+      throw new BadRequestException('Todos los partidos de la fase de grupos deben jugarse antes de avanzar.');
+    }
+
+    const hasPlayoffMatches = tournament.bracket.some(m => m.stage === 'playoff');
+    if (hasPlayoffMatches) {
+      throw new BadRequestException('El torneo ya avanzó a la fase de eliminatorias.');
+    }
+
+    const groupNames = tournament.maxTeams === 8 ? ['A', 'B'] : ['A', 'B', 'C', 'D'];
+    const qualifiedTeams: { [group: string]: TournamentTeam[] } = {};
+
+    for (const groupName of groupNames) {
+      const teamsInGroup = tournament.teams.filter(t => t.group === groupName);
+      const matchesInGroup = groupMatches.filter(m => 
+        m.teamA?.group === groupName && m.teamB?.group === groupName
+      );
+
+      const standings = this.calculateStandingsInternal(teamsInGroup, matchesInGroup);
+      if (standings.length < 2) {
+        throw new BadRequestException(`El grupo ${groupName} no tiene suficientes equipos.`);
+      }
+      qualifiedTeams[groupName] = [standings[0].team, standings[1].team];
+    }
+
+    const playoffMatches: TournamentMatch[] = [];
+
+    if (tournament.maxTeams === 8) {
+      const [a1, a2] = qualifiedTeams['A'];
+      const [b1, b2] = qualifiedTeams['B'];
+
+      playoffMatches.push({
+        matchId: 'S-1',
+        teamA: a1,
+        teamB: b2,
+        scoreA: null, scoreB: null, winnerId: null,
+        nextMatchId: 'F-1', nextMatchSlot: 'A',
+        stage: 'playoff',
+      });
+      playoffMatches.push({
+        matchId: 'S-2',
+        teamA: b1,
+        teamB: a2,
+        scoreA: null, scoreB: null, winnerId: null,
+        nextMatchId: 'F-1', nextMatchSlot: 'B',
+        stage: 'playoff',
+      });
+      playoffMatches.push({
+        matchId: 'F-1',
+        teamA: null, teamB: null,
+        scoreA: null, scoreB: null, winnerId: null,
+        nextMatchId: null, nextMatchSlot: null,
+        stage: 'playoff',
+      });
+    } else {
+      const [a1, a2] = qualifiedTeams['A'];
+      const [b1, b2] = qualifiedTeams['B'];
+      const [c1, c2] = qualifiedTeams['C'];
+      const [d1, d2] = qualifiedTeams['D'];
+
+      playoffMatches.push({
+        matchId: 'Q-1',
+        teamA: a1,
+        teamB: b2,
+        scoreA: null, scoreB: null, winnerId: null,
+        nextMatchId: 'S-1', nextMatchSlot: 'A',
+        stage: 'playoff',
+      });
+      playoffMatches.push({
+        matchId: 'Q-2',
+        teamA: c1,
+        teamB: d2,
+        scoreA: null, scoreB: null, winnerId: null,
+        nextMatchId: 'S-1', nextMatchSlot: 'B',
+        stage: 'playoff',
+      });
+      playoffMatches.push({
+        matchId: 'Q-3',
+        teamA: b1,
+        teamB: a2,
+        scoreA: null, scoreB: null, winnerId: null,
+        nextMatchId: 'S-2', nextMatchSlot: 'A',
+        stage: 'playoff',
+      });
+      playoffMatches.push({
+        matchId: 'Q-4',
+        teamA: d1,
+        teamB: c2,
+        scoreA: null, scoreB: null, winnerId: null,
+        nextMatchId: 'S-2', nextMatchSlot: 'B',
+        stage: 'playoff',
+      });
+
+      // Semifinales
+      playoffMatches.push({
+        matchId: 'S-1',
+        teamA: null, teamB: null,
+        scoreA: null, scoreB: null, winnerId: null,
+        nextMatchId: 'F-1', nextMatchSlot: 'A',
+        stage: 'playoff',
+      });
+      playoffMatches.push({
+        matchId: 'S-2',
+        teamA: null, teamB: null,
+        scoreA: null, scoreB: null, winnerId: null,
+        nextMatchId: 'F-1', nextMatchSlot: 'B',
+        stage: 'playoff',
+      });
+
+      // Final
+      playoffMatches.push({
+        matchId: 'F-1',
+        teamA: null, teamB: null,
+        scoreA: null, scoreB: null, winnerId: null,
+        nextMatchId: null, nextMatchSlot: null,
+        stage: 'playoff',
+      });
+    }
+
+    tournament.bracket.push(...playoffMatches);
+    tournament.markModified('bracket');
+    return tournament.save();
+  }
+
+  private calculateStandingsInternal(teams: TournamentTeam[], matches: TournamentMatch[]) {
+    interface StandingEntry {
+      teamId: string;
+      team: TournamentTeam;
+      matchesWon: number;
+      setsDiff: number;
+    }
+
+    const standingsMap = new Map<string, StandingEntry>();
+
+    teams.forEach(team => {
+      const idStr = team._id.toString();
+      standingsMap.set(idStr, {
+        teamId: idStr,
+        team,
+        matchesWon: 0,
+        setsDiff: 0,
+      });
+    });
+
+    matches.forEach(match => {
+      if (match.scoreA === null || match.scoreB === null || !match.teamA || !match.teamB) {
+        return;
+      }
+
+      const idA = match.teamA._id.toString();
+      const idB = match.teamB._id.toString();
+      const entryA = standingsMap.get(idA);
+      const entryB = standingsMap.get(idB);
+
+      if (entryA && entryB) {
+        entryA.setsDiff += (match.scoreA - match.scoreB);
+        entryB.setsDiff += (match.scoreB - match.scoreA);
+
+        if (match.scoreA > match.scoreB) {
+          entryA.matchesWon += 1;
+        } else if (match.scoreB > match.scoreA) {
+          entryB.matchesWon += 1;
+        }
+      }
+    });
+
+    const standings = Array.from(standingsMap.values());
+
+    standings.sort((a, b) => {
+      if (b.matchesWon !== a.matchesWon) {
+        return b.matchesWon - a.matchesWon;
+      }
+
+      const h2hMatch = matches.find(m => 
+        (m.teamA?._id?.toString() === a.teamId && m.teamB?._id?.toString() === b.teamId) ||
+        (m.teamA?._id?.toString() === b.teamId && m.teamB?._id?.toString() === a.teamId)
+      );
+      if (h2hMatch && h2hMatch.winnerId) {
+        if (h2hMatch.winnerId === a.teamId) return -1;
+        if (h2hMatch.winnerId === b.teamId) return 1;
+      }
+
+      return b.setsDiff - a.setsDiff;
+    });
+
+    return standings;
+  }
+
+  private generateRoundRobinMatches(teams: TournamentTeam[], stage: 'groups' | 'round_robin'): TournamentMatch[] {
+    const matches: TournamentMatch[] = [];
+    const n = teams.length;
+    if (n < 2) return [];
+
+    const rounds = n - 1;
+    const matchesPerRound = n / 2;
+    const list = [...teams];
+
+    for (let r = 0; r < rounds; r++) {
+      for (let m = 0; m < matchesPerRound; m++) {
+        const home = list[m];
+        const away = list[n - 1 - m];
+
+        const prefix = stage === 'round_robin' ? 'RR' : 'G';
+        const groupSuffix = home.group ? `-${home.group}` : '';
+
+        matches.push({
+          matchId: `${prefix}${groupSuffix}-R${r + 1}-M${m + 1}`,
+          teamA: home,
+          teamB: away,
+          scoreA: null,
+          scoreB: null,
+          winnerId: null,
+          nextMatchId: null,
+          nextMatchSlot: null,
+          stage: stage,
+        });
+      }
+      const last = list.pop()!;
+      list.splice(1, 0, last);
+    }
+    return matches;
+  }
+
   private generateInitialBracket(teams: TournamentTeam[], maxTeams: number): TournamentMatch[] {
     const bracket: TournamentMatch[] = [];
 
     if (maxTeams === 8) {
-      // 4 partidos de Cuartos de final
-      // Q-1, Q-2, Q-3, Q-4
-      // S-1, S-2 (Semifinales)
-      // F-1 (Final)
-
-      // Ronda 1: Cuartos
       bracket.push({
         matchId: 'Q-1',
         teamA: teams[0] || null,
         teamB: teams[1] || null,
         scoreA: null, scoreB: null, winnerId: null,
         nextMatchId: 'S-1', nextMatchSlot: 'A',
+        stage: 'playoff',
       });
       bracket.push({
         matchId: 'Q-2',
@@ -169,6 +451,7 @@ export class TournamentsService {
         teamB: teams[3] || null,
         scoreA: null, scoreB: null, winnerId: null,
         nextMatchId: 'S-1', nextMatchSlot: 'B',
+        stage: 'playoff',
       });
       bracket.push({
         matchId: 'Q-3',
@@ -176,6 +459,7 @@ export class TournamentsService {
         teamB: teams[5] || null,
         scoreA: null, scoreB: null, winnerId: null,
         nextMatchId: 'S-2', nextMatchSlot: 'A',
+        stage: 'playoff',
       });
       bracket.push({
         matchId: 'Q-4',
@@ -183,37 +467,33 @@ export class TournamentsService {
         teamB: teams[7] || null,
         scoreA: null, scoreB: null, winnerId: null,
         nextMatchId: 'S-2', nextMatchSlot: 'B',
+        stage: 'playoff',
       });
 
-      // Semifinales
       bracket.push({
         matchId: 'S-1',
         teamA: null, teamB: null,
         scoreA: null, scoreB: null, winnerId: null,
         nextMatchId: 'F-1', nextMatchSlot: 'A',
+        stage: 'playoff',
       });
       bracket.push({
         matchId: 'S-2',
         teamA: null, teamB: null,
         scoreA: null, scoreB: null, winnerId: null,
         nextMatchId: 'F-1', nextMatchSlot: 'B',
+        stage: 'playoff',
       });
 
-      // Final
       bracket.push({
         matchId: 'F-1',
         teamA: null, teamB: null,
         scoreA: null, scoreB: null, winnerId: null,
         nextMatchId: null, nextMatchSlot: null,
+        stage: 'playoff',
       });
 
     } else if (maxTeams === 16) {
-      // 8 partidos de Octavos de final: O-1 a O-8
-      // 4 partidos de Cuartos de final: Q-1 a Q-4
-      // 2 partidos de Semifinales: S-1 y S-2
-      // 1 partido de Final: F-1
-
-      // Ronda 1: Octavos
       for (let i = 0; i < 8; i++) {
         const nextQ = `Q-${Math.floor(i / 2) + 1}`;
         const slot = i % 2 === 0 ? 'A' : 'B';
@@ -223,10 +503,10 @@ export class TournamentsService {
           teamB: teams[i * 2 + 1] || null,
           scoreA: null, scoreB: null, winnerId: null,
           nextMatchId: nextQ, nextMatchSlot: slot,
+          stage: 'playoff',
         });
       }
 
-      // Ronda 2: Cuartos
       for (let i = 0; i < 4; i++) {
         const nextS = `S-${Math.floor(i / 2) + 1}`;
         const slot = i % 2 === 0 ? 'A' : 'B';
@@ -235,32 +515,172 @@ export class TournamentsService {
           teamA: null, teamB: null,
           scoreA: null, scoreB: null, winnerId: null,
           nextMatchId: nextS, nextMatchSlot: slot,
+          stage: 'playoff',
         });
       }
 
-      // Ronda 3: Semifinales
       bracket.push({
         matchId: 'S-1',
         teamA: null, teamB: null,
         scoreA: null, scoreB: null, winnerId: null,
         nextMatchId: 'F-1', nextMatchSlot: 'A',
+        stage: 'playoff',
       });
       bracket.push({
         matchId: 'S-2',
         teamA: null, teamB: null,
         scoreA: null, scoreB: null, winnerId: null,
         nextMatchId: 'F-1', nextMatchSlot: 'B',
+        stage: 'playoff',
       });
 
-      // Final
       bracket.push({
         matchId: 'F-1',
         teamA: null, teamB: null,
         scoreA: null, scoreB: null, winnerId: null,
         nextMatchId: null, nextMatchSlot: null,
+        stage: 'playoff',
       });
     }
 
     return bracket;
+  }
+
+  async getStandings(id: string): Promise<any> {
+    const tournament = await this.findOne(id);
+    if (tournament.type === 'round_robin') {
+      return this.calculateStandingsInternal(tournament.teams, tournament.bracket);
+    } else if (tournament.type === 'groups_playoff') {
+      const groupNames = tournament.maxTeams === 8 ? ['A', 'B'] : ['A', 'B', 'C', 'D'];
+      const standings: { [group: string]: any[] } = {};
+      const groupMatches = tournament.bracket.filter(m => m.stage === 'groups');
+      for (const groupName of groupNames) {
+        const teamsInGroup = tournament.teams.filter(t => t.group === groupName);
+        const matchesInGroup = groupMatches.filter(m => 
+          m.teamA?.group === groupName && m.teamB?.group === groupName
+        );
+        standings[groupName] = this.calculateStandingsInternal(teamsInGroup, matchesInGroup);
+      }
+      return standings;
+    } else if (tournament.type === 'americano') {
+      return this.calculateAmericanoStandings(tournament.teams, tournament.bracket);
+    }
+    return [];
+  }
+
+  private calculateAmericanoStandings(players: TournamentTeam[], matches: TournamentMatch[]) {
+    interface IndividualStanding {
+      playerId: string;
+      name: string;
+      phone: string;
+      matchesPlayed: number;
+      matchesWon: number;
+      pointsWon: number;
+      pointsLost: number;
+      pointsDiff: number;
+    }
+
+    const standingsMap = new Map<string, IndividualStanding>();
+
+    players.forEach(p => {
+      const idStr = p._id.toString();
+      standingsMap.set(idStr, {
+        playerId: idStr,
+        name: p.player1.name,
+        phone: p.player1.phone,
+        matchesPlayed: 0,
+        matchesWon: 0,
+        pointsWon: 0,
+        pointsLost: 0,
+        pointsDiff: 0,
+      });
+    });
+
+    matches.forEach(match => {
+      if (match.scoreA === null || match.scoreB === null || !match.teamA || !match.teamB) {
+        return;
+      }
+
+      const findAndAddPoints = (player: TournamentPlayer, ptsWon: number, ptsLost: number, isWinner: boolean) => {
+        const registered = players.find(p => p.player1.name === player.name && p.player1.phone === player.phone);
+        if (registered) {
+          const entry = standingsMap.get(registered._id.toString());
+          if (entry) {
+            entry.matchesPlayed += 1;
+            if (isWinner) entry.matchesWon += 1;
+            entry.pointsWon += ptsWon;
+            entry.pointsLost += ptsLost;
+            entry.pointsDiff += (ptsWon - ptsLost);
+          }
+        }
+      };
+
+      const scoreA = match.scoreA;
+      const scoreB = match.scoreB;
+      const aWon = scoreA > scoreB;
+      const bWon = scoreB > scoreA;
+
+      if (match.teamA.player1) findAndAddPoints(match.teamA.player1, scoreA, scoreB, aWon);
+      if (match.teamA.player2) findAndAddPoints(match.teamA.player2, scoreA, scoreB, aWon);
+      if (match.teamB.player1) findAndAddPoints(match.teamB.player1, scoreB, scoreA, bWon);
+      if (match.teamB.player2) findAndAddPoints(match.teamB.player2, scoreB, scoreA, bWon);
+    });
+
+    const standings = Array.from(standingsMap.values());
+    standings.sort((a, b) => {
+      if (b.matchesWon !== a.matchesWon) {
+        return b.matchesWon - a.matchesWon;
+      }
+      if (b.pointsDiff !== a.pointsDiff) {
+        return b.pointsDiff - a.pointsDiff;
+      }
+      return b.pointsWon - a.pointsWon;
+    });
+
+    return standings;
+  }
+
+  private generateAmericanoMatches(players: TournamentTeam[]): TournamentMatch[] {
+    const matches: TournamentMatch[] = [];
+    const n = players.length;
+    if (n < 4 || n % 4 !== 0) return [];
+
+    const rounds = n - 1;
+    const list = [...players];
+
+    for (let r = 0; r < rounds; r++) {
+      const partnerships: TournamentTeam[] = [];
+      for (let m = 0; m < n / 2; m++) {
+        const p1 = list[m];
+        const p2 = list[n - 1 - m];
+        
+        const combinedTeam: TournamentTeam = {
+          _id: new Types.ObjectId() as any,
+          name: `${p1.player1.name} / ${p2.player1.name}`,
+          player1: p1.player1,
+          player2: p2.player1,
+          registeredAt: new Date(),
+        };
+        partnerships.push(combinedTeam);
+      }
+
+      for (let i = 0; i < partnerships.length; i += 2) {
+        matches.push({
+          matchId: `AM-R${r + 1}-M${Math.floor(i / 2) + 1}`,
+          teamA: partnerships[i],
+          teamB: partnerships[i + 1],
+          scoreA: null,
+          scoreB: null,
+          winnerId: null,
+          nextMatchId: null,
+          nextMatchSlot: null,
+          stage: 'round_robin',
+        });
+      }
+
+      const last = list.pop()!;
+      list.splice(1, 0, last);
+    }
+    return matches;
   }
 }

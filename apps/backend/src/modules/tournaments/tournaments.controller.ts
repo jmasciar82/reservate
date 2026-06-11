@@ -26,6 +26,11 @@ export class TournamentsController {
     return this.tournamentsService.findOne(id);
   }
 
+  @Get(':id/standings')
+  async getStandings(@Param('id') id: string): Promise<any> {
+    return this.tournamentsService.getStandings(id);
+  }
+
   @Patch(':id')
   @UseGuards(JwtAuthGuard)
   async update(
@@ -50,5 +55,13 @@ export class TournamentsController {
     @Body() updateMatchDto: UpdateMatchDto,
   ) {
     return this.tournamentsService.updateMatch(id, updateMatchDto);
+  }
+
+  @Post(':id/advance-playoffs')
+  @UseGuards(JwtAuthGuard)
+  async advanceToPlayoffs(
+    @Param('id') id: string,
+  ) {
+    return this.tournamentsService.advanceToPlayoffs(id);
   }
 }

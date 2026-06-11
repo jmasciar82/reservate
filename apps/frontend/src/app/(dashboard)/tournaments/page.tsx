@@ -30,6 +30,7 @@ type Team = {
   name: string;
   player1: Player;
   player2: Player;
+  group?: string;
   registeredAt: string;
 };
 
@@ -42,6 +43,7 @@ type Match = {
   winnerId: string | null;
   nextMatchId: string | null;
   nextMatchSlot: 'A' | 'B' | null;
+  stage?: 'groups' | 'playoff' | 'round_robin';
 };
 
 type Tournament = {
@@ -53,6 +55,7 @@ type Tournament = {
   endDate: string;
   registrationFee: number;
   maxTeams: number;
+  type: 'elimination' | 'round_robin' | 'groups_playoff' | 'americano';
   status: 'draft' | 'registration' | 'active' | 'completed';
   teams: Team[];
   bracket: Match[];
@@ -64,7 +67,8 @@ export default function TournamentsPage() {
   const [selectedTournament, setSelectedTournament] = useState<Tournament | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'bracket' | 'teams'>('bracket');
+  const [activeTab, setActiveTab] = useState<'bracket' | 'teams' | 'groups'>('bracket');
+  const [standings, setStandings] = useState<any>(null);
 
   // Modales
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -80,6 +84,7 @@ export default function TournamentsPage() {
     endDate: "",
     registrationFee: 0,
     maxTeams: 8,
+    type: "elimination" as 'elimination' | 'round_robin' | 'groups_playoff' | 'americano',
   });
 
   // Formulario inscribir equipo
@@ -96,6 +101,18 @@ export default function TournamentsPage() {
   });
 
   const activeClub = clubs.find((c) => c._id === activeClubId);
+
+  const fetchStandings = async (tournamentId: string) => {
+    try {
+      const response = await apiFetch(`/tournaments/${tournamentId}/standings`);
+      if (response.ok) {
+        const data = await response.json();
+        setStandings(data);
+      }
+    } catch (err) {
+      console.error("Error fetching standings:", err);
+    }
+  };
 
   const fetchTournaments = async () => {
     if (!activeClubId) return;
@@ -114,6 +131,9 @@ export default function TournamentsPage() {
         const updatedSelected = data.find((t: Tournament) => t._id === selectedTournament._id);
         if (updatedSelected) {
           setSelectedTournament(updatedSelected);
+          if (updatedSelected.type !== 'elimination') {
+            void fetchStandings(updatedSelected._id);
+          }
         }
       }
     } catch (err) {
@@ -150,6 +170,7 @@ export default function TournamentsPage() {
         endDate: "",
         registrationFee: 0,
         maxTeams: 8,
+        type: "elimination",
       });
       await fetchTournaments();
     } catch (err) {
@@ -161,10 +182,16 @@ export default function TournamentsPage() {
     e.preventDefault();
     if (!selectedTournament) return;
     try {
+      const payload = selectedTournament.type === 'americano' ? {
+        name: newTeam.player1.name,
+        player1: newTeam.player1,
+        player2: newTeam.player1,
+      } : newTeam;
+
       const response = await apiFetch(`/tournaments/${selectedTournament._id}/register-team`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newTeam),
+        body: JSON.stringify(payload),
       });
       if (!response.ok) {
         const errorData = await response.json();
@@ -180,6 +207,23 @@ export default function TournamentsPage() {
       await fetchTournaments();
     } catch (err: any) {
       alert(err.message || "Error al inscribir equipo.");
+    }
+  };
+
+  const handleAdvanceToPlayoffs = async () => {
+    if (!selectedTournament) return;
+    try {
+      const response = await apiFetch(`/tournaments/${selectedTournament._id}/advance-playoffs`, {
+        method: "POST",
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Error al avanzar a eliminatorias.");
+      }
+      await fetchTournaments();
+      setActiveTab('bracket');
+    } catch (err: any) {
+      alert(err.message || "Error al avanzar a eliminatorias.");
     }
   };
 
@@ -235,21 +279,56 @@ export default function TournamentsPage() {
   };
 
   // Agrupamiento del bracket por rondas
-  const getRounds = (bracket: Match[], maxTeams: number) => {
-    if (maxTeams === 8) {
-      return [
-        { name: "Cuartos de Final", matches: bracket.filter((m) => m.matchId.startsWith("Q")) },
-        { name: "Semifinales", matches: bracket.filter((m) => m.matchId.startsWith("S")) },
-        { name: "Final", matches: bracket.filter((m) => m.matchId.startsWith("F")) },
-      ];
+  const getRounds = (bracket: Match[], maxTeams: number, type: string) => {
+    const playoffBracket = bracket.filter((m: any) => m.stage === 'playoff' || !m.stage);
+    if (type === 'groups_playoff') {
+      if (maxTeams === 8) {
+        return [
+          { name: "Semifinales", matches: playoffBracket.filter((m) => m.matchId.startsWith("S")) },
+          { name: "Final", matches: playoffBracket.filter((m) => m.matchId.startsWith("F")) },
+        ];
+      } else {
+        return [
+          { name: "Cuartos de Final", matches: playoffBracket.filter((m) => m.matchId.startsWith("Q")) },
+          { name: "Semifinales", matches: playoffBracket.filter((m) => m.matchId.startsWith("S")) },
+          { name: "Final", matches: playoffBracket.filter((m) => m.matchId.startsWith("F")) },
+        ];
+      }
     } else {
-      return [
-        { name: "Octavos de Final", matches: bracket.filter((m) => m.matchId.startsWith("O")) },
-        { name: "Cuartos de Final", matches: bracket.filter((m) => m.matchId.startsWith("Q")) },
-        { name: "Semifinales", matches: bracket.filter((m) => m.matchId.startsWith("S")) },
-        { name: "Final", matches: bracket.filter((m) => m.matchId.startsWith("F")) },
-      ];
+      if (maxTeams === 8) {
+        return [
+          { name: "Cuartos de Final", matches: playoffBracket.filter((m) => m.matchId.startsWith("Q")) },
+          { name: "Semifinales", matches: playoffBracket.filter((m) => m.matchId.startsWith("S")) },
+          { name: "Final", matches: playoffBracket.filter((m) => m.matchId.startsWith("F")) },
+        ];
+      } else {
+        return [
+          { name: "Octavos de Final", matches: playoffBracket.filter((m) => m.matchId.startsWith("O")) },
+          { name: "Cuartos de Final", matches: playoffBracket.filter((m) => m.matchId.startsWith("Q")) },
+          { name: "Semifinales", matches: playoffBracket.filter((m) => m.matchId.startsWith("S")) },
+          { name: "Final", matches: playoffBracket.filter((m) => m.matchId.startsWith("F")) },
+        ];
+      }
     }
+  };
+
+  const groupMatchesByRound = (matches: Match[]) => {
+    const roundsMap: { [key: string]: Match[] } = {};
+    matches.forEach(m => {
+      const parts = m.matchId.split('-');
+      const roundPart = parts.find(p => p.startsWith('R')) || 'R1';
+      const roundNum = roundPart.replace('R', '');
+      const roundName = `Ronda ${roundNum}`;
+      if (!roundsMap[roundName]) {
+        roundsMap[roundName] = [];
+      }
+      roundsMap[roundName].push(m);
+    });
+    return Object.entries(roundsMap).sort((a, b) => {
+      const numA = parseInt(a[0].replace('Ronda ', ''));
+      const numB = parseInt(b[0].replace('Ronda ', ''));
+      return numA - numB;
+    });
   };
 
   return (
@@ -313,14 +392,25 @@ export default function TournamentsPage() {
                 key={torneo._id}
                 onClick={() => {
                   setSelectedTournament(torneo);
-                  setActiveTab('bracket');
+                  setActiveTab(torneo.type === 'groups_playoff' ? 'groups' : 'bracket');
+                  if (torneo.type !== 'elimination') {
+                    void fetchStandings(torneo._id);
+                  } else {
+                    setStandings(null);
+                  }
                 }}
                 className="bg-white/80 dark:bg-zinc-900/50 border border-zinc-200 dark:border-white/5 p-6 rounded-2xl shadow-md hover:shadow-xl hover:border-zinc-300 dark:hover:border-white/10 transition-all duration-300 cursor-pointer flex flex-col justify-between group"
               >
                 <div className="space-y-4">
-                  <div className="flex justify-between items-start">
+                  <div className="flex justify-between items-start flex-wrap gap-2">
                     <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-950 text-zinc-500 border border-zinc-200 dark:border-white/5">
                       🎾 {torneo.sport.toUpperCase()}
+                    </span>
+                    <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-950 text-zinc-500 border border-zinc-200 dark:border-white/5">
+                      {torneo.type === 'elimination' && '🏆 Eliminación'}
+                      {torneo.type === 'round_robin' && '🔁 Liga'}
+                      {torneo.type === 'groups_playoff' && '👥 Grupos + Playoffs'}
+                      {torneo.type === 'americano' && '🇺🇸 Americano'}
                     </span>
                     {renderStatusBadge(torneo.status)}
                   </div>
@@ -343,10 +433,12 @@ export default function TournamentsPage() {
                     </div>
                   </div>
 
-                  {/* Cupo de Parejas Progress Bar */}
+                  {/* Cupo de Parejas/Jugadores Progress Bar */}
                   <div className="space-y-1.5 pt-2 border-t border-zinc-200/55 dark:border-white/[0.03]">
                     <div className="flex justify-between text-xs">
-                      <span className="font-bold text-zinc-500">Parejas Inscritas:</span>
+                      <span className="font-bold text-zinc-500">
+                        {torneo.type === 'americano' ? 'Jugadores Inscritos:' : 'Parejas Inscritas:'}
+                      </span>
                       <span className="font-extrabold text-zinc-700 dark:text-zinc-350">{registeredCount} / {limit}</span>
                     </div>
                     <div className="w-full h-1.5 bg-zinc-200 dark:bg-zinc-950 rounded-full overflow-hidden">
@@ -384,6 +476,12 @@ export default function TournamentsPage() {
               </div>
               <div className="flex flex-wrap gap-4 text-xs font-semibold text-zinc-500">
                 <span>🏆 Deporte: <b className="text-zinc-800 dark:text-zinc-300">{selectedTournament.sport.toUpperCase()}</b></span>
+                <span>📋 Formato: <b className="text-zinc-800 dark:text-zinc-300">
+                  {selectedTournament.type === 'elimination' && 'Eliminación Directa'}
+                  {selectedTournament.type === 'round_robin' && 'Todos contra Todos (Liga)'}
+                  {selectedTournament.type === 'groups_playoff' && 'Fase de Grupos + Playoffs'}
+                  {selectedTournament.type === 'americano' && 'Torneo Americano (Individual)'}
+                </b></span>
                 <span>🏷️ Categoría: <b className="text-zinc-800 dark:text-zinc-300">{selectedTournament.category}</b></span>
                 <span>📅 Fecha: <b className="text-zinc-800 dark:text-zinc-300">{new Date(selectedTournament.startDate).toLocaleDateString('es-AR')} al {new Date(selectedTournament.endDate).toLocaleDateString('es-AR')}</b></span>
                 <span>💵 Inscripción: <b className="text-primary">${selectedTournament.registrationFee.toLocaleString("es-AR")}</b></span>
@@ -395,13 +493,26 @@ export default function TournamentsPage() {
                 onClick={() => setShowRegisterTeamModal(true)}
                 className="px-4 py-2.5 bg-primary text-black font-black text-xs rounded-xl shadow-md hover:scale-105 active:scale-95 transition-all"
               >
-                Inscribir Pareja Manuscrita
+                {selectedTournament.type === 'americano' ? 'Inscribir Jugador' : 'Inscribir Pareja Manuscrita'}
               </button>
             )}
           </div>
 
           {/* Navigation Tabs */}
           <div className="flex border-b border-zinc-200 dark:border-white/5 gap-4">
+            {selectedTournament.type === 'groups_playoff' && (
+              <button
+                onClick={() => setActiveTab('groups')}
+                className={`pb-3 text-sm font-bold border-b-2 transition-all ${
+                  activeTab === 'groups'
+                    ? "border-primary text-primary font-black"
+                    : "border-transparent text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300"
+                }`}
+              >
+                Fase de Grupos
+              </button>
+            )}
+
             <button
               onClick={() => setActiveTab('bracket')}
               className={`pb-3 text-sm font-bold border-b-2 transition-all ${
@@ -410,8 +521,11 @@ export default function TournamentsPage() {
                   : "border-transparent text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300"
               }`}
             >
-              Cuadro del Torneo (Brackets)
+              {selectedTournament.type === 'groups_playoff' && 'Fase Final (Playoffs)'}
+              {(selectedTournament.type === 'round_robin' || selectedTournament.type === 'americano') && 'Partidos y Clasificación'}
+              {selectedTournament.type === 'elimination' && 'Cuadro del Torneo (Brackets)'}
             </button>
+
             <button
               onClick={() => setActiveTab('teams')}
               className={`pb-3 text-sm font-bold border-b-2 transition-all ${
@@ -420,7 +534,7 @@ export default function TournamentsPage() {
                   : "border-transparent text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300"
               }`}
             >
-              Parejas Inscritas ({selectedTournament.teams.length} / {selectedTournament.maxTeams})
+              {selectedTournament.type === 'americano' ? 'Jugadores Inscritos' : 'Parejas Inscritas'} ({selectedTournament.teams.length} / {selectedTournament.maxTeams})
             </button>
           </div>
 
@@ -432,86 +546,360 @@ export default function TournamentsPage() {
                   <ShieldAlert className="w-10 h-10 mx-auto opacity-30 text-amber-400" />
                   <h4 className="text-base font-bold text-zinc-800 dark:text-zinc-200">El cuadro aún no se ha generado</h4>
                   <p className="text-xs text-zinc-500 leading-relaxed">
-                    Las llaves eliminatorias se crearán de forma automática una vez que se completen los cupos del torneo ({selectedTournament.maxTeams} parejas).
+                    Las llaves se crearán de forma automática una vez que se completen los cupos del torneo ({selectedTournament.maxTeams} {selectedTournament.type === 'americano' ? 'jugadores' : 'parejas'}).
                   </p>
                 </div>
-              ) : (
+              ) : (selectedTournament.type === 'elimination' || (selectedTournament.type === 'groups_playoff' && activeTab === 'bracket')) ? (
+                // Vista de Llaves Eliminatorias (Bracket)
                 <div className="flex flex-col lg:flex-row gap-8 overflow-x-auto pb-4 justify-between items-center py-4">
-                  {getRounds(selectedTournament.bracket, selectedTournament.maxTeams).map((round, rIdx) => (
-                    <div key={rIdx} className="space-y-8 flex-1 min-w-[240px] w-full">
-                      <h4 className="text-xs font-black uppercase tracking-wider text-zinc-400 border-b border-zinc-200/60 dark:border-white/5 pb-2 text-center">
-                        {round.name}
-                      </h4>
-                      <div className="space-y-6 flex flex-col justify-around h-full">
-                        {round.matches.map((match) => {
-                          const hasBothTeams = match.teamA && match.teamB;
-                          const isFinished = match.winnerId !== null;
+                  {getRounds(selectedTournament.bracket, selectedTournament.maxTeams, selectedTournament.type).map((round, rIdx) => {
+                    if (round.matches.length === 0) return null;
+                    return (
+                      <div key={rIdx} className="space-y-8 flex-1 min-w-[240px] w-full">
+                        <h4 className="text-xs font-black uppercase tracking-wider text-zinc-400 border-b border-zinc-200/60 dark:border-white/5 pb-2 text-center">
+                          {round.name}
+                        </h4>
+                        <div className="space-y-6 flex flex-col justify-around h-full">
+                          {round.matches.map((match) => {
+                            const hasBothTeams = match.teamA && match.teamB;
+                            const isFinished = match.winnerId !== null;
 
-                          return (
-                            <div
-                              key={match.matchId}
-                              onClick={() => {
-                                if (hasBothTeams && !isFinished) {
-                                  setSelectedMatch(match);
-                                  setMatchScore({
-                                    scoreA: match.scoreA || 0,
-                                    scoreB: match.scoreB || 0,
-                                  });
-                                }
-                              }}
-                              className={`bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-white/5 p-3 rounded-xl shadow-inner relative flex flex-col gap-2 transition-all ${
-                                hasBothTeams && !isFinished
-                                  ? "hover:border-primary/50 cursor-pointer hover:shadow-lg active:scale-98"
-                                  : ""
-                              }`}
-                            >
-                              {/* Match ID marker */}
-                              <span className="absolute -top-2.5 -left-1.5 bg-zinc-200 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-800 text-[9px] px-1.5 py-0.5 rounded font-black text-zinc-500 dark:text-zinc-400">
-                                {match.matchId}
-                              </span>
-
-                              {/* Team A */}
-                              <div className={`flex justify-between items-center text-xs p-1.5 rounded ${
-                                isFinished && match.winnerId === match.teamA?._id?.toString()
-                                  ? "bg-primary/10 text-primary border border-primary/20 font-black"
-                                  : "text-zinc-700 dark:text-zinc-350"
-                              }`}>
-                                <span className="truncate max-w-[140px]">
-                                  {match.teamA ? `👥 ${match.teamA.name}` : "⏳ Esperando ganador"}
+                            return (
+                              <div
+                                key={match.matchId}
+                                onClick={() => {
+                                  if (hasBothTeams && !isFinished) {
+                                    setSelectedMatch(match);
+                                    setMatchScore({
+                                      scoreA: match.scoreA || 0,
+                                      scoreB: match.scoreB || 0,
+                                    });
+                                  }
+                                }}
+                                className={`bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-white/5 p-3 rounded-xl shadow-inner relative flex flex-col gap-2 transition-all ${
+                                  hasBothTeams && !isFinished
+                                    ? "hover:border-primary/50 cursor-pointer hover:shadow-lg active:scale-98"
+                                    : ""
+                                }`}
+                              >
+                                {/* Match ID marker */}
+                                <span className="absolute -top-2.5 -left-1.5 bg-zinc-200 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-800 text-[9px] px-1.5 py-0.5 rounded font-black text-zinc-500 dark:text-zinc-400">
+                                  {match.matchId}
                                 </span>
-                                {match.scoreA !== null && (
-                                  <span className="font-extrabold text-sm px-1.5">{match.scoreA}</span>
-                                )}
-                              </div>
 
-                              {/* Team B */}
-                              <div className={`flex justify-between items-center text-xs p-1.5 rounded ${
-                                isFinished && match.winnerId === match.teamB?._id?.toString()
-                                  ? "bg-primary/10 text-primary border border-primary/20 font-black"
-                                  : "text-zinc-700 dark:text-zinc-350"
-                              }`}>
-                                <span className="truncate max-w-[140px]">
-                                  {match.teamB ? `👥 ${match.teamB.name}` : "⏳ Esperando ganador"}
-                                </span>
-                                {match.scoreB !== null && (
-                                  <span className="font-extrabold text-sm px-1.5">{match.scoreB}</span>
-                                )}
-                              </div>
-
-                              {/* Final Champion marker */}
-                              {match.matchId === 'F-1' && isFinished && (
-                                <div className="mt-1 bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-2 flex items-center justify-center gap-1.5 text-xs text-yellow-500 font-extrabold animate-pulse">
-                                  <Medal className="w-4 h-4 text-[#ffaa00]" />
-                                  ¡CAMPEÓN DEFINIDO!
+                                {/* Team A */}
+                                <div className={`flex justify-between items-center text-xs p-1.5 rounded ${
+                                  isFinished && match.winnerId === match.teamA?._id?.toString()
+                                    ? "bg-primary/10 text-primary border border-primary/20 font-black"
+                                    : "text-zinc-700 dark:text-zinc-350"
+                                }`}>
+                                  <span className="truncate max-w-[140px]">
+                                    {match.teamA ? `👥 ${match.teamA.name}` : "⏳ Esperando ganador"}
+                                  </span>
+                                  {match.scoreA !== null && (
+                                    <span className="font-extrabold text-sm px-1.5">{match.scoreA}</span>
+                                  )}
                                 </div>
-                              )}
-                            </div>
-                          );
-                        })}
+
+                                {/* Team B */}
+                                <div className={`flex justify-between items-center text-xs p-1.5 rounded ${
+                                  isFinished && match.winnerId === match.teamB?._id?.toString()
+                                    ? "bg-primary/10 text-primary border border-primary/20 font-black"
+                                    : "text-zinc-700 dark:text-zinc-350"
+                                }`}>
+                                  <span className="truncate max-w-[140px]">
+                                    {match.teamB ? `👥 ${match.teamB.name}` : "⏳ Esperando ganador"}
+                                  </span>
+                                  {match.scoreB !== null && (
+                                    <span className="font-extrabold text-sm px-1.5">{match.scoreB}</span>
+                                  )}
+                                </div>
+
+                                {/* Final Champion marker */}
+                                {match.matchId === 'F-1' && isFinished && (
+                                  <div className="mt-1 bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-2 flex items-center justify-center gap-1.5 text-xs text-yellow-500 font-extrabold animate-pulse">
+                                    <Medal className="w-4 h-4 text-[#ffaa00]" />
+                                    ¡CAMPEÓN DEFINIDO!
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
+              ) : (
+                // Vista de Round Robin (Liga) o Americano
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                  {/* Tabla de Clasificación */}
+                  <div className="lg:col-span-5 space-y-4">
+                    <h4 className="text-xs font-black uppercase tracking-wider text-zinc-400 border-b border-zinc-200/60 dark:border-white/5 pb-2">
+                      Tabla de Clasificación
+                    </h4>
+                    {standings ? (
+                      <div className="overflow-x-auto border border-zinc-200 dark:border-white/5 rounded-xl">
+                        <table className="w-full text-left border-collapse text-xs">
+                          <thead>
+                            <tr className="bg-zinc-100 dark:bg-zinc-900/60 text-zinc-500 font-bold border-b border-zinc-200 dark:border-white/5">
+                              <th className="p-3 w-10 text-center">Pos</th>
+                              <th className="p-3">
+                                {selectedTournament.type === 'americano' ? 'Jugador' : 'Pareja'}
+                              </th>
+                              {selectedTournament.type === 'americano' ? (
+                                <>
+                                  <th className="p-3 text-center">PJ</th>
+                                  <th className="p-3 text-center">PG</th>
+                                  <th className="p-3 text-center">Pts +</th>
+                                  <th className="p-3 text-center">Pts -</th>
+                                  <th className="p-3 text-center">Dif</th>
+                                </>
+                              ) : (
+                                <>
+                                  <th className="p-3 text-center">PG</th>
+                                  <th className="p-3 text-center">Dif Sets</th>
+                                </>
+                              )}
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-zinc-200 dark:divide-white/5 font-semibold text-zinc-700 dark:text-zinc-350">
+                            {selectedTournament.type === 'americano' ? (
+                              standings.map((row: any, idx: number) => (
+                                <tr key={row.playerId} className="hover:bg-zinc-50 dark:hover:bg-zinc-900/30">
+                                  <td className="p-3 text-center font-black text-primary">{idx + 1}</td>
+                                  <td className="p-3 font-bold text-zinc-900 dark:text-white">
+                                    <div>{row.name}</div>
+                                    <div className="text-[10px] text-zinc-500 font-normal">{row.phone}</div>
+                                  </td>
+                                  <td className="p-3 text-center">{row.matchesPlayed}</td>
+                                  <td className="p-3 text-center text-primary font-bold">{row.matchesWon}</td>
+                                  <td className="p-3 text-center">{row.pointsWon}</td>
+                                  <td className="p-3 text-center">{row.pointsLost}</td>
+                                  <td className={`p-3 text-center font-bold ${row.pointsDiff >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                    {row.pointsDiff > 0 ? `+${row.pointsDiff}` : row.pointsDiff}
+                                  </td>
+                                </tr>
+                              ))
+                            ) : (
+                              standings.map((row: any, idx: number) => (
+                                <tr key={row.teamId} className="hover:bg-zinc-50 dark:hover:bg-zinc-900/30">
+                                  <td className="p-3 text-center font-black text-primary">{idx + 1}</td>
+                                  <td className="p-3 font-bold text-zinc-900 dark:text-white">{row.team?.name}</td>
+                                  <td className="p-3 text-center text-primary font-bold">{row.matchesWon}</td>
+                                  <td className={`p-3 text-center font-bold ${row.setsDiff >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                    {row.setsDiff > 0 ? `+${row.setsDiff}` : row.setsDiff}
+                                  </td>
+                                </tr>
+                              ))
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <div className="text-center py-6 text-zinc-500">Cargando clasificación...</div>
+                    )}
+                  </div>
+
+                  {/* Listado de Partidos por Ronda */}
+                  <div className="lg:col-span-7 space-y-4">
+                    <h4 className="text-xs font-black uppercase tracking-wider text-zinc-400 border-b border-zinc-200/60 dark:border-white/5 pb-2">
+                      Rondas y Partidos
+                    </h4>
+                    <div className="space-y-6 max-h-[600px] overflow-y-auto pr-2">
+                      {groupMatchesByRound(selectedTournament.bracket).map(([roundName, roundMatches]) => (
+                        <div key={roundName} className="space-y-3">
+                          <h5 className="text-xs font-extrabold text-primary uppercase tracking-widest">{roundName}</h5>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {roundMatches.map((match) => {
+                              const hasBothTeams = match.teamA && match.teamB;
+                              const isFinished = match.winnerId !== null;
+
+                              return (
+                                <div
+                                  key={match.matchId}
+                                  onClick={() => {
+                                    if (hasBothTeams && !isFinished) {
+                                      setSelectedMatch(match);
+                                      setMatchScore({
+                                        scoreA: match.scoreA || 0,
+                                        scoreB: match.scoreB || 0,
+                                      });
+                                    }
+                                  }}
+                                  className={`bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-white/5 p-3 rounded-xl shadow-inner relative flex flex-col gap-1.5 transition-all ${
+                                    hasBothTeams && !isFinished
+                                      ? "hover:border-primary/50 cursor-pointer hover:shadow-lg active:scale-98"
+                                      : ""
+                                  }`}
+                                >
+                                  {/* Match ID */}
+                                  <span className="text-[9px] font-bold text-zinc-500">
+                                    Partido {match.matchId.split('-').pop()}
+                                  </span>
+
+                                  {/* Team A */}
+                                  <div className={`flex justify-between items-center text-xs p-1 rounded ${
+                                    isFinished && match.winnerId === match.teamA?._id?.toString()
+                                      ? "bg-primary/10 text-primary border border-primary/20 font-black"
+                                      : "text-zinc-700 dark:text-zinc-350"
+                                  }`}>
+                                    <span className="truncate max-w-[150px]">
+                                      {match.teamA?.name}
+                                    </span>
+                                    {match.scoreA !== null && (
+                                      <span className="font-extrabold text-sm px-1.5">{match.scoreA}</span>
+                                    )}
+                                  </div>
+
+                                  {/* Team B */}
+                                  <div className={`flex justify-between items-center text-xs p-1 rounded ${
+                                    isFinished && match.winnerId === match.teamB?._id?.toString()
+                                      ? "bg-primary/10 text-primary border border-primary/20 font-black"
+                                      : "text-zinc-700 dark:text-zinc-350"
+                                  }`}>
+                                    <span className="truncate max-w-[150px]">
+                                      {match.teamB?.name}
+                                    </span>
+                                    {match.scoreB !== null && (
+                                      <span className="font-extrabold text-sm px-1.5">{match.scoreB}</span>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* FASE DE GRUPOS VIEW PANE */}
+          {activeTab === 'groups' && selectedTournament.type === 'groups_playoff' && (
+            <div className="space-y-6">
+              {/* Botón de acción para el administrador */}
+              {selectedTournament.status === 'active' && 
+               !selectedTournament.bracket.some(m => m.stage === 'playoff') && (
+                <div className="bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-white/5 p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="space-y-1">
+                    <h4 className="text-sm font-bold text-zinc-900 dark:text-white">Fase de Grupos en Curso</h4>
+                    <p className="text-xs text-zinc-500">
+                      Una vez que todos los partidos de la fase de grupos tengan sus resultados cargados, podés avanzar a la fase eliminatoria.
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleAdvanceToPlayoffs}
+                    disabled={!selectedTournament.bracket.filter(m => m.stage === 'groups').every(m => m.scoreA !== null && m.scoreB !== null)}
+                    className="px-5 py-2.5 bg-primary text-black font-black text-xs rounded-xl shadow-md disabled:opacity-40 disabled:cursor-not-allowed hover:scale-105 active:scale-95 transition-all shrink-0"
+                  >
+                    Avanzar a Eliminatorias ⚡
+                  </button>
+                </div>
+              )}
+
+              {/* Renderizado de los Grupos */}
+              {standings ? (
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                  {Object.entries(standings).map(([groupName, groupStandings]: [string, any]) => {
+                    const groupMatches = selectedTournament.bracket.filter(m => 
+                      m.stage === 'groups' && (m.teamA?.group === groupName || m.teamB?.group === groupName)
+                    );
+
+                    return (
+                      <div key={groupName} className="bg-white/80 dark:bg-zinc-900/50 border border-zinc-200 dark:border-white/5 p-6 rounded-2xl shadow-lg space-y-6">
+                        <div className="flex justify-between items-center border-b border-zinc-200/60 dark:border-white/5 pb-2">
+                          <h4 className="text-lg font-black text-primary">Grupo {groupName}</h4>
+                          <span className="text-xs text-zinc-500 font-bold">Posiciones y Partidos</span>
+                        </div>
+
+                        {/* Tabla de posiciones de este grupo */}
+                        <div className="overflow-x-auto border border-zinc-200 dark:border-white/5 rounded-xl">
+                          <table className="w-full text-left border-collapse text-xs">
+                            <thead>
+                              <tr className="bg-zinc-100 dark:bg-zinc-900/60 text-zinc-500 font-bold border-b border-zinc-200 dark:border-white/5">
+                                <th className="p-2.5 w-10 text-center">Pos</th>
+                                <th className="p-2.5">Pareja</th>
+                                <th className="p-2.5 text-center">PG</th>
+                                <th className="p-2.5 text-center">Dif Sets</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-zinc-200 dark:divide-white/5 font-semibold text-zinc-700 dark:text-zinc-350">
+                              {groupStandings.map((row: any, idx: number) => (
+                                <tr key={row.teamId} className="hover:bg-zinc-50 dark:hover:bg-zinc-900/30">
+                                  <td className="p-2.5 text-center font-black text-primary">{idx + 1}</td>
+                                  <td className="p-2.5 font-bold text-zinc-900 dark:text-white">{row.team?.name}</td>
+                                  <td className="p-2.5 text-center text-primary font-bold">{row.matchesWon}</td>
+                                  <td className={`p-2.5 text-center font-bold ${row.setsDiff >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                    {row.setsDiff > 0 ? `+${row.setsDiff}` : row.setsDiff}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+
+                        {/* Partidos de este grupo */}
+                        <div className="space-y-3">
+                          <h5 className="text-[10px] font-black uppercase text-zinc-400 tracking-wider">Partidos de Grupo</h5>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {groupMatches.map((match) => {
+                              const hasBothTeams = match.teamA && match.teamB;
+                              const isFinished = match.winnerId !== null;
+
+                              return (
+                                <div
+                                  key={match.matchId}
+                                  onClick={() => {
+                                    if (hasBothTeams && !isFinished) {
+                                      setSelectedMatch(match);
+                                      setMatchScore({
+                                        scoreA: match.scoreA || 0,
+                                        scoreB: match.scoreB || 0,
+                                      });
+                                    }
+                                  }}
+                                  className={`bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-white/5 p-3 rounded-xl shadow-inner relative flex flex-col gap-1.5 transition-all ${
+                                    hasBothTeams && !isFinished
+                                      ? "hover:border-primary/50 cursor-pointer hover:shadow-lg active:scale-98"
+                                      : ""
+                                  }`}
+                                >
+                                  <span className="text-[9px] font-bold text-zinc-500">
+                                    Jornada {match.matchId.split('-').find(p => p.startsWith('R'))?.replace('R', '')}
+                                  </span>
+
+                                  <div className={`flex justify-between items-center text-xs p-1 rounded ${
+                                    isFinished && match.winnerId === match.teamA?._id?.toString()
+                                      ? "bg-primary/10 text-primary border border-primary/20 font-black"
+                                      : "text-zinc-700 dark:text-zinc-350"
+                                  }`}>
+                                    <span className="truncate max-w-[140px]">{match.teamA?.name}</span>
+                                    {match.scoreA !== null && <span className="font-extrabold text-sm px-1.5">{match.scoreA}</span>}
+                                  </div>
+
+                                  <div className={`flex justify-between items-center text-xs p-1 rounded ${
+                                    isFinished && match.winnerId === match.teamB?._id?.toString()
+                                      ? "bg-primary/10 text-primary border border-primary/20 font-black"
+                                      : "text-zinc-700 dark:text-zinc-350"
+                                  }`}>
+                                    <span className="truncate max-w-[140px]">{match.teamB?.name}</span>
+                                    {match.scoreB !== null && <span className="font-extrabold text-sm px-1.5">{match.scoreB}</span>}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-12 text-zinc-500">Cargando fase de grupos...</div>
               )}
             </div>
           )}
@@ -520,20 +908,22 @@ export default function TournamentsPage() {
           {activeTab === 'teams' && (
             <div className="bg-white/80 dark:bg-zinc-900/50 border border-zinc-200 dark:border-white/5 p-6 rounded-2xl shadow-lg space-y-4">
               <div className="flex justify-between items-center">
-                <h3 className="text-base font-bold text-zinc-900 dark:text-white">Parejas Registradas</h3>
+                <h3 className="text-base font-bold text-zinc-900 dark:text-white">
+                  {selectedTournament.type === 'americano' ? 'Jugadores Registrados' : 'Parejas Registradas'}
+                </h3>
                 {selectedTournament.status === 'registration' && (
                   <button
                     onClick={() => setShowRegisterTeamModal(true)}
                     className="flex items-center gap-1.5 px-3.5 py-2 bg-primary/10 hover:bg-primary/20 text-primary font-bold text-xs rounded-lg transition-all"
                   >
                     <Plus className="w-3.5 h-3.5" />
-                    Inscribir Pareja
+                    {selectedTournament.type === 'americano' ? 'Inscribir Jugador' : 'Inscribir Pareja'}
                   </button>
                 )}
               </div>
 
               {selectedTournament.teams.length === 0 ? (
-                <p className="text-xs text-zinc-500 text-center py-8">No hay parejas inscritas todavía.</p>
+                <p className="text-xs text-zinc-500 text-center py-8">No hay inscripciones todavía.</p>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {selectedTournament.teams.map((team, idx) => (
@@ -544,20 +934,29 @@ export default function TournamentsPage() {
                       <div className="flex justify-between items-center border-b border-zinc-200/55 dark:border-white/5 pb-2">
                         <span className="font-extrabold text-sm text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5">
                           <Users className="w-4 h-4 text-primary" />
-                          {team.name}
+                          {selectedTournament.type === 'americano' ? team.player1.name : team.name}
                         </span>
                         <span className="text-[10px] text-zinc-500">#{idx + 1}</span>
                       </div>
 
                       <div className="space-y-2 text-xs font-semibold text-zinc-600 dark:text-zinc-400">
-                        <div className="flex justify-between items-center">
-                          <span>👤 {team.player1.name}</span>
-                          <span className="flex items-center gap-1 text-[10px] text-zinc-400"><Phone className="w-3 h-3" /> {team.player1.phone}</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span>👤 {team.player2.name}</span>
-                          <span className="flex items-center gap-1 text-[10px] text-zinc-400"><Phone className="w-3 h-3" /> {team.player2.phone}</span>
-                        </div>
+                        {selectedTournament.type === 'americano' ? (
+                          <div className="flex justify-between items-center">
+                            <span>📞 Teléfono: {team.player1.phone}</span>
+                            {team.player1.email && <span className="text-[10px] text-zinc-400">{team.player1.email}</span>}
+                          </div>
+                        ) : (
+                          <>
+                            <div className="flex justify-between items-center">
+                              <span>👤 {team.player1.name}</span>
+                              <span className="flex items-center gap-1 text-[10px] text-zinc-400"><Phone className="w-3 h-3" /> {team.player1.phone}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span>👤 {team.player2.name}</span>
+                              <span className="flex items-center gap-1 text-[10px] text-zinc-400"><Phone className="w-3 h-3" /> {team.player2.phone}</span>
+                            </div>
+                          </>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -656,16 +1055,64 @@ export default function TournamentsPage() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">Cupo de Parejas</label>
+                  <label className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">Formato del Torneo</label>
                   <select
-                    value={newTournament.maxTeams}
-                    onChange={(e) => setNewTournament({ ...newTournament, maxTeams: Number(e.target.value) })}
+                    value={newTournament.type}
+                    onChange={(e) => {
+                      const newType = e.target.value as any;
+                      const defaultMaxTeams = 8;
+                      setNewTournament({ ...newTournament, type: newType, maxTeams: defaultMaxTeams });
+                    }}
                     className="w-full bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-300 dark:border-white/10 rounded-xl px-3 py-2.5 text-xs text-zinc-900 dark:text-white focus:outline-none focus:border-primary"
                   >
-                    <option value={8}>8 Parejas (Desde Cuartos)</option>
-                    <option value={16}>16 Parejas (Desde Octavos)</option>
+                    <option value="elimination">Eliminación Directa</option>
+                    <option value="round_robin">Liga (Todos contra todos)</option>
+                    <option value="groups_playoff">Grupos + Playoffs</option>
+                    <option value="americano">Americano (Individual)</option>
                   </select>
                 </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">
+                  {newTournament.type === 'americano' ? 'Cupo de Jugadores' : 'Cupo de Parejas'}
+                </label>
+                <select
+                  value={newTournament.maxTeams}
+                  onChange={(e) => setNewTournament({ ...newTournament, maxTeams: Number(e.target.value) })}
+                  className="w-full bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-300 dark:border-white/10 rounded-xl px-3 py-2.5 text-xs text-zinc-900 dark:text-white focus:outline-none focus:border-primary"
+                >
+                  {newTournament.type === 'elimination' && (
+                    <>
+                      <option value={8}>8 Parejas (Desde Cuartos)</option>
+                      <option value={16}>16 Parejas (Desde Octavos)</option>
+                    </>
+                  )}
+                  {newTournament.type === 'round_robin' && (
+                    <>
+                      <option value={4}>4 Parejas</option>
+                      <option value={6}>6 Parejas</option>
+                      <option value={8}>8 Parejas</option>
+                      <option value={10}>10 Parejas</option>
+                      <option value={12}>12 Parejas</option>
+                      <option value={16}>16 Parejas</option>
+                    </>
+                  )}
+                  {newTournament.type === 'groups_playoff' && (
+                    <>
+                      <option value={8}>8 Parejas (2 grupos de 4)</option>
+                      <option value={16}>16 Parejas (4 grupos de 4)</option>
+                    </>
+                  )}
+                  {newTournament.type === 'americano' && (
+                    <>
+                      <option value={4}>4 Jugadores (1 cancha)</option>
+                      <option value={8}>8 Jugadores (2 canchas)</option>
+                      <option value={12}>12 Jugadores (3 canchas)</option>
+                      <option value={16}>16 Jugadores (4 canchas)</option>
+                    </>
+                  )}
+                </select>
               </div>
 
               <div className="flex gap-3 pt-2">
@@ -695,7 +1142,7 @@ export default function TournamentsPage() {
           <div className="relative w-full max-w-md bg-white dark:bg-zinc-950 border border-zinc-250 dark:border-white/10 rounded-2xl shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <div className="px-6 py-4 border-b border-zinc-200 dark:border-white/5 flex justify-between items-center">
               <h3 className="text-base font-black text-zinc-900 dark:text-white">
-                📝 Inscribir Pareja
+                {selectedTournament.type === 'americano' ? '📝 Inscribir Jugador' : '📝 Inscribir Pareja'}
               </h3>
               <button onClick={() => setShowRegisterTeamModal(false)} className="text-zinc-400 hover:text-white p-1">
                 <X className="w-4 h-4" />
@@ -703,21 +1150,25 @@ export default function TournamentsPage() {
             </div>
             
             <form onSubmit={handleRegisterTeam} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto pr-2">
-              <div className="space-y-1">
-                <label className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">Nombre del Equipo / Pareja</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="ej. Los Pibes del Vidrio"
-                  value={newTeam.name}
-                  onChange={(e) => setNewTeam({ ...newTeam, name: e.target.value })}
-                  className="w-full bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-300 dark:border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-zinc-900 dark:text-white focus:outline-none focus:border-primary"
-                />
-              </div>
+              {selectedTournament.type !== 'americano' && (
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">Nombre del Equipo / Pareja</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="ej. Los Pibes del Vidrio"
+                    value={newTeam.name}
+                    onChange={(e) => setNewTeam({ ...newTeam, name: e.target.value })}
+                    className="w-full bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-300 dark:border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-zinc-900 dark:text-white focus:outline-none focus:border-primary"
+                  />
+                </div>
+              )}
 
-              {/* Jugador 1 */}
+              {/* Jugador 1 / Jugador */}
               <div className="border-t border-zinc-200 dark:border-white/5 pt-3 space-y-3">
-                <h4 className="text-xs font-black text-primary">Jugador 1</h4>
+                <h4 className="text-xs font-black text-primary">
+                  {selectedTournament.type === 'americano' ? 'Datos del Jugador' : 'Jugador 1'}
+                </h4>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
                     <label className="text-[10px] font-bold text-zinc-500">Nombre</label>
@@ -751,39 +1202,41 @@ export default function TournamentsPage() {
               </div>
 
               {/* Jugador 2 */}
-              <div className="border-t border-zinc-200 dark:border-white/5 pt-3 space-y-3">
-                <h4 className="text-xs font-black text-primary">Jugador 2</h4>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-zinc-500">Nombre</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Nombre completo"
-                      value={newTeam.player2.name}
-                      onChange={(e) => setNewTeam({
-                        ...newTeam,
-                        player2: { ...newTeam.player2, name: e.target.value }
-                      })}
-                      className="w-full bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-350 dark:border-white/10 rounded-lg px-2.5 py-2 text-xs text-zinc-900 dark:text-white focus:outline-none focus:border-primary"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-zinc-500">Teléfono</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Celular de contacto"
-                      value={newTeam.player2.phone}
-                      onChange={(e) => setNewTeam({
-                        ...newTeam,
-                        player2: { ...newTeam.player2, phone: e.target.value }
-                      })}
-                      className="w-full bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-350 dark:border-white/10 rounded-lg px-2.5 py-2 text-xs text-zinc-900 dark:text-white focus:outline-none focus:border-primary"
-                    />
+              {selectedTournament.type !== 'americano' && (
+                <div className="border-t border-zinc-200 dark:border-white/5 pt-3 space-y-3">
+                  <h4 className="text-xs font-black text-primary">Jugador 2</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-zinc-500">Nombre</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Nombre completo"
+                        value={newTeam.player2.name}
+                        onChange={(e) => setNewTeam({
+                          ...newTeam,
+                          player2: { ...newTeam.player2, name: e.target.value }
+                        })}
+                        className="w-full bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-350 dark:border-white/10 rounded-lg px-2.5 py-2 text-xs text-zinc-900 dark:text-white focus:outline-none focus:border-primary"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-zinc-500">Teléfono</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Celular de contacto"
+                        value={newTeam.player2.phone}
+                        onChange={(e) => setNewTeam({
+                          ...newTeam,
+                          player2: { ...newTeam.player2, phone: e.target.value }
+                        })}
+                        className="w-full bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-350 dark:border-white/10 rounded-lg px-2.5 py-2 text-xs text-zinc-900 dark:text-white focus:outline-none focus:border-primary"
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               <div className="flex gap-3 pt-4 border-t border-zinc-200 dark:border-white/5">
                 <button
@@ -797,7 +1250,7 @@ export default function TournamentsPage() {
                   type="submit"
                   className="flex-1 py-3 bg-primary text-black font-black rounded-xl text-sm"
                 >
-                  Confirmar Pareja
+                  {selectedTournament.type === 'americano' ? 'Confirmar Inscripción' : 'Confirmar Pareja'}
                 </button>
               </div>
             </form>

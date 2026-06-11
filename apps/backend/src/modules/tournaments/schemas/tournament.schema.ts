@@ -23,8 +23,11 @@ export class TournamentTeam {
   @Prop({ type: TournamentPlayer, required: true })
   player1: TournamentPlayer;
 
-  @Prop({ type: TournamentPlayer, required: true })
-  player2: TournamentPlayer;
+  @Prop({ type: TournamentPlayer, required: false })
+  player2?: TournamentPlayer;
+
+  @Prop({ required: false })
+  group?: string;
 
   @Prop({ default: Date.now })
   registeredAt: Date;
@@ -35,7 +38,7 @@ export const TournamentTeamSchema = SchemaFactory.createForClass(TournamentTeam)
 @Schema({ _id: false })
 export class TournamentMatch {
   @Prop({ required: true })
-  matchId: string; // Ej: "Q-1" (Quarter 1), "S-2" (Semi 2), "F-1" (Final)
+  matchId: string; // Ej: "Q-1" (Quarter 1), "S-2" (Semi 2), "F-1" (Final), o "G-A-1", "RR-1"
 
   @Prop({ type: TournamentTeamSchema, default: null })
   teamA: TournamentTeam | null;
@@ -57,6 +60,9 @@ export class TournamentMatch {
 
   @Prop({ type: String, enum: ['A', 'B'], default: null })
   nextMatchSlot: 'A' | 'B' | null; // Si avanza como equipo A o B en el siguiente partido
+
+  @Prop({ type: String, enum: ['groups', 'playoff', 'round_robin'], default: 'playoff' })
+  stage: 'groups' | 'playoff' | 'round_robin';
 }
 
 const TournamentMatchSchema = SchemaFactory.createForClass(TournamentMatch);
@@ -88,6 +94,9 @@ export class Tournament {
 
   @Prop({ required: true, default: 8 })
   maxTeams: number; // Ej: 8 o 16
+
+  @Prop({ required: true, enum: ['elimination', 'round_robin', 'groups_playoff', 'americano'], default: 'elimination' })
+  type: 'elimination' | 'round_robin' | 'groups_playoff' | 'americano';
 
   @Prop({ required: true, enum: ['draft', 'registration', 'active', 'completed'], default: 'registration' })
   status: 'draft' | 'registration' | 'active' | 'completed';
