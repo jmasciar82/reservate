@@ -8,4 +8,6 @@ export class UpdateTeamDto {
   name?: string;
   player1?: PlayerDto;
   player2?: PlayerDto;
+  paymentStatus?: 'pending' | 'paid';
+  paymentDate?: Date;
 }

@@ -35,6 +35,8 @@ type Team = {
   player2: Player;
   group?: string;
   registeredAt: string;
+  paymentStatus?: 'pending' | 'paid';
+  paymentDate?: string;
 };
 
 type Match = {
@@ -372,6 +374,27 @@ export default function TournamentsPage() {
       await fetchTournaments();
     } catch (err: any) {
       alert(err.message || "Error al eliminar el equipo.");
+    }
+  };
+
+  const toggleTeamPayment = async (team: Team) => {
+    if (!selectedTournament) return;
+    const newStatus = team.paymentStatus === "paid" ? "pending" : "paid";
+    try {
+      const response = await apiFetch(`/tournaments/${selectedTournament._id}/teams/${team._id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          paymentStatus: newStatus,
+        }),
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Error al actualizar el pago.");
+      }
+      await fetchTournaments();
+    } catch (err: any) {
+      alert(err.message || "Error al actualizar el pago.");
     }
   };
 
@@ -1148,6 +1171,24 @@ export default function TournamentsPage() {
                           </>
                         )}
                       </div>
+
+                      {/* Estado de Pago */}
+                      {selectedTournament.registrationFee > 0 && (
+                        <div className="mt-2 pt-2 border-t border-zinc-200/55 dark:border-white/5 flex items-center justify-between text-xs">
+                          <span className="text-zinc-500 font-bold">Inscripción (${selectedTournament.registrationFee.toLocaleString("es-AR")}):</span>
+                          <button
+                            onClick={() => toggleTeamPayment(team)}
+                            className={`px-2.5 py-1 rounded-lg font-black text-[10px] uppercase transition-all flex items-center gap-1 ${
+                              team.paymentStatus === "paid"
+                                ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25 hover:bg-emerald-500/25"
+                                : "bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/25 hover:bg-amber-500/25"
+                            }`}
+                            title="Haz clic para cambiar el estado de pago"
+                          >
+                            <span>{team.paymentStatus === "paid" ? "🟢 Cobrado" : "🟡 Pendiente"}</span>
+                          </button>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

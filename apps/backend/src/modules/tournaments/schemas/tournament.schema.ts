@@ -31,6 +31,12 @@ export class TournamentTeam {
 
   @Prop({ default: Date.now })
   registeredAt: Date;
+
+  @Prop({ required: true, enum: ['pending', 'paid'], default: 'pending' })
+  paymentStatus: 'pending' | 'paid';
+
+  @Prop({ required: false })
+  paymentDate?: Date;
 }
 
 export const TournamentTeamSchema = SchemaFactory.createForClass(TournamentTeam);

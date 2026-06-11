@@ -3,6 +3,7 @@ import NewReservationButton from "@/components/NewReservationButton";
 import ReservationActions from "@/components/ReservationActions";
 import DashboardFilters from "@/components/DashboardFilters";
 import SchedulerGrid from "@/components/SchedulerGrid";
+import RevenueStats from "@/components/RevenueStats";
 import { apiUrl, apiFetch } from "@/lib/api";
 import { cookies } from "next/headers";
 import type { Club, Reservation, Court } from "@/lib/types";
@@ -85,6 +86,11 @@ async function getCourts() {
   return getJson<Court[]>("/courts", []);
 }
 
+async function getTournaments(clubId?: string) {
+  if (!clubId) return [];
+  return getJson<any[]>("/tournaments", [], { clubId });
+}
+
 function statusLabel(status: Reservation["status"]) {
   const labels: Record<Reservation["status"], string> = {
     pending: "POR CONFIRMAR",
@@ -115,6 +121,7 @@ export default async function Dashboard({
 
   const reservations = await getReservations(date, activeClubId || undefined);
   const courts = await getCourts();
+  const tournaments = await getTournaments(activeClubId || undefined);
   const clubCourts = courts.filter((court) => court.clubId === activeClubId);
   const activeClubCourts = clubCourts.filter((court) => court.isActive !== false);
 
@@ -144,26 +151,63 @@ export default async function Dashboard({
       ? `${Math.round((occupiedCourtsCount / totalCourtsCount) * 100)}%`
       : "0%";
 
-  // 3. Calcular los ingresos cobrados (cobros físicamente recibidos en la fecha seleccionada)
-  const totalRevenue = clubReservations
-    .filter((reservation) => {
-      const hasPayment = reservation.paymentStatus === "paid" || (reservation.depositAmount && reservation.depositAmount > 0);
-      if (!hasPayment) return false;
+  // 3. Detalle de cobros de reservas recibidos en la fecha seleccionada
+  const reservationIncomes: any[] = [];
+  clubReservations.forEach((reservation) => {
+    const hasPayment = reservation.paymentStatus === "paid" || (reservation.depositAmount && reservation.depositAmount > 0);
+    if (!hasPayment) return;
 
-      // Usar paymentDate o fallar a startTime para reservas antiguas/semilla
-      const pDateStr = reservation.paymentDate || reservation.startTime;
-      const { year, month, day } = getArtTime(pDateStr);
-      const pDateStrFormatted = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-      return pDateStrFormatted === date;
-    })
-    .reduce((sum, reservation) => {
+    const pDateStr = reservation.paymentDate || reservation.startTime;
+    const { year, month, day } = getArtTime(pDateStr);
+    const pDateStrFormatted = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    if (pDateStrFormatted === date) {
       const amountPaid = (reservation.paymentStatus === "paid")
         ? (reservation.totalPrice || 0)
         : (reservation.depositAmount || 0);
-      return sum + amountPaid;
-    }, 0);
 
-  const revenueStat = `$${totalRevenue.toLocaleString("es-AR")}`;
+      const courtName = reservation.courtId?.name || "Cancha";
+      const playerName = `${reservation.firstName || ""} ${reservation.lastName || ""}`.trim() || "Cliente";
+      const timeRange = `${formatArtTimeStr(reservation.startTime)} - ${formatArtTimeStr(reservation.endTime)}`;
+
+      reservationIncomes.push({
+        id: reservation._id,
+        courtName,
+        playerName,
+        timeRange,
+        amount: amountPaid,
+        type: reservation.paymentStatus === "paid" ? "paid" : "deposit",
+      });
+    }
+  });
+
+  // 3b. Detalle de cobros de torneos recibidos en la fecha seleccionada
+  const tournamentIncomes: any[] = [];
+  tournaments.forEach((tournament) => {
+    const fee = tournament.registrationFee || 0;
+    if (fee <= 0) return;
+
+    (tournament.teams || []).forEach((team: any) => {
+      // Si el pago está confirmado y coincide con la fecha seleccionada
+      if (team.paymentStatus === "paid" && team.paymentDate) {
+        const { year, month, day } = getArtTime(team.paymentDate);
+        const pDateStrFormatted = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+        if (pDateStrFormatted === date) {
+          const teamName = tournament.type === "americano" 
+            ? team.player1?.name 
+            : team.name;
+
+          tournamentIncomes.push({
+            tournamentName: tournament.name,
+            teamName: teamName || "Pareja / Jugador",
+            amount: fee,
+          });
+        }
+      }
+    });
+  });
+
+  const dateParts = date.split("-");
+  const dateFormatted = dateParts.length === 3 ? `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}` : date;
 
   return (
     <div className="flex-1 overflow-y-auto p-6 lg:p-8 z-10">
@@ -179,40 +223,14 @@ export default async function Dashboard({
 
       <DashboardFilters currentDate={date} />
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        {[
-          {
-            label: "Reservas",
-            value: playingTodayReservations.length.toString(),
-            trend: "Fecha elegida",
-            color: "text-primary",
-          },
-          {
-            label: "Canchas ocupadas",
-            value: `${occupiedCourtsCount}/${totalCourtsCount}`,
-            trend: occupancyPercent,
-            color: "text-zinc-900 dark:text-white",
-          },
-          {
-            label: "Ingresos cobrados",
-            value: revenueStat,
-            trend: "Pagos confirmados",
-            color: "text-zinc-800 dark:text-zinc-100",
-          },
-        ].map((stat) => (
-          <div key={stat.label} className="relative group overflow-hidden bg-white/80 dark:bg-white/[0.02] backdrop-blur-md border border-zinc-200/80 dark:border-white/5 hover:border-primary/30 p-5 rounded-2xl transition-all duration-300 hover:shadow-[0_8px_30px_rgba(57,255,20,0.05)] hover:scale-[1.02]">
-            {/* Ambient hover glow inside the card */}
-            <div className="absolute -inset-px bg-gradient-to-r from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl" />
-            <div className="relative z-10">
-              <p className="text-xs font-extrabold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-2">{stat.label}</p>
-              <div className="flex items-baseline justify-between gap-2">
-                <h3 className={`text-3xl font-black tracking-tight ${stat.color} drop-shadow`}>{stat.value}</h3>
-                <span className="text-[10px] text-primary font-extrabold uppercase bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20 shadow-[0_0_8px_rgba(57,255,20,0.1)]">{stat.trend}</span>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
+      <RevenueStats
+        reservationsCount={playingTodayReservations.length}
+        occupiedCourtsText={`${occupiedCourtsCount}/${totalCourtsCount}`}
+        occupancyPercent={occupancyPercent}
+        reservationIncomes={reservationIncomes}
+        tournamentIncomes={tournamentIncomes}
+        dateFormatted={dateFormatted}
+      />
 
       <div className="bg-white/80 dark:bg-white/[0.015] border border-zinc-200/80 dark:border-white/5 rounded-2xl p-6 shadow-[0_12px_40px_rgba(0,0,0,0.06)] dark:shadow-[0_12px_40px_rgba(0,0,0,0.25)] relative overflow-hidden">
         {/* Subtle interior glow */}

@@ -76,6 +76,7 @@ export class TournamentsService {
       player1: registerTeamDto.player1,
       player2: registerTeamDto.player2 || registerTeamDto.player1,
       registeredAt: new Date(),
+      paymentStatus: 'pending',
     };
 
     tournament.teams.push(newTeam);
@@ -661,6 +662,7 @@ export class TournamentsService {
           player1: p1.player1,
           player2: p2.player1,
           registeredAt: new Date(),
+          paymentStatus: 'pending',
         };
         partnerships.push(combinedTeam);
       }
@@ -698,9 +700,15 @@ export class TournamentsService {
   ): Promise<TournamentDocument> {
     const tournament = await this.findOne(tournamentId);
 
-    if (tournament.status !== 'registration') {
+    // Solo restringir cambios de datos estructurales del equipo (nombre/jugadores) a la fase de registro
+    const isEditingDetails =
+      updateTeamDto.name !== undefined ||
+      updateTeamDto.player1 !== undefined ||
+      updateTeamDto.player2 !== undefined;
+
+    if (isEditingDetails && tournament.status !== 'registration') {
       throw new BadRequestException(
-        'Solo se pueden editar equipos cuando el torneo está en período de inscripciones.',
+        'Solo se pueden editar los datos del equipo cuando el torneo está en período de inscripciones.',
       );
     }
 
@@ -715,6 +723,17 @@ export class TournamentsService {
     if (updateTeamDto.name !== undefined) team.name = updateTeamDto.name;
     if (updateTeamDto.player1 !== undefined) team.player1 = updateTeamDto.player1;
     if (updateTeamDto.player2 !== undefined) team.player2 = updateTeamDto.player2;
+
+    if (updateTeamDto.paymentStatus !== undefined) {
+      team.paymentStatus = updateTeamDto.paymentStatus;
+      if (updateTeamDto.paymentStatus === 'paid') {
+        team.paymentDate = updateTeamDto.paymentDate
+          ? new Date(updateTeamDto.paymentDate)
+          : new Date();
+      } else {
+        team.paymentDate = undefined;
+      }
+    }
 
     tournament.markModified('teams');
     return tournament.save();
