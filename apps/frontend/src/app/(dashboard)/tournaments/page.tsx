@@ -1239,8 +1239,8 @@ export default function TournamentsPage() {
                   <input
                     type="number"
                     required
-                    value={newTournament.registrationFee}
-                    onChange={(e) => setNewTournament({ ...newTournament, registrationFee: Number(e.target.value) })}
+                    value={newTournament.registrationFee === 0 ? "" : newTournament.registrationFee}
+                    onChange={(e) => setNewTournament({ ...newTournament, registrationFee: e.target.value === "" ? 0 : Number(e.target.value) })}
                     className="w-full bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-300 dark:border-white/10 rounded-xl px-3 py-2.5 text-xs text-zinc-900 dark:text-white focus:outline-none focus:border-primary"
                   />
                 </div>
