@@ -238,9 +238,24 @@ const ProdeAPI = {
           const codeA = fifaToProdeCode[fifaA];
           const codeB = fifaToProdeCode[fifaB];
 
-          // Buscar el partido en el fixture local de fase de grupos
+          // Buscar el partido en el fixture local para la fase correspondiente
+          const getStageFromApiType = (type) => {
+            switch (type) {
+              case "group": return "Fase de Grupos";
+              case "r32": return "Dieciseisavos de Final";
+              case "r16": return "Octavos de Final";
+              case "qf": return "Cuartos de Final";
+              case "sf": return "Semifinales";
+              case "final": return "Gran Final";
+              default: return null;
+            }
+          };
+
+          const targetStage = getStageFromApiType(apiMatch.type);
+          if (!targetStage) continue;
+
           const localMatch = localMatches.find(m => 
-            m.stage === "Fase de Grupos" &&
+            m.stage === targetStage &&
             ((m.teamA === codeA && m.teamB === codeB) || (m.teamA === codeB && m.teamB === codeA))
           );
 
