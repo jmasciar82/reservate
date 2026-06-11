@@ -6,6 +6,7 @@ import { CreateTournamentDto } from './dto/create-tournament.dto';
 import { UpdateTournamentDto } from './dto/update-tournament.dto';
 import { RegisterTeamDto } from './dto/register-team.dto';
 import { UpdateMatchDto } from './dto/update-match.dto';
+import { UpdateTeamDto } from './dto/update-team.dto';
 
 @Injectable()
 export class TournamentsService {
@@ -682,5 +683,126 @@ export class TournamentsService {
       list.splice(1, 0, last);
     }
     return matches;
+  }
+
+  async remove(id: string): Promise<{ deleted: boolean }> {
+    const tournament = await this.findOne(id);
+
+    if (tournament.status === 'active' || tournament.status === 'completed') {
+      throw new BadRequestException(
+        'No se puede eliminar un torneo activo o completado. Cambiá su estado primero.',
+      );
+    }
+
+    await this.tournamentModel.findByIdAndDelete(id).exec();
+    return { deleted: true };
+  }
+
+  async updateTeam(
+    tournamentId: string,
+    teamId: string,
+    updateTeamDto: UpdateTeamDto,
+  ): Promise<TournamentDocument> {
+    const tournament = await this.findOne(tournamentId);
+
+    if (tournament.status !== 'registration') {
+      throw new BadRequestException(
+        'Solo se pueden editar equipos cuando el torneo está en período de inscripciones.',
+      );
+    }
+
+    const teamIndex = tournament.teams.findIndex(
+      (t) => (t._id as any).toString() === teamId,
+    );
+    if (teamIndex === -1) {
+      throw new NotFoundException('Equipo no encontrado en este torneo.');
+    }
+
+    const team = tournament.teams[teamIndex];
+    if (updateTeamDto.name !== undefined) team.name = updateTeamDto.name;
+    if (updateTeamDto.player1 !== undefined) team.player1 = updateTeamDto.player1;
+    if (updateTeamDto.player2 !== undefined) team.player2 = updateTeamDto.player2;
+
+    tournament.markModified('teams');
+    return tournament.save();
+  }
+
+  async removeTeam(
+    tournamentId: string,
+    teamId: string,
+  ): Promise<TournamentDocument> {
+    const tournament = await this.findOne(tournamentId);
+
+    // Si el torneo ya estaba activo, reseteamos a registration y limpiamos bracket
+    if (tournament.status === 'active') {
+      tournament.status = 'registration';
+      tournament.bracket = [];
+      // Limpiar asignaciones de grupo
+      tournament.teams.forEach((t) => {
+        t.group = undefined;
+      });
+    } else if (tournament.status === 'completed') {
+      throw new BadRequestException(
+        'No se puede eliminar equipos de un torneo completado.',
+      );
+    }
+
+    const teamIndex = tournament.teams.findIndex(
+      (t) => (t._id as any).toString() === teamId,
+    );
+    if (teamIndex === -1) {
+      throw new NotFoundException('Equipo no encontrado en este torneo.');
+    }
+
+    tournament.teams.splice(teamIndex, 1);
+    tournament.markModified('teams');
+    tournament.markModified('bracket');
+    return tournament.save();
+  }
+
+  async shuffleGroupMatches(tournamentId: string): Promise<TournamentDocument> {
+    const tournament = await this.findOne(tournamentId);
+
+    if (tournament.status !== 'active') {
+      throw new BadRequestException('El torneo debe estar activo para mezclar enfrentamientos.');
+    }
+
+    if (tournament.type !== 'groups_playoff') {
+      throw new BadRequestException('Solo los torneos con fase de grupos permiten mezclar enfrentamientos.');
+    }
+
+    const groupMatches = tournament.bracket.filter((m) => m.stage === 'groups');
+    const hasPlayoffMatches = tournament.bracket.some((m) => m.stage === 'playoff');
+
+    if (hasPlayoffMatches) {
+      throw new BadRequestException('No se pueden mezclar enfrentamientos si ya se avanzó a eliminatorias.');
+    }
+
+    const hasResults = groupMatches.some((m) => m.scoreA !== null || m.scoreB !== null);
+    if (hasResults) {
+      throw new BadRequestException(
+        'No se pueden mezclar enfrentamientos si ya se cargaron resultados. Reiniciá los resultados primero.',
+      );
+    }
+
+    // Regenerar partidos de grupo con nuevo orden
+    const groupNames = tournament.maxTeams === 8 ? ['A', 'B'] : ['A', 'B', 'C', 'D'];
+    const allGroupMatches: TournamentMatch[] = [];
+
+    for (const groupName of groupNames) {
+      const teamsInGroup = tournament.teams.filter((t) => t.group === groupName);
+      // Fisher-Yates shuffle de los equipos para cambiar el orden de enfrentamientos
+      const shuffled = [...teamsInGroup];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      const groupMatchesNew = this.generateRoundRobinMatches(shuffled, 'groups');
+      allGroupMatches.push(...groupMatchesNew);
+    }
+
+    tournament.bracket = allGroupMatches;
+    tournament.markModified('bracket');
+    return tournament.save();
   }
 }

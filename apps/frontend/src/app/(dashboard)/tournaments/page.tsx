@@ -17,6 +17,9 @@ import {
   Award,
   Phone,
   Flame,
+  Edit3,
+  Trash2,
+  Shuffle,
 } from "lucide-react";
 
 type Player = {
@@ -98,6 +101,17 @@ export default function TournamentsPage() {
   const [matchScore, setMatchScore] = useState({
     scoreA: 0,
     scoreB: 0,
+  });
+
+  // Edición de torneo
+  const [editingTournament, setEditingTournament] = useState<Tournament | null>(null);
+  // Edición de equipo
+  const [showEditTeamModal, setShowEditTeamModal] = useState(false);
+  const [editingTeam, setEditingTeam] = useState<Team | null>(null);
+  const [editTeamForm, setEditTeamForm] = useState({
+    name: "",
+    player1: { name: "", phone: "", email: "" },
+    player2: { name: "", phone: "", email: "" },
   });
 
   const activeClub = clubs.find((c) => c._id === activeClubId);
@@ -250,6 +264,131 @@ export default function TournamentsPage() {
       await fetchTournaments();
     } catch (err: any) {
       alert(err.message || "Error al guardar marcador.");
+    }
+  };
+
+  const handleEditTournament = (torneo: Tournament) => {
+    setEditingTournament(torneo);
+    setNewTournament({
+      name: torneo.name,
+      sport: torneo.sport,
+      category: torneo.category,
+      startDate: torneo.startDate.split('T')[0],
+      endDate: torneo.endDate.split('T')[0],
+      registrationFee: torneo.registrationFee,
+      maxTeams: torneo.maxTeams,
+      type: torneo.type,
+    });
+    setShowCreateModal(true);
+  };
+
+  const handleUpdateTournament = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingTournament) return;
+    try {
+      const response = await apiFetch(`/tournaments/${editingTournament._id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newTournament),
+      });
+      if (!response.ok) throw new Error("Error al actualizar el torneo.");
+      
+      setShowCreateModal(false);
+      setEditingTournament(null);
+      setNewTournament({
+        name: "",
+        sport: "padel",
+        category: "",
+        startDate: "",
+        endDate: "",
+        registrationFee: 0,
+        maxTeams: 8,
+        type: "elimination",
+      });
+      await fetchTournaments();
+    } catch (err) {
+      alert("Error al actualizar el torneo");
+    }
+  };
+
+  const handleDeleteTournament = async (tournamentId: string) => {
+    if (!confirm("¿Estás seguro de que querés eliminar este torneo? Esta acción no se puede deshacer.")) return;
+    try {
+      const response = await apiFetch(`/tournaments/${tournamentId}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Error al eliminar el torneo.");
+      }
+      await fetchTournaments();
+    } catch (err: any) {
+      alert(err.message || "Error al eliminar el torneo.");
+    }
+  };
+
+  const handleEditTeam = (team: Team) => {
+    setEditingTeam(team);
+    setEditTeamForm({
+      name: team.name,
+      player1: { name: team.player1.name, phone: team.player1.phone, email: team.player1.email || "" },
+      player2: { name: team.player2.name, phone: team.player2.phone, email: team.player2.email || "" },
+    });
+    setShowEditTeamModal(true);
+  };
+
+  const handleUpdateTeam = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedTournament || !editingTeam) return;
+    try {
+      const response = await apiFetch(`/tournaments/${selectedTournament._id}/teams/${editingTeam._id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editTeamForm),
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Error al actualizar el equipo.");
+      }
+      setShowEditTeamModal(false);
+      setEditingTeam(null);
+      await fetchTournaments();
+    } catch (err: any) {
+      alert(err.message || "Error al actualizar el equipo.");
+    }
+  };
+
+  const handleDeleteTeam = async (teamId: string) => {
+    if (!selectedTournament) return;
+    if (!confirm("¿Estás seguro de que querés eliminar este equipo? Si el torneo ya está activo, se reiniciarán las llaves.")) return;
+    try {
+      const response = await apiFetch(`/tournaments/${selectedTournament._id}/teams/${teamId}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Error al eliminar el equipo.");
+      }
+      await fetchTournaments();
+    } catch (err: any) {
+      alert(err.message || "Error al eliminar el equipo.");
+    }
+  };
+
+  const handleShuffleGroups = async () => {
+    if (!selectedTournament) return;
+    if (!confirm("¿Querés mezclar los enfrentamientos de la fase de grupos? Se reorganizarán todos los partidos.")) return;
+    try {
+      const response = await apiFetch(`/tournaments/${selectedTournament._id}/shuffle-groups`, {
+        method: "POST",
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Error al mezclar enfrentamientos.");
+      }
+      await fetchTournaments();
+    } catch (err: any) {
+      alert(err.message || "Error al mezclar enfrentamientos.");
     }
   };
 
@@ -450,8 +589,28 @@ export default function TournamentsPage() {
                   </div>
                 </div>
 
-                <div className="flex justify-end pt-4 text-xs font-black text-primary group-hover:translate-x-1.5 transition-all">
-                  Ver Detalles ➔
+                <div className="flex justify-between items-center pt-4 border-t border-zinc-200/55 dark:border-white/[0.03]">
+                  {(torneo.status === 'draft' || torneo.status === 'registration') && (
+                    <div className="flex gap-2">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleEditTournament(torneo); }}
+                        className="flex items-center gap-1 px-2.5 py-1.5 bg-blue-500/10 text-blue-400 font-bold text-[10px] rounded-lg hover:bg-blue-500/20 transition-all"
+                      >
+                        <Edit3 className="w-3 h-3" />
+                        Editar
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleDeleteTournament(torneo._id); }}
+                        className="flex items-center gap-1 px-2.5 py-1.5 bg-red-500/10 text-red-400 font-bold text-[10px] rounded-lg hover:bg-red-500/20 transition-all"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                        Eliminar
+                      </button>
+                    </div>
+                  )}
+                  <div className="text-xs font-black text-primary group-hover:translate-x-1.5 transition-all ml-auto">
+                    Ver Detalles ➔
+                  </div>
                 </div>
               </div>
             );
@@ -791,13 +950,24 @@ export default function TournamentsPage() {
                       Una vez que todos los partidos de la fase de grupos tengan sus resultados cargados, podés avanzar a la fase eliminatoria.
                     </p>
                   </div>
-                  <button
-                    onClick={handleAdvanceToPlayoffs}
-                    disabled={!selectedTournament.bracket.filter(m => m.stage === 'groups').every(m => m.scoreA !== null && m.scoreB !== null)}
-                    className="px-5 py-2.5 bg-primary text-black font-black text-xs rounded-xl shadow-md disabled:opacity-40 disabled:cursor-not-allowed hover:scale-105 active:scale-95 transition-all shrink-0"
-                  >
-                    Avanzar a Eliminatorias ⚡
-                  </button>
+                  <div className="flex gap-3 shrink-0">
+                    {!selectedTournament.bracket.filter(m => m.stage === 'groups').some(m => m.scoreA !== null || m.scoreB !== null) && (
+                      <button
+                        onClick={handleShuffleGroups}
+                        className="flex items-center gap-1.5 px-4 py-2.5 bg-violet-500/10 text-violet-400 font-black text-xs rounded-xl border border-violet-500/20 hover:bg-violet-500/20 hover:scale-105 active:scale-95 transition-all"
+                      >
+                        <Shuffle className="w-3.5 h-3.5" />
+                        Mezclar Enfrentamientos
+                      </button>
+                    )}
+                    <button
+                      onClick={handleAdvanceToPlayoffs}
+                      disabled={!selectedTournament.bracket.filter(m => m.stage === 'groups').every(m => m.scoreA !== null && m.scoreB !== null)}
+                      className="px-5 py-2.5 bg-primary text-black font-black text-xs rounded-xl shadow-md disabled:opacity-40 disabled:cursor-not-allowed hover:scale-105 active:scale-95 transition-all"
+                    >
+                      Avanzar a Eliminatorias ⚡
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -936,7 +1106,27 @@ export default function TournamentsPage() {
                           <Users className="w-4 h-4 text-primary" />
                           {selectedTournament.type === 'americano' ? team.player1.name : team.name}
                         </span>
-                        <span className="text-[10px] text-zinc-500">#{idx + 1}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] text-zinc-500">#{idx + 1}</span>
+                          {selectedTournament.status === 'registration' && (
+                            <div className="flex gap-1">
+                              <button
+                                onClick={() => handleEditTeam(team)}
+                                className="p-1 bg-blue-500/10 text-blue-400 rounded hover:bg-blue-500/20 transition-all"
+                                title="Editar equipo"
+                              >
+                                <Edit3 className="w-3 h-3" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteTeam(team._id)}
+                                className="p-1 bg-red-500/10 text-red-400 rounded hover:bg-red-500/20 transition-all"
+                                title="Eliminar equipo"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
 
                       <div className="space-y-2 text-xs font-semibold text-zinc-600 dark:text-zinc-400">
@@ -974,14 +1164,14 @@ export default function TournamentsPage() {
           <div className="relative w-full max-w-md bg-white dark:bg-zinc-950 border border-zinc-250 dark:border-white/10 rounded-2xl shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <div className="px-6 py-4 border-b border-zinc-200 dark:border-white/5 flex justify-between items-center">
               <h3 className="text-lg font-black text-zinc-900 dark:text-white flex items-center gap-2">
-                🏆 Nuevo Torneo
+                {editingTournament ? '✏️ Editar Torneo' : '🏆 Nuevo Torneo'}
               </h3>
-              <button onClick={() => setShowCreateModal(false)} className="text-zinc-400 hover:text-white p-1">
+              <button onClick={() => { setShowCreateModal(false); setEditingTournament(null); }} className="text-zinc-400 hover:text-white p-1">
                 <X className="w-4 h-4" />
               </button>
             </div>
             
-            <form onSubmit={handleCreateTournament} className="p-6 space-y-4">
+            <form onSubmit={editingTournament ? handleUpdateTournament : handleCreateTournament} className="p-6 space-y-4">
               <div className="space-y-1">
                 <label className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">Nombre del Torneo</label>
                 <input
@@ -1118,7 +1308,7 @@ export default function TournamentsPage() {
               <div className="flex gap-3 pt-2">
                 <button
                   type="button"
-                  onClick={() => setShowCreateModal(false)}
+                  onClick={() => { setShowCreateModal(false); setEditingTournament(null); }}
                   className="flex-1 py-3 bg-zinc-100 dark:bg-zinc-900 text-zinc-400 font-semibold rounded-xl border border-zinc-300 dark:border-zinc-800 text-sm"
                 >
                   Cancelar
@@ -1127,7 +1317,7 @@ export default function TournamentsPage() {
                   type="submit"
                   className="flex-1 py-3 bg-primary text-black font-black rounded-xl text-sm"
                 >
-                  Guardar
+                  {editingTournament ? 'Actualizar Torneo' : 'Guardar'}
                 </button>
               </div>
             </form>
@@ -1326,6 +1516,122 @@ export default function TournamentsPage() {
                   className="flex-1 py-3 bg-primary text-black font-black rounded-xl text-sm"
                 >
                   Guardar Marcador
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL EDITAR EQUIPO */}
+      {showEditTeamModal && editingTeam && selectedTournament && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => { setShowEditTeamModal(false); setEditingTeam(null); }} />
+          <div className="relative w-full max-w-md bg-white dark:bg-zinc-950 border border-zinc-250 dark:border-white/10 rounded-2xl shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-zinc-200 dark:border-white/5 flex justify-between items-center">
+              <h3 className="text-base font-black text-zinc-900 dark:text-white">
+                ✏️ Editar {selectedTournament.type === 'americano' ? 'Jugador' : 'Equipo'}
+              </h3>
+              <button onClick={() => { setShowEditTeamModal(false); setEditingTeam(null); }} className="text-zinc-400 hover:text-white p-1">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            
+            <form onSubmit={handleUpdateTeam} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto pr-2">
+              {selectedTournament.type !== 'americano' && (
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">Nombre del Equipo / Pareja</label>
+                  <input
+                    type="text"
+                    required
+                    value={editTeamForm.name}
+                    onChange={(e) => setEditTeamForm({ ...editTeamForm, name: e.target.value })}
+                    className="w-full bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-300 dark:border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-zinc-900 dark:text-white focus:outline-none focus:border-primary"
+                  />
+                </div>
+              )}
+
+              <div className="border-t border-zinc-200 dark:border-white/5 pt-3 space-y-3">
+                <h4 className="text-xs font-black text-primary">
+                  {selectedTournament.type === 'americano' ? 'Datos del Jugador' : 'Jugador 1'}
+                </h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-zinc-500">Nombre</label>
+                    <input
+                      type="text"
+                      required
+                      value={editTeamForm.player1.name}
+                      onChange={(e) => setEditTeamForm({
+                        ...editTeamForm,
+                        player1: { ...editTeamForm.player1, name: e.target.value }
+                      })}
+                      className="w-full bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-350 dark:border-white/10 rounded-lg px-2.5 py-2 text-xs text-zinc-900 dark:text-white focus:outline-none focus:border-primary"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-zinc-500">Teléfono</label>
+                    <input
+                      type="text"
+                      required
+                      value={editTeamForm.player1.phone}
+                      onChange={(e) => setEditTeamForm({
+                        ...editTeamForm,
+                        player1: { ...editTeamForm.player1, phone: e.target.value }
+                      })}
+                      className="w-full bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-350 dark:border-white/10 rounded-lg px-2.5 py-2 text-xs text-zinc-900 dark:text-white focus:outline-none focus:border-primary"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {selectedTournament.type !== 'americano' && (
+                <div className="border-t border-zinc-200 dark:border-white/5 pt-3 space-y-3">
+                  <h4 className="text-xs font-black text-primary">Jugador 2</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-zinc-500">Nombre</label>
+                      <input
+                        type="text"
+                        required
+                        value={editTeamForm.player2.name}
+                        onChange={(e) => setEditTeamForm({
+                          ...editTeamForm,
+                          player2: { ...editTeamForm.player2, name: e.target.value }
+                        })}
+                        className="w-full bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-350 dark:border-white/10 rounded-lg px-2.5 py-2 text-xs text-zinc-900 dark:text-white focus:outline-none focus:border-primary"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-zinc-500">Teléfono</label>
+                      <input
+                        type="text"
+                        required
+                        value={editTeamForm.player2.phone}
+                        onChange={(e) => setEditTeamForm({
+                          ...editTeamForm,
+                          player2: { ...editTeamForm.player2, phone: e.target.value }
+                        })}
+                        className="w-full bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-350 dark:border-white/10 rounded-lg px-2.5 py-2 text-xs text-zinc-900 dark:text-white focus:outline-none focus:border-primary"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-4 border-t border-zinc-200 dark:border-white/5">
+                <button
+                  type="button"
+                  onClick={() => { setShowEditTeamModal(false); setEditingTeam(null); }}
+                  className="flex-1 py-3 bg-zinc-100 dark:bg-zinc-900 text-zinc-400 font-semibold rounded-xl border border-zinc-300 dark:border-zinc-800 text-sm"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-3 bg-primary text-black font-black rounded-xl text-sm"
+                >
+                  Actualizar Equipo
                 </button>
               </div>
             </form>
