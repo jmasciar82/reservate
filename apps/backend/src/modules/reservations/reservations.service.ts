@@ -180,7 +180,10 @@ export class ReservationsService {
       productsPrice = productsList.reduce((sum, item) => sum + item.total, 0);
     }
 
-    const totalPrice = courtPrice + productsPrice + teacherPrice;
+    const totalPrice = createReservationDto.teacherId
+      ? (teacherPrice + productsPrice)
+      : (courtPrice + productsPrice);
+
 
     if (isRecurring) {
       const recurrenceWeeksCount = recurrenceWeeks || 4;
@@ -629,8 +632,14 @@ export class ReservationsService {
       updateReservationDto.productsPrice = productsPrice;
     }
 
-    const updatedTotalPrice = courtPrice + productsPrice + teacherPrice;
+    const hasTeacher = updateReservationDto.teacherId !== null &&
+      (updateReservationDto.teacherId !== undefined || !!existingReservation.teacherId);
+
+    const updatedTotalPrice = hasTeacher
+      ? (teacherPrice + productsPrice)
+      : (courtPrice + productsPrice);
     updateReservationDto.totalPrice = updatedTotalPrice;
+
 
     // Determine the deposit amount
     let finalDeposit = existingReservation.depositAmount;

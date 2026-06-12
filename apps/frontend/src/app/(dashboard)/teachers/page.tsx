@@ -51,6 +51,10 @@ export default function TeachersPage() {
   const [bookingStudents, setBookingStudents] = useState<
     Array<{ firstName: string; lastName: string; phone?: string; email?: string }>
   >([{ firstName: "", lastName: "", phone: "", email: "" }]);
+  const [bookingIsRecurring, setBookingIsRecurring] = useState(false);
+  const [bookingRecurrenceWeeks, setBookingRecurrenceWeeks] = useState(12);
+
+
 
   const [availableCourts, setAvailableCourts] = useState<Court[]>([]);
   const [courtsLoading, setCourtsLoading] = useState(false);
@@ -287,6 +291,8 @@ export default function TeachersPage() {
       email: primaryStudent.email || undefined,
       phone: primaryStudent.phone || undefined,
       students: validStudents,
+      isRecurring: bookingIsRecurring,
+      recurrenceWeeks: bookingIsRecurring ? bookingRecurrenceWeeks : undefined,
     };
 
     try {
@@ -300,11 +306,14 @@ export default function TeachersPage() {
         alert("¡Clase reservada con éxito!");
         // Reset booking form state
         setBookingStudents([{ firstName: "", lastName: "", phone: "", email: "" }]);
+        setBookingIsRecurring(false);
+        setBookingRecurrenceWeeks(12);
         fetchAvailableCourts();
       } else {
         const errorData = await res.json();
         alert(errorData.message || "Error al crear la reserva de la clase.");
       }
+
     } catch (err) {
       console.error(err);
       alert("Error de conexión.");
@@ -675,7 +684,42 @@ export default function TeachersPage() {
                   </button>
                 </div>
               </div>
+
+              {/* Recurrence Switcher & Dropdown */}
+              <div className="space-y-3.5 bg-zinc-50/50 dark:bg-white/[0.02] border border-zinc-200/80 dark:border-white/5 rounded-xl p-4 shadow-inner">
+                <div className="flex items-center justify-between">
+                  <div className="flex flex-col">
+                    <span className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Repetir clase semanalmente (Turno Fijo)</span>
+                    <span className="text-[10px] text-zinc-500">Bloquea la cancha y el profesor en las siguientes semanas</span>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={bookingIsRecurring}
+                      onChange={(e) => setBookingIsRecurring(e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-9 h-5 bg-zinc-200 dark:bg-white/10 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-zinc-400 after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary peer-checked:after:bg-black"></div>
+                  </label>
+                </div>
+
+                {bookingIsRecurring && (
+                  <div className="space-y-1.5 pt-2 border-t border-zinc-200/80 dark:border-white/5 animate-in fade-in duration-200">
+                    <label className="text-xs font-semibold text-zinc-400 font-bold">Duración de la recurrencia</label>
+                    <select
+                      value={bookingRecurrenceWeeks}
+                      onChange={(e) => setBookingRecurrenceWeeks(Number(e.target.value))}
+                      className="w-full bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-zinc-900 dark:text-white font-bold"
+                    >
+                      <option value={4} className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-white">4 Semanas (1 Mes)</option>
+                      <option value={8} className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-white">8 Semanas (2 Meses)</option>
+                      <option value={12} className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-white">12 Semanas (3 Meses - Recomendado)</option>
+                    </select>
+                  </div>
+                )}
+              </div>
             </div>
+
 
             {/* Right Column - Students List */}
             <div className="space-y-4 flex flex-col">
@@ -770,21 +814,22 @@ export default function TeachersPage() {
               const validDuration = !isNaN(durationHours) && durationHours > 0;
               const courtPrice = validDuration && selectedCourtObj ? Math.round(durationHours * selectedCourtObj.pricePerHour) : 0;
               const teacherPrice = validDuration && teacherObj ? Math.round(durationHours * teacherObj.pricePerHour) : 0;
-              const total = courtPrice + teacherPrice;
+              const total = teacherPrice;
 
               return (
                 <div className="text-xs text-zinc-500 dark:text-zinc-400 flex flex-wrap gap-x-6 gap-y-1.5">
                   <div>
-                    Cancha: <strong className="text-zinc-900 dark:text-white">${courtPrice.toLocaleString("es-AR")}</strong>
+                    Cancha: <strong className="text-zinc-400 italic font-bold">Incluida en la clase</strong>
                   </div>
                   <div>
-                    Honorario Profesor: <strong className="text-zinc-900 dark:text-white">${teacherPrice.toLocaleString("es-AR")}</strong>
+                    Valor Clase: <strong className="text-zinc-900 dark:text-white">${teacherPrice.toLocaleString("es-AR")}</strong>
                   </div>
                   <div className="text-sm">
-                    Total: <strong className="text-primary font-black text-base">${total.toLocaleString("es-AR")}</strong>
+                    Total a pagar: <strong className="text-primary font-black text-base">${total.toLocaleString("es-AR")}</strong>
                   </div>
                 </div>
               );
+
             })()}
 
             <button

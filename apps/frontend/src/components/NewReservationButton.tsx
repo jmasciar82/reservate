@@ -279,7 +279,10 @@ export default function NewReservationButton({
   const calculatedTeacherPrice = Math.round(durationHours * teacherPricePerHour);
 
   const productsPrice = products.reduce((sum, p) => sum + p.price * p.quantity, 0);
-  const totalWithProducts = calculatedTotalPrice + productsPrice + calculatedTeacherPrice;
+  const totalWithProducts = formData.teacherId
+    ? (calculatedTeacherPrice + productsPrice)
+    : (calculatedTotalPrice + productsPrice);
+
 
   useEffect(() => {
     const shouldLoadCourts = isOpen && isTimeSelectionReady && activeClubId;
@@ -383,8 +386,9 @@ export default function NewReservationButton({
         finalPaymentStatus = "paid";
       } else if (paymentType === "full") {
         finalDepositAmount = (formData.isRecurring && !isEscuelita)
-          ? Math.round(calculatedTotalPrice * Number(formData.recurrenceWeeks || 4) * 0.90) + productsPrice
+          ? Math.round((formData.teacherId ? calculatedTeacherPrice : calculatedTotalPrice) * Number(formData.recurrenceWeeks || 4) * 0.90) + productsPrice
           : totalWithProducts;
+
         finalPaymentStatus = "paid";
       }
 
@@ -968,12 +972,16 @@ export default function NewReservationButton({
               {selectedCourt && (
                 <div className="bg-zinc-50/50 dark:bg-white/[0.02] border border-zinc-200/80 dark:border-white/5 rounded-xl p-4 space-y-2.5 shadow-inner">
                   <div className="flex justify-between items-center text-xs font-semibold text-zinc-500 dark:text-zinc-400">
-                    <span>Precio por hora:</span>
+                    <span>Precio por hora cancha:</span>
                     <span className="text-zinc-900 dark:text-white">${selectedCourt.pricePerHour.toLocaleString("es-AR")}</span>
                   </div>
                   <div className="flex justify-between items-center text-xs font-semibold text-zinc-500 dark:text-zinc-400 border-t border-zinc-200/80 dark:border-white/5 pt-2">
                     <span>Subtotal turno (cancha):</span>
-                    <span className="text-zinc-900 dark:text-white">${calculatedTotalPrice.toLocaleString("es-AR")}</span>
+                    {formData.teacherId ? (
+                      <span className="text-zinc-400 italic font-bold">Incluida en la clase</span>
+                    ) : (
+                      <span className="text-zinc-900 dark:text-white">${calculatedTotalPrice.toLocaleString("es-AR")}</span>
+                    )}
                   </div>
                   {productsPrice > 0 && (
                     <div className="flex justify-between items-center text-xs font-semibold text-zinc-500 dark:text-zinc-400">
@@ -983,10 +991,11 @@ export default function NewReservationButton({
                   )}
                   {calculatedTeacherPrice > 0 && (
                     <div className="flex justify-between items-center text-xs font-semibold text-zinc-500 dark:text-zinc-400">
-                      <span>Honorario Profesor ({selectedTeacher?.name}):</span>
+                      <span>Clase / Profesor ({selectedTeacher?.name}):</span>
                       <span className="text-zinc-900 dark:text-white">${calculatedTeacherPrice.toLocaleString("es-AR")}</span>
                     </div>
                   )}
+
                   <div className="flex justify-between items-center text-xs font-bold text-zinc-600 dark:text-zinc-300 border-t border-zinc-200/80 dark:border-white/5 pt-2">
                     <span>Valor estimado total:</span>
                     <span className="text-primary text-sm font-black">${totalWithProducts.toLocaleString("es-AR")}</span>
