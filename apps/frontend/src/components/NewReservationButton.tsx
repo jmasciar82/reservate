@@ -1004,11 +1004,15 @@ export default function NewReservationButton({
                     <div className="flex flex-col gap-1 border-t border-zinc-200/80 dark:border-white/5 pt-2.5">
                       <div className="flex justify-between items-center text-xs font-semibold text-zinc-500 dark:text-zinc-400">
                         <span>Total normal ({Number(formData.recurrenceWeeks || 4)} sem):</span>
-                        <span className="line-through text-zinc-505">${((calculatedTotalPrice * Number(formData.recurrenceWeeks || 4)) + productsPrice).toLocaleString("es-AR")}</span>
+                        <span className="line-through text-zinc-505">
+                          ${(((formData.teacherId ? calculatedTeacherPrice : calculatedTotalPrice) * Number(formData.recurrenceWeeks || 4)) + productsPrice).toLocaleString("es-AR")}
+                        </span>
                       </div>
                       <div className="flex justify-between items-center text-xs font-bold text-indigo-300">
                         <span className="flex items-center gap-1">🏷️ Total con 10% OFF:</span>
-                        <span className="text-indigo-400 text-sm font-black">${(Math.round(calculatedTotalPrice * Number(formData.recurrenceWeeks || 4) * 0.90) + productsPrice).toLocaleString("es-AR")}</span>
+                        <span className="text-indigo-400 text-sm font-black">
+                          ${(Math.round((formData.teacherId ? calculatedTeacherPrice : calculatedTotalPrice) * Number(formData.recurrenceWeeks || 4) * 0.90) + productsPrice).toLocaleString("es-AR")}
+                        </span>
                       </div>
                     </div>
                   )}

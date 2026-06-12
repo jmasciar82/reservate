@@ -235,11 +235,13 @@ export class ReservationsService {
       const isPaid = createReservationDto.paymentStatus === 'paid';
       const recurrenceGroupId = new Types.ObjectId().toString();
       
+      const basePricePerWeek = createReservationDto.teacherId ? teacherPrice : courtPrice;
+
       // Detect if it is a block payment (Full Payment for all weeks) at creation
       const isBlockPayment = isPaid && (
         createReservationDto.payBlock === true || (
           createReservationDto.depositAmount !== undefined && 
-          Number(createReservationDto.depositAmount) >= Math.round(courtPrice * recurrenceWeeksCount * 0.85)
+          Number(createReservationDto.depositAmount) >= Math.round(basePricePerWeek * recurrenceWeeksCount * 0.85)
         )
       );
 
@@ -247,7 +249,7 @@ export class ReservationsService {
         const isFirst = idx === 0;
 
         if (isBlockPayment) {
-          const discountedPrice = Math.round(courtPrice * 0.90) + (isFirst ? productsPrice : 0) + teacherPrice;
+          const discountedPrice = Math.round(basePricePerWeek * 0.90) + (isFirst ? productsPrice : 0);
           return new this.reservationModel({
             ...createReservationDto,
             courtId: new Types.ObjectId(courtId),
@@ -266,9 +268,9 @@ export class ReservationsService {
             productsPrice: isFirst ? productsPrice : 0,
           });
         } else {
-          const weekCourtPrice = courtPrice;
+          const weekBasePrice = basePricePerWeek;
           const weekProductsPrice = isFirst ? productsPrice : 0;
-          const weekTotalPrice = weekCourtPrice + weekProductsPrice + teacherPrice;
+          const weekTotalPrice = weekBasePrice + weekProductsPrice;
           const weekDeposit = (isPaid && isFirst) ? (createReservationDto.depositAmount || weekTotalPrice) : 0;
           return new this.reservationModel({
             ...createReservationDto,
@@ -955,7 +957,10 @@ export class ReservationsService {
     }
 
     const durationHours = durationMs / (1000 * 60 * 60);
-    const totalPrice = Math.round(durationHours * court.pricePerHour);
+    const hasTeacher = lastRes.teacherId !== null && lastRes.teacherId !== undefined;
+    const totalPrice = hasTeacher
+      ? (lastRes.teacherPrice || 0)
+      : Math.round(durationHours * court.pricePerHour);
 
     const reservationsToSave = weeksToCreate.map((week) => {
       return new this.reservationModel({
@@ -972,6 +977,10 @@ export class ReservationsService {
         paymentStatus: 'pending',
         isRecurring: true,
         recurrenceGroupId: lastRes.recurrenceGroupId,
+        reservationType: lastRes.reservationType || 'standard',
+        teacherId: lastRes.teacherId || undefined,
+        teacherPrice: lastRes.teacherPrice || 0,
+        students: lastRes.students || [],
       });
     });
 
@@ -1054,7 +1063,10 @@ export class ReservationsService {
         throw new NotFoundException('La cancha especificada no existe.');
       }
       const durationHours = durationMs / (1000 * 60 * 60);
-      const totalPrice = Math.round(durationHours * court.pricePerHour) + (paidReservation.teacherPrice || 0);
+      const hasTeacher = paidReservation.teacherId !== null && paidReservation.teacherId !== undefined;
+      const totalPrice = hasTeacher
+        ? (paidReservation.teacherPrice || 0)
+        : Math.round(durationHours * court.pricePerHour);
 
       const reservationsToSave = weeksToCreate.map((week) => {
         return new this.reservationModel({
@@ -1075,6 +1087,7 @@ export class ReservationsService {
           status: 'pending',
           teacherId: paidReservation.teacherId,
           teacherPrice: paidReservation.teacherPrice,
+          students: paidReservation.students || [],
         });
       });
 
