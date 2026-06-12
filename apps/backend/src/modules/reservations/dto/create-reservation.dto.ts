@@ -23,6 +23,8 @@ export class CreateReservationDto {
   }>;
   productsPrice?: number;
   reservationType?: string;
+  teacherId?: string;
+  teacherPrice?: number;
 }
 
 

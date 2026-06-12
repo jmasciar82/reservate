@@ -51,6 +51,21 @@ export interface Reservation {
   isLastOfSeries?: boolean;
   paymentDate?: string | Date;
   reservationType?: string;
+  teacherId?: string | Teacher | null;
+  teacherPrice?: number;
+}
+
+export interface Teacher {
+  _id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  pricePerHour: number;
+  sport: string;
+  isActive: boolean;
+  clubId: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Product {

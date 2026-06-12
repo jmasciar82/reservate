@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Calendar, Clock, MapPin, User, X, Mail, Phone } from "lucide-react";
 import { createPortal } from "react-dom";
 import { apiFetch } from "@/lib/api";
-import type { Court, Product } from "@/lib/types";
+import type { Court, Product, Teacher } from "@/lib/types";
 
 const PRESET_TIMES = [
   "08:00",
@@ -134,12 +134,14 @@ export default function NewReservationButton({
     depositAmount: "",
     isDepositPaid: false,
     reservationType: "standard",
+    teacherId: "",
   });
   const [paymentType, setPaymentType] = useState<string>("pending");
   const [products, setProducts] = useState<Array<{ name: string; quantity: number; price: number }>>([]);
   const [customProduct, setCustomProduct] = useState({ name: "", price: "", quantity: "1" });
   const [availableProducts, setAvailableProducts] = useState<Product[]>([]);
   const [allCourts, setAllCourts] = useState<Court[]>([]);
+  const [teachers, setTeachers] = useState<Teacher[]>([]);
 
   useEffect(() => {
     if (isOpen && activeClubId) {
@@ -181,6 +183,20 @@ export default function NewReservationButton({
       }));
     }
   }, [formData.reservationType]);
+
+  useEffect(() => {
+    if (isOpen && activeClubId) {
+      apiFetch(`/teachers?clubId=${activeClubId}`)
+        .then((res) => {
+          if (res.ok) return res.json();
+          return [];
+        })
+        .then((data: Teacher[]) => {
+          setTeachers(data.filter(t => t.isActive));
+        })
+        .catch((err) => console.error("Error fetching teachers in NewReservationButton:", err));
+    }
+  }, [isOpen, activeClubId]);
 
   const addPresetProduct = (preset: { name: string; price: number }) => {
     setProducts(prev => {
@@ -234,6 +250,7 @@ export default function NewReservationButton({
       depositAmount: "",
       isDepositPaid: false,
       reservationType: "standard",
+      teacherId: "",
     });
     setProducts([]);
     setCustomProduct({ name: "", price: "", quantity: "1" });
@@ -253,8 +270,12 @@ export default function NewReservationButton({
   const courtPrice = selectedCourt ? selectedCourt.pricePerHour : 0;
   const calculatedTotalPrice = Math.round(durationHours * courtPrice);
 
+  const selectedTeacher = teachers.find((t) => t._id === formData.teacherId);
+  const teacherPricePerHour = selectedTeacher ? selectedTeacher.pricePerHour : 0;
+  const calculatedTeacherPrice = Math.round(durationHours * teacherPricePerHour);
+
   const productsPrice = products.reduce((sum, p) => sum + p.price * p.quantity, 0);
-  const totalWithProducts = calculatedTotalPrice + productsPrice;
+  const totalWithProducts = calculatedTotalPrice + productsPrice + calculatedTeacherPrice;
 
   useEffect(() => {
     const shouldLoadCourts = isOpen && isTimeSelectionReady && activeClubId;
@@ -382,6 +403,7 @@ export default function NewReservationButton({
           paymentStatus: finalPaymentStatus,
           products: products,
           reservationType: formData.reservationType,
+          teacherId: formData.teacherId || undefined,
         }),
       });
 
@@ -400,6 +422,7 @@ export default function NewReservationButton({
           depositAmount: "",
           isDepositPaid: false,
           reservationType: "standard",
+          teacherId: "",
         });
         setProducts([]);
         setCustomProduct({ name: "", price: "", quantity: "1" });
@@ -655,13 +678,58 @@ export default function NewReservationButton({
                     >
                       <option value="standard" className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-white">Particular / Cliente normal</option>
                       {showPadelOption && (
-                        <option value="escuelita_padel" className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-white">Escuelita de Pádel</option>
+                        <>
+                          <option value="escuelita_padel" className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-white">Escuelita de Pádel</option>
+                          <option value="clase_particular_padel" className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-white">Clase Particular de Pádel</option>
+                        </>
                       )}
                       {showFootballOption && (
-                        <option value="escuelita_futbol" className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-white">Escuelita de Fútbol</option>
+                        <>
+                          <option value="escuelita_futbol" className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-white">Escuelita de Fútbol</option>
+                          <option value="clase_particular_futbol" className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-white">Clase Particular de Fútbol</option>
+                        </>
                       )}
                     </select>
                   </div>
+                );
+              })()}
+
+              {/* Teacher Selector for Private Lessons */}
+              {(() => {
+                const isPrivateLesson = formData.reservationType === "clase_particular_padel" || formData.reservationType === "clase_particular_futbol";
+                if (!isPrivateLesson) return null;
+
+                const selectedCourtDetail = allCourts.find((c) => c._id === formData.courtId);
+                const sportFilter = selectedCourtDetail?.sport || "padel";
+
+                const filteredTeachers = teachers.filter((t) => t.sport === sportFilter);
+
+                return (
+                   <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-200">
+                     <label className="text-sm font-medium text-zinc-500 dark:text-zinc-400 flex items-center gap-2">
+                       👨‍🏫 Profesor Asignado
+                     </label>
+                     <select
+                       required
+                       value={formData.teacherId}
+                       onChange={(e) =>
+                         setFormData((prev) => ({
+                           ...prev,
+                           teacherId: e.target.value,
+                         }))
+                       }
+                       className="w-full bg-zinc-50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-xl px-4 py-3 text-zinc-900 dark:text-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 hover:bg-zinc-100 dark:hover:bg-white/[0.08] transition-all duration-300 font-semibold"
+                     >
+                       <option value="" className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-white">
+                         -- Seleccionar Profesor --
+                       </option>
+                       {filteredTeachers.map((teacher) => (
+                         <option key={teacher._id} value={teacher._id} className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-white">
+                           {teacher.name} (${teacher.pricePerHour}/hs)
+                         </option>
+                       ))}
+                     </select>
+                   </div>
                 );
               })()}
 
@@ -786,6 +854,12 @@ export default function NewReservationButton({
                     <div className="flex justify-between items-center text-xs font-semibold text-zinc-500 dark:text-zinc-400">
                       <span>Subtotal consumos / extras:</span>
                       <span className="text-zinc-900 dark:text-white">${productsPrice.toLocaleString("es-AR")}</span>
+                    </div>
+                  )}
+                  {calculatedTeacherPrice > 0 && (
+                    <div className="flex justify-between items-center text-xs font-semibold text-zinc-500 dark:text-zinc-400">
+                      <span>Honorario Profesor ({selectedTeacher?.name}):</span>
+                      <span className="text-zinc-900 dark:text-white">${calculatedTeacherPrice.toLocaleString("es-AR")}</span>
                     </div>
                   )}
                   <div className="flex justify-between items-center text-xs font-bold text-zinc-600 dark:text-zinc-300 border-t border-zinc-200/80 dark:border-white/5 pt-2">

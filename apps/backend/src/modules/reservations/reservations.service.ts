@@ -11,6 +11,7 @@ import { CreateReservationDto } from './dto/create-reservation.dto';
 import { Court, CourtDocument } from '../courts/schemas/court.schema';
 import { UpdateReservationDto } from './dto/update-reservation.dto';
 import { NotificationsService } from '../notifications/notifications.service';
+import { Teacher, TeacherDocument } from '../teachers/schemas/teacher.schema';
 
 const RESERVATION_STATUSES = ['pending', 'confirmed', 'cancelled', 'completed'];
 const PAYMENT_STATUSES = ['pending', 'paid'];
@@ -41,6 +42,7 @@ export class ReservationsService {
     @InjectModel(Reservation.name)
     private reservationModel: Model<ReservationDocument>,
     @InjectModel(Court.name) private courtModel: Model<CourtDocument>,
+    @InjectModel(Teacher.name) private teacherModel: Model<TeacherDocument>,
     private readonly notificationsService: NotificationsService,
   ) {}
 
@@ -89,6 +91,15 @@ export class ReservationsService {
     const durationHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
     const courtPrice = Math.round(durationHours * court.pricePerHour);
 
+    let teacherPrice = 0;
+    if (createReservationDto.teacherId) {
+      const teacher = await this.teacherModel.findById(createReservationDto.teacherId).exec();
+      if (!teacher) {
+        throw new NotFoundException('El profesor especificado no existe.');
+      }
+      teacherPrice = Math.round(durationHours * teacher.pricePerHour);
+    }
+
     let productsPrice = 0;
     let productsList: any[] = [];
     if (createReservationDto.products && createReservationDto.products.length > 0) {
@@ -105,7 +116,7 @@ export class ReservationsService {
       productsPrice = productsList.reduce((sum, item) => sum + item.total, 0);
     }
 
-    const totalPrice = courtPrice + productsPrice;
+    const totalPrice = courtPrice + productsPrice + teacherPrice;
 
     if (isRecurring) {
       const recurrenceWeeksCount = recurrenceWeeks || 4;
@@ -116,7 +127,7 @@ export class ReservationsService {
         const weekStart = new Date(start.getTime() + i * 7 * 24 * 60 * 60 * 1000);
         const weekEnd = new Date(end.getTime() + i * 7 * 24 * 60 * 60 * 1000);
 
-        const overlapping = await this.reservationModel
+        const courtOverlapping = await this.reservationModel
           .findOne({
             courtId,
             status: { $ne: 'cancelled' },
@@ -125,11 +136,24 @@ export class ReservationsService {
           })
           .exec();
 
-        if (overlapping) {
+        let teacherOverlapping = null;
+        if (createReservationDto.teacherId) {
+          teacherOverlapping = await this.reservationModel
+            .findOne({
+              teacherId: new Types.ObjectId(createReservationDto.teacherId),
+              status: { $ne: 'cancelled' },
+              startTime: { $lt: weekEnd },
+              endTime: { $gt: weekStart },
+            })
+            .exec();
+        }
+
+        if (courtOverlapping || teacherOverlapping) {
           const dateStr = weekStart.toLocaleDateString('es-AR', {
             timeZone: 'America/Argentina/Buenos_Aires',
           });
-          conflicts.push(`Semana ${i + 1} (${dateStr})`);
+          const reason = courtOverlapping ? 'cancha ocupada' : 'profesor ocupado';
+          conflicts.push(`Semana ${i + 1} (${dateStr} - ${reason})`);
         } else {
           weeksToCreate.push({ start: weekStart, end: weekEnd });
         }
@@ -156,10 +180,12 @@ export class ReservationsService {
         const isFirst = idx === 0;
 
         if (isBlockPayment) {
-          const discountedPrice = Math.round(courtPrice * 0.90) + (isFirst ? productsPrice : 0);
+          const discountedPrice = Math.round(courtPrice * 0.90) + (isFirst ? productsPrice : 0) + teacherPrice;
           return new this.reservationModel({
             ...createReservationDto,
             courtId: new Types.ObjectId(courtId),
+            teacherId: createReservationDto.teacherId ? new Types.ObjectId(createReservationDto.teacherId) : undefined,
+            teacherPrice,
             startTime: week.start,
             endTime: week.end,
             totalPrice: discountedPrice,
@@ -175,11 +201,13 @@ export class ReservationsService {
         } else {
           const weekCourtPrice = courtPrice;
           const weekProductsPrice = isFirst ? productsPrice : 0;
-          const weekTotalPrice = weekCourtPrice + weekProductsPrice;
+          const weekTotalPrice = weekCourtPrice + weekProductsPrice + teacherPrice;
           const weekDeposit = (isPaid && isFirst) ? (createReservationDto.depositAmount || weekTotalPrice) : 0;
           return new this.reservationModel({
             ...createReservationDto,
             courtId: new Types.ObjectId(courtId),
+            teacherId: createReservationDto.teacherId ? new Types.ObjectId(createReservationDto.teacherId) : undefined,
+            teacherPrice,
             startTime: week.start,
             endTime: week.end,
             totalPrice: weekTotalPrice,
@@ -237,7 +265,7 @@ export class ReservationsService {
 
       return savedReservations[0];
     } else {
-      const overlapping = await this.reservationModel
+      const courtOverlapping = await this.reservationModel
         .findOne({
           courtId,
           status: { $ne: 'cancelled' },
@@ -246,10 +274,27 @@ export class ReservationsService {
         })
         .exec();
 
-      if (overlapping) {
+      if (courtOverlapping) {
         throw new ConflictException(
           'La cancha ya está reservada en este horario.',
         );
+      }
+
+      if (createReservationDto.teacherId) {
+        const teacherOverlapping = await this.reservationModel
+          .findOne({
+            teacherId: new Types.ObjectId(createReservationDto.teacherId),
+            status: { $ne: 'cancelled' },
+            startTime: { $lt: end },
+            endTime: { $gt: start },
+          })
+          .exec();
+
+        if (teacherOverlapping) {
+          throw new ConflictException(
+            'El profesor seleccionado ya tiene otra clase reservada en este horario.',
+          );
+        }
       }
 
       const isPaid = createReservationDto.paymentStatus === 'paid';
@@ -260,6 +305,8 @@ export class ReservationsService {
       const createdReservation = new this.reservationModel({
         ...createReservationDto,
         courtId: new Types.ObjectId(courtId),
+        teacherId: createReservationDto.teacherId ? new Types.ObjectId(createReservationDto.teacherId) : undefined,
+        teacherPrice,
         startTime: start,
         endTime: end,
         totalPrice,
@@ -348,6 +395,7 @@ export class ReservationsService {
     const reservations = await this.reservationModel
       .find({ ...dateFilter, ...clubFilter })
       .populate('courtId')
+      .populate('teacherId')
       .sort({ startTime: 1 })
       .exec();
 
@@ -403,13 +451,17 @@ export class ReservationsService {
 
     const wasConfirmed = existingReservation.status === 'confirmed';
 
-    let courtPrice = existingReservation.totalPrice - (existingReservation.productsPrice || 0);
+    let courtPrice = existingReservation.totalPrice - (existingReservation.productsPrice || 0) - (existingReservation.teacherPrice || 0);
 
     const currentResType = updateReservationDto.reservationType || existingReservation.reservationType;
     const isEscuelita = currentResType === 'escuelita_padel' || currentResType === 'escuelita_futbol';
-    if (isEscuelita) {
-      const newStart = updateReservationDto.startTime ? new Date(updateReservationDto.startTime) : new Date(existingReservation.startTime);
-      const newEnd = updateReservationDto.endTime ? new Date(updateReservationDto.endTime) : new Date(existingReservation.endTime);
+
+    const newCourtId = updateReservationDto.courtId || existingReservation.courtId.toString();
+    const newStart = updateReservationDto.startTime ? new Date(updateReservationDto.startTime) : new Date(existingReservation.startTime);
+    const newEnd = updateReservationDto.endTime ? new Date(updateReservationDto.endTime) : new Date(existingReservation.endTime);
+    const hasTimeOrCourtChange = !!(updateReservationDto.courtId || updateReservationDto.startTime || updateReservationDto.endTime);
+
+    if (isEscuelita && hasTimeOrCourtChange) {
       const durationMin = Math.round((newEnd.getTime() - newStart.getTime()) / (1000 * 60));
       if (durationMin !== 60) {
         throw new BadRequestException('Las reservas de escuelita deben ser de exactamente 1 hora.');
@@ -417,15 +469,7 @@ export class ReservationsService {
     }
 
     // Validaciones de reprogramación (Rescheduling / Drag and Drop)
-    if (
-      updateReservationDto.courtId ||
-      updateReservationDto.startTime ||
-      updateReservationDto.endTime
-    ) {
-      const newCourtId = updateReservationDto.courtId || existingReservation.courtId.toString();
-      const newStart = updateReservationDto.startTime ? new Date(updateReservationDto.startTime) : new Date(existingReservation.startTime);
-      const newEnd = updateReservationDto.endTime ? new Date(updateReservationDto.endTime) : new Date(existingReservation.endTime);
-
+    if (hasTimeOrCourtChange) {
       if (Number.isNaN(newStart.getTime()) || Number.isNaN(newEnd.getTime()) || newEnd <= newStart) {
         throw new BadRequestException('El horario de la reserva no es válido.');
       }
@@ -439,7 +483,7 @@ export class ReservationsService {
         throw new NotFoundException('La cancha especificada no existe.');
       }
 
-      // Validar solapamiento (excluyendo la reserva actual)
+      // Validar solapamiento de cancha (excluyendo la reserva actual)
       const overlapping = await this.reservationModel
         .findOne({
           _id: { $ne: new Types.ObjectId(id) },
@@ -464,6 +508,41 @@ export class ReservationsService {
       updateReservationDto.endTime = newEnd;
     }
 
+    const durationHours = (newEnd.getTime() - newStart.getTime()) / (1000 * 60 * 60);
+
+    let teacherPrice = existingReservation.teacherPrice || 0;
+
+    if (updateReservationDto.teacherId === null || updateReservationDto.teacherId === '') {
+      updateReservationDto.teacherId = null;
+      updateReservationDto.teacherPrice = 0;
+      teacherPrice = 0;
+    } else {
+      const teacherIdToUse = updateReservationDto.teacherId || existingReservation.teacherId?.toString();
+      if (teacherIdToUse) {
+        const teacher = await this.teacherModel.findById(teacherIdToUse).exec();
+        if (!teacher) {
+          throw new NotFoundException('El profesor especificado no existe.');
+        }
+
+        // Check teacher overlap
+        const teacherOverlapping = await this.reservationModel.findOne({
+          _id: { $ne: new Types.ObjectId(id) },
+          teacherId: new Types.ObjectId(teacherIdToUse),
+          status: { $ne: 'cancelled' },
+          startTime: { $lt: newEnd },
+          endTime: { $gt: newStart },
+        }).exec();
+
+        if (teacherOverlapping) {
+          throw new ConflictException('El profesor seleccionado ya tiene otra clase reservada en este horario.');
+        }
+
+        teacherPrice = Math.round(durationHours * teacher.pricePerHour);
+        updateReservationDto.teacherId = new Types.ObjectId(teacherIdToUse) as any;
+        updateReservationDto.teacherPrice = teacherPrice;
+      }
+    }
+
     let productsPrice = existingReservation.productsPrice || 0;
     let productsList = existingReservation.products || [];
 
@@ -483,7 +562,7 @@ export class ReservationsService {
       updateReservationDto.productsPrice = productsPrice;
     }
 
-    const updatedTotalPrice = courtPrice + productsPrice;
+    const updatedTotalPrice = courtPrice + productsPrice + teacherPrice;
     updateReservationDto.totalPrice = updatedTotalPrice;
 
     // Determine the deposit amount
@@ -858,19 +937,30 @@ export class ReservationsService {
         continue;
       }
 
-      // Check for overlap with other reservations
-      const overlapping = await this.reservationModel.findOne({
+      // Check for overlap with other reservations (court & teacher)
+      const courtOverlapping = await this.reservationModel.findOne({
         courtId,
         status: { $ne: 'cancelled' },
         startTime: { $lt: weekEnd },
         endTime: { $gt: weekStart },
       }).exec();
 
-      if (overlapping) {
+      let teacherOverlapping = null;
+      if (paidReservation.teacherId) {
+        teacherOverlapping = await this.reservationModel.findOne({
+          teacherId: paidReservation.teacherId,
+          status: { $ne: 'cancelled' },
+          startTime: { $lt: weekEnd },
+          endTime: { $gt: weekStart },
+        }).exec();
+      }
+
+      if (courtOverlapping || teacherOverlapping) {
         const dateStr = weekStart.toLocaleDateString('es-AR', {
           timeZone: 'America/Argentina/Buenos_Aires',
         });
-        conflicts.push(`Semana ${i} (${dateStr})`);
+        const reason = courtOverlapping ? 'cancha ocupada' : 'profesor ocupado';
+        conflicts.push(`Semana ${i} (${dateStr} - ${reason})`);
       } else {
         weeksToCreate.push({ start: weekStart, end: weekEnd });
       }
@@ -888,7 +978,7 @@ export class ReservationsService {
         throw new NotFoundException('La cancha especificada no existe.');
       }
       const durationHours = durationMs / (1000 * 60 * 60);
-      const totalPrice = Math.round(durationHours * court.pricePerHour);
+      const totalPrice = Math.round(durationHours * court.pricePerHour) + (paidReservation.teacherPrice || 0);
 
       const reservationsToSave = weeksToCreate.map((week) => {
         return new this.reservationModel({
@@ -907,6 +997,8 @@ export class ReservationsService {
           recurrenceGroupId,
           reservationType: paidReservation.reservationType,
           status: 'pending',
+          teacherId: paidReservation.teacherId,
+          teacherPrice: paidReservation.teacherPrice,
         });
       });
 

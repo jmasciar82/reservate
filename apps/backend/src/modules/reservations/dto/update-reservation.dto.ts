@@ -20,6 +20,8 @@ export class UpdateReservationDto {
   }>;
   productsPrice?: number;
   reservationType?: string;
+  teacherId?: string | null;
+  teacherPrice?: number;
 }
 
 

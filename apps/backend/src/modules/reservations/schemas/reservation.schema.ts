@@ -80,8 +80,14 @@ export class Reservation {
   @Prop({ default: false })
   isRecurring: boolean;
 
-  @Prop({ default: 'standard', enum: ['standard', 'escuelita_padel', 'escuelita_futbol'] })
+  @Prop({ default: 'standard', enum: ['standard', 'escuelita_padel', 'escuelita_futbol', 'clase_particular_padel', 'clase_particular_futbol'] })
   reservationType: string;
+
+  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'Teacher', required: false })
+  teacherId?: Types.ObjectId;
+
+  @Prop({ default: 0 })
+  teacherPrice?: number;
 
   @Prop({ type: [ReservationProductSchema], default: [] })
   products: ReservationProduct[];
