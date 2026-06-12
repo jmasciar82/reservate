@@ -40,8 +40,12 @@ export function Sidebar() {
         <div className="absolute inset-0 bg-gradient-to-b from-white/[0.02] to-transparent pointer-events-none" />
 
         <div className="flex items-center h-16 px-6 border-b border-zinc-200 dark:border-white/5 bg-zinc-50/[0.02] dark:bg-white/[0.01] z-10 transition-colors duration-300">
-          <Trophy className="w-6 h-6 text-primary mr-2.5 drop-shadow-[0_0_8px_rgba(57,255,20,0.5)]" />
-          <span className="text-lg font-black tracking-widest bg-gradient-to-r from-zinc-800 via-zinc-600 to-primary dark:from-white dark:via-zinc-200 dark:to-primary bg-clip-text text-transparent drop-shadow-[0_0_10px_rgba(57,255,20,0.15)]">
+          <img
+            src="/logo.jpg"
+            alt="Reservate Logo"
+            className="h-9 w-9 object-cover mr-2.5 rounded-lg border border-zinc-350 dark:border-white/10 shadow-[0_0_8px_rgba(57,255,20,0.15)]"
+          />
+          <span className="text-base font-black tracking-widest bg-gradient-to-r from-zinc-800 via-zinc-600 to-primary dark:from-white dark:via-zinc-200 dark:to-primary bg-clip-text text-transparent drop-shadow-[0_0_10px_rgba(57,255,20,0.15)]">
             RESERVATE
           </span>
         </div>

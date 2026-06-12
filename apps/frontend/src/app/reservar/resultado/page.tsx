@@ -51,9 +51,11 @@ function ResultadoContent() {
       {/* Header */}
       <header className="border-b border-[#27272a] bg-[#09090b]/85 py-4 px-6 md:px-12 flex justify-between items-center">
         <div className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center font-bold text-[#09090b] shadow-[0_0_15px_rgba(57,255,20,0.5)]">
-            R
-          </div>
+          <img
+            src="/logo.jpg"
+            alt="Reservate Logo"
+            className="h-8 w-8 object-cover rounded-lg border border-primary/20 shadow-[0_0_10px_rgba(57,255,20,0.3)]"
+          />
           <span className="text-xl font-bold tracking-tight text-white">
             Reservate<span className="text-primary font-extrabold">.</span>
           </span>

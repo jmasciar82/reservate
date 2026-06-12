@@ -86,11 +86,13 @@ export default function LoginPage() {
     <div className="flex-grow w-full min-h-screen bg-background flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-md bg-card/80 backdrop-blur-xl border border-border p-8 rounded-2xl shadow-2xl">
         <div className="flex flex-col items-center mb-8">
-          <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-            <Trophy className="w-8 h-8 text-primary" />
-          </div>
-          <h1 className="text-2xl font-bold tracking-wider">RESERVATE</h1>
-          <p className="text-zinc-400 mt-2">Ingresa al panel de administración</p>
+          <img
+            src="/logo.jpg"
+            alt="Reservate Logo"
+            className="w-16 h-16 object-cover rounded-2xl border border-primary/20 shadow-[0_0_15px_rgba(57,255,20,0.2)] mb-4"
+          />
+          <h1 className="text-2xl font-black tracking-wider bg-gradient-to-r from-zinc-800 via-zinc-600 to-primary dark:from-white dark:via-zinc-200 dark:to-primary bg-clip-text text-transparent">RESERVATE</h1>
+          <p className="text-xs text-zinc-400 mt-2 font-semibold uppercase tracking-wider">Ingresa al panel de administración</p>
         </div>
 
         {error && (
