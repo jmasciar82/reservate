@@ -291,7 +291,12 @@ export default function SchedulerGrid({
                 let blockHoverBorderClass = "hover:border-primary/45";
                 let blockHoverShadowClass = "hover:shadow-[0_8px_20px_rgba(57,255,20,0.08)]";
 
-                if (isEscuelitaPadel) {
+                if (reservation.isRecurring && reservation.paymentStatus !== "paid") {
+                  blockBgClass = "bg-red-500/15 dark:bg-red-950/40";
+                  blockBorderClass = "border-red-400/50 dark:border-red-500/30";
+                  blockHoverBorderClass = "hover:border-red-400/80";
+                  blockHoverShadowClass = "hover:shadow-[0_0_16px_rgba(239,68,68,0.15)]";
+                } else if (isEscuelitaPadel) {
                   blockBgClass = "bg-indigo-600/25 dark:bg-indigo-950/45";
                   blockBorderClass = "border-indigo-400/40 dark:border-indigo-500/30";
                   blockHoverBorderClass = "hover:border-indigo-400/80";
@@ -444,11 +449,13 @@ export default function SchedulerGrid({
                       </div>
                     ) : isIntermediateSlot ? (
                       (() => {
-                        const interBgClass = isEscuelitaPadel
-                          ? "bg-indigo-600/25 dark:bg-indigo-950/45 border-indigo-400/20 dark:border-indigo-500/20"
-                          : isEscuelitaFutbol
-                            ? "bg-teal-600/20 dark:bg-teal-950/40 border-teal-400/20 dark:border-teal-500/20"
-                            : "bg-zinc-100/80 dark:bg-white/5 border-zinc-200 dark:border-white/10";
+                        const interBgClass = reservation.isRecurring && reservation.paymentStatus !== "paid"
+                          ? "bg-red-500/15 dark:bg-red-950/40 border-red-400/20 dark:border-red-500/20"
+                          : isEscuelitaPadel
+                            ? "bg-indigo-600/25 dark:bg-indigo-950/45 border-indigo-400/20 dark:border-indigo-500/20"
+                            : isEscuelitaFutbol
+                              ? "bg-teal-600/20 dark:bg-teal-950/40 border-teal-400/20 dark:border-teal-500/20"
+                              : "bg-zinc-100/80 dark:bg-white/5 border-zinc-200 dark:border-white/10";
                         return (
                           <div
                             className={`h-full ${interBgClass} backdrop-blur-sm border-x rounded-none px-2.5 py-1.5 flex flex-col items-center justify-center relative group/res hover:bg-zinc-100/20 dark:hover:bg-white/[0.08] transition-all duration-300`}
@@ -493,11 +500,13 @@ export default function SchedulerGrid({
                       })()
                     ) : (
                       (() => {
-                        const bottomBgClass = isEscuelitaPadel
-                          ? "bg-indigo-600/25 dark:bg-indigo-950/45 border-indigo-400/25 dark:border-indigo-500/30"
-                          : isEscuelitaFutbol
-                            ? "bg-teal-600/20 dark:bg-teal-950/40 border-teal-400/25 dark:border-teal-500/30"
-                            : "bg-zinc-100/80 dark:bg-white/5 border-zinc-200 dark:border-white/10";
+                        const bottomBgClass = reservation.isRecurring && reservation.paymentStatus !== "paid"
+                          ? "bg-red-500/15 dark:bg-red-950/40 border-red-400/25 dark:border-red-500/30"
+                          : isEscuelitaPadel
+                            ? "bg-indigo-600/25 dark:bg-indigo-950/45 border-indigo-400/25 dark:border-indigo-500/30"
+                            : isEscuelitaFutbol
+                              ? "bg-teal-600/20 dark:bg-teal-950/40 border-teal-400/25 dark:border-teal-500/30"
+                              : "bg-zinc-100/80 dark:bg-white/5 border-zinc-200 dark:border-white/10";
                         return (
                           <div
                             className={`h-full ${bottomBgClass} backdrop-blur-sm border-x border-b rounded-b-xl rounded-t-none px-2.5 py-2.5 flex flex-col justify-between relative group/res hover:bg-zinc-100/20 dark:hover:bg-white/[0.08] transition-all duration-300 shadow-[0_4px_12px_rgba(0,0,0,0.04)] dark:shadow-[0_4px_12px_rgba(0,0,0,0.15)]`}

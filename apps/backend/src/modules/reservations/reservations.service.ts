@@ -294,21 +294,12 @@ export class ReservationsService {
 
       const savedReservations = await this.reservationModel.insertMany(reservationsToSave);
 
-      if (
-        savedReservations[0] &&
-        savedReservations[0].paymentStatus === 'paid' &&
-        (savedReservations[0].reservationType === 'escuelita_padel' || savedReservations[0].reservationType === 'escuelita_futbol')
-      ) {
-        await this.extendEscuelitaSeries(savedReservations[0]);
-      }
-
-      if (isBlockPayment && savedReservations.length > 0) {
+      // Auto-extender la serie recurrente para garantizar 3 meses de buffer
+      if (savedReservations.length > 0 && savedReservations[0].recurrenceGroupId) {
         try {
-          await this.renew(savedReservations[0]._id.toString());
-        } catch (renewError: any) {
-          throw new ConflictException(
-            `Turno fijo creado y pagado correctamente con 10% de descuento. Sin embargo, la reserva automática de las siguientes 4 semanas falló por: ${renewError.message}`,
-          );
+          await this.ensureThreeMonthBuffer(savedReservations[0].recurrenceGroupId);
+        } catch (bufferError: any) {
+          console.error('Auto-extensión de 3 meses parcialmente fallida:', bufferError.message);
         }
       }
 
@@ -800,14 +791,11 @@ export class ReservationsService {
           })
           .exec();
 
-        if (!futureExists) {
-          try {
-            await this.renew(existingReservation._id.toString());
-          } catch (renewError: any) {
-            throw new ConflictException(
-              `Pago registrado correctamente con 10% de descuento. Sin embargo, la renovación automática de las siguientes 4 semanas falló por: ${renewError.message}`,
-            );
-          }
+        // Auto-extender la serie para garantizar 3 meses de buffer
+        try {
+          await this.ensureThreeMonthBuffer(existingReservation.recurrenceGroupId);
+        } catch (bufferError: any) {
+          console.error('Auto-extensión de 3 meses parcialmente fallida:', bufferError.message);
         }
 
         const updated = await this.reservationModel
@@ -848,10 +836,14 @@ export class ReservationsService {
       .populate('courtId')
       .exec();
 
-    // Trigger escuelita auto-extension if newly paid
+    // Auto-extender series recurrentes cuando se paga (todos los tipos, no solo escuelita)
     const isNowPaid = updated && updated.paymentStatus === 'paid' && existingReservation.paymentStatus !== 'paid';
-    if (isNowPaid && (updated.reservationType === 'escuelita_padel' || updated.reservationType === 'escuelita_futbol')) {
-      await this.extendEscuelitaSeries(updated);
+    if (isNowPaid && updated.isRecurring && updated.recurrenceGroupId) {
+      try {
+        await this.ensureThreeMonthBuffer(updated.recurrenceGroupId);
+      } catch (bufferError: any) {
+        console.error('Auto-extensión de 3 meses parcialmente fallida:', bufferError.message);
+      }
     }
 
     if (updated && updated.email && !wasConfirmed && updated.status === 'confirmed') {
@@ -903,14 +895,21 @@ export class ReservationsService {
       throw new BadRequestException('Esta reserva no forma parte de un turno fijo recurrente.');
     }
 
-    // Buscar todas las reservas de este grupo ordenadas por fecha
+    // Asegurar el buffer de 3 meses para el grupo
+    const createdReservations = await this.ensureThreeMonthBuffer(reservation.recurrenceGroupId);
+
+    // Si se crearon nuevas, devolvemos la primera. Si no, la original.
+    return createdReservations.length > 0 ? createdReservations[0] : reservation;
+  }
+
+  async ensureThreeMonthBuffer(recurrenceGroupId: string): Promise<ReservationDocument[]> {
     const group = await this.reservationModel
-      .find({ recurrenceGroupId: reservation.recurrenceGroupId })
+      .find({ recurrenceGroupId, status: { $ne: 'cancelled' } })
       .sort({ startTime: 1 })
       .exec();
 
     if (group.length === 0) {
-      throw new NotFoundException('No se encontraron reservas para el turno fijo.');
+      return [];
     }
 
     const lastRes = group[group.length - 1];
@@ -919,41 +918,69 @@ export class ReservationsService {
       throw new NotFoundException('La cancha especificada no existe.');
     }
 
-    const conflicts: string[] = [];
-    const weeksToCreate: { start: Date; end: Date }[] = [];
-
     const lastStart = new Date(lastRes.startTime);
     const lastEnd = new Date(lastRes.endTime);
     const durationMs = lastEnd.getTime() - lastStart.getTime();
 
-    // Generar las próximas 4 semanas (1 mes de renovación)
-    for (let i = 1; i <= 4; i++) {
-      const weekStart = new Date(lastStart.getTime() + i * 7 * 24 * 60 * 60 * 1000);
+    const now = new Date();
+    // 12 semanas (3 meses de buffer)
+    const targetTime = now.getTime() + 12 * 7 * 24 * 60 * 60 * 1000;
+
+    if (lastStart.getTime() >= targetTime) {
+      return [];
+    }
+
+    const weeksToCreate: { start: Date; end: Date }[] = [];
+    let currentWeekStart = new Date(lastStart.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+    while (currentWeekStart.getTime() <= targetTime) {
+      const weekStart = new Date(currentWeekStart);
       const weekEnd = new Date(weekStart.getTime() + durationMs);
 
-      const overlapping = await this.reservationModel
-        .findOne({
-          courtId: lastRes.courtId,
+      // Verificar si ya existe una reserva del grupo en esa semana exacta
+      const existingInGroup = await this.reservationModel.findOne({
+        recurrenceGroupId,
+        status: { $ne: 'cancelled' },
+        startTime: weekStart,
+      }).exec();
+
+      if (existingInGroup) {
+        currentWeekStart = new Date(currentWeekStart.getTime() + 7 * 24 * 60 * 60 * 1000);
+        continue;
+      }
+
+      // Verificar solapamiento de cancha
+      const courtOverlapping = await this.reservationModel.findOne({
+        courtId: lastRes.courtId,
+        status: { $ne: 'cancelled' },
+        startTime: { $lt: weekEnd },
+        endTime: { $gt: weekStart },
+      }).exec();
+
+      // Verificar solapamiento de profesor
+      let teacherOverlapping = null;
+      if (lastRes.teacherId) {
+        teacherOverlapping = await this.reservationModel.findOne({
+          teacherId: lastRes.teacherId,
           status: { $ne: 'cancelled' },
           startTime: { $lt: weekEnd },
           endTime: { $gt: weekStart },
-        })
-        .exec();
+        }).exec();
+      }
 
-      if (overlapping) {
-        const dateStr = weekStart.toLocaleDateString('es-AR', {
-          timeZone: 'America/Argentina/Buenos_Aires',
-        });
-        conflicts.push(`Semana ${i} (${dateStr})`);
+      if (courtOverlapping || teacherOverlapping) {
+        console.log(
+          `[ensureThreeMonthBuffer] Saltando semana ${weekStart.toISOString()} por solapamiento. Cancha: ${!!courtOverlapping}, Profesor: ${!!teacherOverlapping}`
+        );
       } else {
         weeksToCreate.push({ start: weekStart, end: weekEnd });
       }
+
+      currentWeekStart = new Date(currentWeekStart.getTime() + 7 * 24 * 60 * 60 * 1000);
     }
 
-    if (conflicts.length > 0) {
-      throw new ConflictException(
-        `Solapamientos detectados en: ${conflicts.join(', ')}. No se pudo renovar el turno fijo.`,
-      );
+    if (weeksToCreate.length === 0) {
+      return [];
     }
 
     const durationHours = durationMs / (1000 * 60 * 60);
@@ -976,123 +1003,17 @@ export class ReservationsService {
         totalPrice,
         paymentStatus: 'pending',
         isRecurring: true,
-        recurrenceGroupId: lastRes.recurrenceGroupId,
+        recurrenceGroupId,
         reservationType: lastRes.reservationType || 'standard',
+        status: 'pending',
         teacherId: lastRes.teacherId || undefined,
         teacherPrice: lastRes.teacherPrice || 0,
         students: lastRes.students || [],
       });
     });
 
-    const savedReservations = await this.reservationModel.insertMany(reservationsToSave);
-    return savedReservations[0];
-  }
-
-  async extendEscuelitaSeries(paidReservation: ReservationDocument): Promise<void> {
-    if (
-      paidReservation.reservationType !== 'escuelita_padel' &&
-      paidReservation.reservationType !== 'escuelita_futbol'
-    ) {
-      return;
-    }
-
-    const { recurrenceGroupId, courtId, startTime, endTime } = paidReservation;
-    if (!recurrenceGroupId) return;
-
-    const start = new Date(startTime);
-    const end = new Date(endTime);
-    const durationMs = end.getTime() - start.getTime();
-
-    const conflicts: string[] = [];
-    const weeksToCreate: { start: Date; end: Date }[] = [];
-
-    // Check next 12 weeks (3 months)
-    for (let i = 1; i <= 12; i++) {
-      const weekStart = new Date(start.getTime() + i * 7 * 24 * 60 * 60 * 1000);
-      const weekEnd = new Date(weekStart.getTime() + durationMs);
-
-      // Check if there is already a reservation for this recurrence group at this exact weekStart
-      const existingInGroup = await this.reservationModel.findOne({
-        recurrenceGroupId,
-        status: { $ne: 'cancelled' },
-        startTime: weekStart,
-      }).exec();
-
-      if (existingInGroup) {
-        continue;
-      }
-
-      // Check for overlap with other reservations (court & teacher)
-      const courtOverlapping = await this.reservationModel.findOne({
-        courtId,
-        status: { $ne: 'cancelled' },
-        startTime: { $lt: weekEnd },
-        endTime: { $gt: weekStart },
-      }).exec();
-
-      let teacherOverlapping = null;
-      if (paidReservation.teacherId) {
-        teacherOverlapping = await this.reservationModel.findOne({
-          teacherId: paidReservation.teacherId,
-          status: { $ne: 'cancelled' },
-          startTime: { $lt: weekEnd },
-          endTime: { $gt: weekStart },
-        }).exec();
-      }
-
-      if (courtOverlapping || teacherOverlapping) {
-        const dateStr = weekStart.toLocaleDateString('es-AR', {
-          timeZone: 'America/Argentina/Buenos_Aires',
-        });
-        const reason = courtOverlapping ? 'cancha ocupada' : 'profesor ocupado';
-        conflicts.push(`Semana ${i} (${dateStr} - ${reason})`);
-      } else {
-        weeksToCreate.push({ start: weekStart, end: weekEnd });
-      }
-    }
-
-    if (conflicts.length > 0) {
-      throw new ConflictException(
-        `No se pudo extender la escuelita para los próximos 3 meses por solapamientos en: ${conflicts.join(', ')}.`,
-      );
-    }
-
-    if (weeksToCreate.length > 0) {
-      const court = await this.courtModel.findById(courtId).exec();
-      if (!court) {
-        throw new NotFoundException('La cancha especificada no existe.');
-      }
-      const durationHours = durationMs / (1000 * 60 * 60);
-      const hasTeacher = paidReservation.teacherId !== null && paidReservation.teacherId !== undefined;
-      const totalPrice = hasTeacher
-        ? (paidReservation.teacherPrice || 0)
-        : Math.round(durationHours * court.pricePerHour);
-
-      const reservationsToSave = weeksToCreate.map((week) => {
-        return new this.reservationModel({
-          courtId: paidReservation.courtId,
-          userId: paidReservation.userId,
-          firstName: paidReservation.firstName,
-          lastName: paidReservation.lastName,
-          email: paidReservation.email,
-          phone: paidReservation.phone,
-          isPublic: paidReservation.isPublic || false,
-          startTime: week.start,
-          endTime: week.end,
-          totalPrice,
-          paymentStatus: 'pending',
-          isRecurring: true,
-          recurrenceGroupId,
-          reservationType: paidReservation.reservationType,
-          status: 'pending',
-          teacherId: paidReservation.teacherId,
-          teacherPrice: paidReservation.teacherPrice,
-          students: paidReservation.students || [],
-        });
-      });
-
-      await this.reservationModel.insertMany(reservationsToSave);
-    }
+    const saved = await this.reservationModel.insertMany(reservationsToSave);
+    return saved as any[];
   }
 
   async findOne(id: string): Promise<Reservation | null> {
