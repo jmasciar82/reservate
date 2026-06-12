@@ -163,6 +163,61 @@ export default function CourtCard({ court, clubName, onEdit, onDelete }: CourtCa
             </div>
           ),
         };
+      case "escuelita_padel":
+        return {
+          bg: "bg-indigo-500/20",
+          border: "border-indigo-500/50",
+          accent: "text-indigo-400",
+          label: "Escuelita Pádel",
+          courtBg: "bg-indigo-600/30",
+          lines: "border-white/40",
+          renderField: () => (
+            <div className="absolute inset-0 opacity-20 pointer-events-none flex flex-col p-4">
+              <div className="w-full h-full border-2 border-white/50 rounded-sm relative flex flex-col">
+                <div className="flex-1 border-b-2 border-white/50 relative">
+                  <div className="absolute bottom-2 left-4 w-2 h-2 bg-amber-400 rounded-full" />
+                  <div className="absolute bottom-4 right-6 w-2 h-2 bg-orange-400 rounded-full" />
+                </div>
+                <div className="flex-1 relative">
+                  <div className="absolute top-2 left-6 w-2 h-2 bg-orange-400 rounded-full" />
+                  <div className="absolute top-4 right-4 w-2 h-2 bg-amber-400 rounded-full" />
+                </div>
+                <div className="absolute top-1/2 left-0 w-full h-[2px] bg-white -translate-y-1/2" />
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-indigo-950/90 border border-indigo-500/50 px-2 py-0.5 rounded text-[10px] font-black text-indigo-400">
+                  ACADEMIA
+                </div>
+              </div>
+            </div>
+          ),
+        };
+      case "escuelita_futbol":
+        return {
+          bg: "bg-teal-600/20",
+          border: "border-teal-500/50",
+          accent: "text-teal-400",
+          label: "Escuelita Fútbol",
+          courtBg: "bg-teal-700/30",
+          lines: "border-white/40",
+          renderField: () => (
+            <div className="absolute inset-0 opacity-20 pointer-events-none flex flex-col p-3">
+              <div className="w-full h-full border-2 border-white/50 relative flex flex-col">
+                <div className="w-1/2 h-1/4 border-b-2 border-l-2 border-r-2 border-white/50 mx-auto relative">
+                  <div className="absolute bottom-1 left-2 w-1.5 h-1.5 bg-orange-400 rounded-full" />
+                </div>
+                <div className="flex-1 relative flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-full border-2 border-white/50 absolute" />
+                  <div className="w-full h-[2px] bg-white/50 absolute" />
+                  <div className="bg-teal-950/90 border border-teal-500/50 px-1.5 py-0.5 rounded text-[10px] font-black text-teal-400 z-10">
+                    ESC. FÚTBOL
+                  </div>
+                </div>
+                <div className="w-1/2 h-1/4 border-t-2 border-l-2 border-r-2 border-white/50 mx-auto relative">
+                  <div className="absolute top-1 right-2 w-1.5 h-1.5 bg-amber-400 rounded-full" />
+                </div>
+              </div>
+            </div>
+          ),
+        };
       default:
         return {
           bg: "bg-zinc-800/50",

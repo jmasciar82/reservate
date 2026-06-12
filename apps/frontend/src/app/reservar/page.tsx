@@ -53,6 +53,8 @@ const sportLabel = (sport: string): string => {
     basketball: "Básquet",
     parrilla: "Parrilla",
     quincho: "Quincho",
+    escuelita_padel: "Escuelita Pádel",
+    escuelita_futbol: "Escuelita Fútbol",
   };
   return labels[sport] ?? sport;
 };

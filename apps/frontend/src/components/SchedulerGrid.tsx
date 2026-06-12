@@ -15,6 +15,35 @@ interface SchedulerGridProps {
   activeClubId: string;
 }
 
+// Helper sport styling and labeling functions
+function getSportBadgeStyles(sport: string) {
+  const styles: Record<string, string> = {
+    padel: "border-blue-500/20 bg-blue-500/10 text-blue-400 shadow-[0_0_8px_rgba(59,130,246,0.15)]",
+    tennis: "border-orange-500/20 bg-orange-500/10 text-orange-400 shadow-[0_0_8px_rgba(245,158,11,0.15)]",
+    football: "border-emerald-500/20 bg-emerald-500/10 text-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.15)]",
+    basketball: "border-amber-500/20 bg-amber-500/10 text-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.15)]",
+    parrilla: "border-red-500/20 bg-red-500/10 text-red-400 shadow-[0_0_8px_rgba(239,68,68,0.15)]",
+    quincho: "border-yellow-600/20 bg-yellow-600/10 text-yellow-500 shadow-[0_0_8px_rgba(202,138,4,0.15)]",
+    escuelita_padel: "border-indigo-500/20 bg-indigo-500/10 text-indigo-400 shadow-[0_0_8px_rgba(99,102,241,0.15)]",
+    escuelita_futbol: "border-teal-500/20 bg-teal-500/10 text-teal-400 shadow-[0_0_8px_rgba(20,184,166,0.15)]",
+  };
+  return styles[sport] ?? "border-primary/20 bg-primary/10 text-primary shadow-[0_0_8px_rgba(57,255,20,0.15)]";
+}
+
+function getSportLabel(sport: string) {
+  const labels: Record<string, string> = {
+    padel: "Pádel",
+    tennis: "Tenis",
+    football: "Fútbol",
+    basketball: "Básquet",
+    parrilla: "Parrilla",
+    quincho: "Quincho",
+    escuelita_padel: "Escuelita Pádel",
+    escuelita_futbol: "Escuelita Fútbol",
+  };
+  return labels[sport] ?? sport;
+}
+
 // Helper time functions
 function getArtTime(dateInput: Date | string) {
   const d = new Date(dateInput);
@@ -201,8 +230,8 @@ export default function SchedulerGrid({
               className="text-center p-3 border-r border-zinc-200/80 dark:border-white/5 bg-white/80 dark:bg-white/[0.02] flex flex-col items-center justify-center backdrop-blur-md last:border-r-0"
             >
               <p className="font-black text-sm text-zinc-900 dark:text-white tracking-wide">{court.name}</p>
-              <span className="inline-block mt-1.5 px-2.5 py-0.5 rounded-full border border-primary/20 bg-primary/10 text-[9px] font-extrabold text-primary uppercase tracking-wider shadow-[0_0_8px_rgba(57,255,20,0.15)]">
-                {court.sport === "parrilla" ? "Parrilla" : court.sport === "quincho" ? "Quincho" : court.sport} • {court.isCovered ? "Techada" : "Descubierta"}
+              <span className={`inline-block mt-1.5 px-2.5 py-0.5 rounded-full border text-[9px] font-extrabold uppercase tracking-wider ${getSportBadgeStyles(court.sport)}`}>
+                {getSportLabel(court.sport)} • {court.isCovered ? "Techada" : "Descubierta"}
               </span>
             </div>
           ))}

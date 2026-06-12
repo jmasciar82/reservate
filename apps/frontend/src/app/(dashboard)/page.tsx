@@ -15,6 +15,10 @@ function courtSportEmoji(sport: string) {
     padel: "🎾",
     football: "⚽",
     basketball: "🏀",
+    parrilla: "🍖",
+    quincho: "🏡",
+    escuelita_padel: "🎓",
+    escuelita_futbol: "🎓",
   };
   return emojis[sport] ?? "🏆";
 }

@@ -55,12 +55,19 @@ function sportLabel(sport: string) {
     tennis: "Tenis",
     parrilla: "Parrilla",
     quincho: "Quincho",
+    escuelita_padel: "Escuelita Pádel",
+    escuelita_futbol: "Escuelita Fútbol",
   };
 
   return labels[sport] ?? sport;
 }
 
 const isAmenity = (sport: string) => sport === "parrilla" || sport === "quincho";
+const hasCapacity = (sport: string) =>
+  sport === "parrilla" ||
+  sport === "quincho" ||
+  sport === "escuelita_padel" ||
+  sport === "escuelita_futbol";
 
 export default function CourtsPage() {
   const [courts, setCourts] = useState<Court[]>([]);
@@ -279,7 +286,7 @@ export default function CourtsPage() {
                   className="w-full bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-lg py-3 px-4 text-zinc-900 dark:text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
                   value={formData.sport}
                   onChange={(e) =>
-                    setFormData({ ...formData, sport: e.target.value, capacity: isAmenity(e.target.value) ? (formData.capacity || 10) : undefined })
+                    setFormData({ ...formData, sport: e.target.value, capacity: hasCapacity(e.target.value) ? (formData.capacity || 10) : undefined })
                   }
                 >
                   <optgroup label="Deportes">
@@ -287,6 +294,10 @@ export default function CourtsPage() {
                     <option value="tennis">Tenis</option>
                     <option value="football">Fútbol</option>
                     <option value="basketball">Básquet</option>
+                  </optgroup>
+                  <optgroup label="Escuelitas">
+                    <option value="escuelita_padel">Escuelita Pádel</option>
+                    <option value="escuelita_futbol">Escuelita Fútbol</option>
                   </optgroup>
                   <optgroup label="Espacios">
                     <option value="parrilla">Parrilla</option>
@@ -340,7 +351,7 @@ export default function CourtsPage() {
                 </div>
               </div>
 
-              {isAmenity(formData.sport) && (
+              {hasCapacity(formData.sport) && (
                 <div>
                   <label className="block text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-1">
                     Capacidad (personas)
