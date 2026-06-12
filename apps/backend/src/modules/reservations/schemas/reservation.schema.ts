@@ -80,6 +80,9 @@ export class Reservation {
   @Prop({ default: false })
   isRecurring: boolean;
 
+  @Prop({ default: 'standard', enum: ['standard', 'escuelita_padel', 'escuelita_futbol'] })
+  reservationType: string;
+
   @Prop({ type: [ReservationProductSchema], default: [] })
   products: ReservationProduct[];
 

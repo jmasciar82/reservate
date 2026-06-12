@@ -22,6 +22,7 @@ export class CreateReservationDto {
     total?: number;
   }>;
   productsPrice?: number;
+  reservationType?: string;
 }
 
 

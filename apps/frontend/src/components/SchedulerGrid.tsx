@@ -281,6 +281,28 @@ export default function SchedulerGrid({
                 const totalSlots = Math.round((rEndMins - rStartMins) / 30);
                 const isSecondSlot = slotStartMins === rStartMins + 30;
 
+                const isEscuelitaPadel = reservation.reservationType === "escuelita_padel";
+                const isEscuelitaFutbol = reservation.reservationType === "escuelita_futbol";
+                const isEscuelita = isEscuelitaPadel || isEscuelitaFutbol;
+
+                // Color classes for start/full slot
+                let blockBgClass = "bg-zinc-100/80 dark:bg-white/5";
+                let blockBorderClass = "border-zinc-200 dark:border-white/10";
+                let blockHoverBorderClass = "hover:border-primary/45";
+                let blockHoverShadowClass = "hover:shadow-[0_8px_20px_rgba(57,255,20,0.08)]";
+
+                if (isEscuelitaPadel) {
+                  blockBgClass = "bg-indigo-600/25 dark:bg-indigo-950/45";
+                  blockBorderClass = "border-indigo-400/40 dark:border-indigo-500/30";
+                  blockHoverBorderClass = "hover:border-indigo-400/80";
+                  blockHoverShadowClass = "hover:shadow-[0_8px_20px_rgba(99,102,241,0.15)]";
+                } else if (isEscuelitaFutbol) {
+                  blockBgClass = "bg-teal-600/20 dark:bg-teal-950/40";
+                  blockBorderClass = "border-teal-400/45 dark:border-teal-500/30";
+                  blockHoverBorderClass = "hover:border-teal-400/80";
+                  blockHoverShadowClass = "hover:shadow-[0_8px_20px_rgba(20,184,166,0.15)]";
+                }
+
                 return (
                   <div
                     key={court._id}
@@ -297,7 +319,7 @@ export default function SchedulerGrid({
                         draggable
                         onDragStart={(e) => handleDragStart(e, reservation)}
                         onDragEnd={handleDragEnd}
-                        className={`h-full bg-zinc-100/80 dark:bg-white/5 backdrop-blur-sm border border-zinc-200 dark:border-white/10 p-2.5 flex flex-col justify-between hover:border-primary/45 hover:bg-zinc-100 dark:hover:bg-white/[0.08] transition-all duration-300 shadow-[0_4px_12px_rgba(0,0,0,0.04)] dark:shadow-[0_4px_12px_rgba(0,0,0,0.15)] hover:shadow-[0_8px_20px_rgba(57,255,20,0.08)] group/res relative hover:z-20 cursor-grab active:cursor-grabbing ${
+                        className={`h-full ${blockBgClass} backdrop-blur-sm border ${blockBorderClass} p-2.5 flex flex-col justify-between ${blockHoverBorderClass} hover:bg-zinc-100/20 dark:hover:bg-white/[0.08] transition-all duration-300 shadow-[0_4px_12px_rgba(0,0,0,0.04)] dark:shadow-[0_4px_12px_rgba(0,0,0,0.15)] ${blockHoverShadowClass} group/res relative hover:z-20 cursor-grab active:cursor-grabbing ${
                           isEndSlot ? "rounded-xl" : "rounded-t-xl rounded-b-none border-b-0 pb-1"
                         }`}
                         style={{ zIndex: 50 - slotIndex }}
@@ -340,6 +362,16 @@ export default function SchedulerGrid({
                                     ? `${reservation.firstName} ${reservation.lastName}`
                                     : (reservation.userId || "Jugador")}
                                 </span>
+                                {isEscuelitaPadel && (
+                                  <span className="inline-flex items-center text-[9px] font-black text-indigo-400 bg-indigo-500/10 px-1.5 py-0.5 rounded border border-indigo-500/20 shrink-0 uppercase tracking-wide shadow-[0_0_8px_rgba(99,102,241,0.15)]">
+                                    🎓 Escuelita Pádel
+                                  </span>
+                                )}
+                                {isEscuelitaFutbol && (
+                                  <span className="inline-flex items-center text-[9px] font-black text-teal-400 bg-teal-500/10 px-1.5 py-0.5 rounded border border-teal-500/20 shrink-0 uppercase tracking-wide shadow-[0_0_8px_rgba(20,184,166,0.15)]">
+                                    🎓 Escuelita Fútbol
+                                  </span>
+                                )}
                                 {reservation.isRecurring && (() => {
                                   const isPartiallyPaid = (reservation.depositAmount ?? 0) > 0 && (reservation.depositAmount ?? 0) < (reservation.totalPrice ?? 0);
                                   const needsTotalPayment = reservation.paymentStatus === "pending" || isPartiallyPaid;
@@ -405,10 +437,17 @@ export default function SchedulerGrid({
                         ) : null}
                       </div>
                     ) : isIntermediateSlot ? (
-                      <div
-                        className="h-full bg-zinc-100/80 dark:bg-white/5 backdrop-blur-sm border-x border-zinc-200 dark:border-white/10 rounded-none px-2.5 py-1.5 flex flex-col items-center justify-center relative group/res hover:bg-zinc-100 dark:hover:bg-white/[0.08] transition-all duration-300"
-                        style={{ zIndex: 50 - slotIndex }}
-                      >
+                      (() => {
+                        const interBgClass = isEscuelitaPadel
+                          ? "bg-indigo-600/25 dark:bg-indigo-950/45 border-indigo-400/20 dark:border-indigo-500/20"
+                          : isEscuelitaFutbol
+                            ? "bg-teal-600/20 dark:bg-teal-950/40 border-teal-400/20 dark:border-teal-500/20"
+                            : "bg-zinc-100/80 dark:bg-white/5 border-zinc-200 dark:border-white/10";
+                        return (
+                          <div
+                            className={`h-full ${interBgClass} backdrop-blur-sm border-x rounded-none px-2.5 py-1.5 flex flex-col items-center justify-center relative group/res hover:bg-zinc-100/20 dark:hover:bg-white/[0.08] transition-all duration-300`}
+                            style={{ zIndex: 50 - slotIndex }}
+                          >
                         {isSecondSlot && totalSlots >= 3 ? (
                           <div className="text-center w-full animate-in fade-in zoom-in-95 duration-200 select-none">
                             <h4 className="text-base font-black text-zinc-900 dark:text-white capitalize flex items-center justify-center gap-1.5 w-full">
@@ -437,12 +476,21 @@ export default function SchedulerGrid({
                         ) : (
                           <div className="w-1.5 h-3 rounded-full bg-primary/20 group-hover/res:bg-primary/45 transition-colors pointer-events-none" />
                         )}
-                      </div>
+                          </div>
+                        );
+                      })()
                     ) : (
-                      <div
-                        className="h-full bg-zinc-100/80 dark:bg-white/5 backdrop-blur-sm border-x border-b border-zinc-200 dark:border-white/10 rounded-b-xl rounded-t-none px-2.5 py-2.5 flex flex-col justify-between relative group/res hover:bg-zinc-100 dark:hover:bg-white/[0.08] transition-all duration-300 shadow-[0_4px_12px_rgba(0,0,0,0.04)] dark:shadow-[0_4px_12px_rgba(0,0,0,0.15)]"
-                        style={{ zIndex: 50 - slotIndex }}
-                      >
+                      (() => {
+                        const bottomBgClass = isEscuelitaPadel
+                          ? "bg-indigo-600/25 dark:bg-indigo-950/45 border-indigo-400/25 dark:border-indigo-500/30"
+                          : isEscuelitaFutbol
+                            ? "bg-teal-600/20 dark:bg-teal-950/40 border-teal-400/25 dark:border-teal-500/30"
+                            : "bg-zinc-100/80 dark:bg-white/5 border-zinc-200 dark:border-white/10";
+                        return (
+                          <div
+                            className={`h-full ${bottomBgClass} backdrop-blur-sm border-x border-b rounded-b-xl rounded-t-none px-2.5 py-2.5 flex flex-col justify-between relative group/res hover:bg-zinc-100/20 dark:hover:bg-white/[0.08] transition-all duration-300 shadow-[0_4px_12px_rgba(0,0,0,0.04)] dark:shadow-[0_4px_12px_rgba(0,0,0,0.15)]`}
+                            style={{ zIndex: 50 - slotIndex }}
+                          >
                         <div className="text-center w-full flex flex-col items-center justify-center flex-1 select-none">
                           {(() => {
                             const isPartiallyPaid = (reservation.depositAmount ?? 0) > 0 && (reservation.depositAmount ?? 0) < (reservation.totalPrice ?? 0);
@@ -496,8 +544,10 @@ export default function SchedulerGrid({
                             }
                             startTime={reservation.startTime}
                           />
-                        </div>
-                      </div>
+                            </div>
+                          </div>
+                        );
+                      })()
                     )}
                   </div>
                 );

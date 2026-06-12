@@ -50,6 +50,7 @@ export interface Reservation {
   recurrenceGroupId?: string;
   isLastOfSeries?: boolean;
   paymentDate?: string | Date;
+  reservationType?: string;
 }
 
 export interface Product {

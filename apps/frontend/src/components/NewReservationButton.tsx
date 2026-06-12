@@ -133,11 +133,27 @@ export default function NewReservationButton({
     recurrenceWeeks: 4,
     depositAmount: "",
     isDepositPaid: false,
+    reservationType: "standard",
   });
   const [paymentType, setPaymentType] = useState<string>("pending");
   const [products, setProducts] = useState<Array<{ name: string; quantity: number; price: number }>>([]);
   const [customProduct, setCustomProduct] = useState({ name: "", price: "", quantity: "1" });
   const [availableProducts, setAvailableProducts] = useState<Product[]>([]);
+  const [allCourts, setAllCourts] = useState<Court[]>([]);
+
+  useEffect(() => {
+    if (isOpen && activeClubId) {
+      apiFetch(`/courts`)
+        .then((res) => {
+          if (res.ok) return res.json();
+          return [];
+        })
+        .then((data: Court[]) => {
+          setAllCourts(data.filter(c => c.clubId === activeClubId));
+        })
+        .catch((err) => console.error("Error fetching all courts:", err));
+    }
+  }, [isOpen, activeClubId]);
 
   useEffect(() => {
     if (isOpen && activeClubId) {
@@ -205,6 +221,7 @@ export default function NewReservationButton({
       recurrenceWeeks: 4,
       depositAmount: "",
       isDepositPaid: false,
+      reservationType: "standard",
     });
     setProducts([]);
     setCustomProduct({ name: "", price: "", quantity: "1" });
@@ -350,6 +367,7 @@ export default function NewReservationButton({
           depositAmount: finalDepositAmount,
           paymentStatus: finalPaymentStatus,
           products: products,
+          reservationType: formData.reservationType,
         }),
       });
 
@@ -367,6 +385,7 @@ export default function NewReservationButton({
           recurrenceWeeks: 4,
           depositAmount: "",
           isDepositPaid: false,
+          reservationType: "standard",
         });
         setProducts([]);
         setCustomProduct({ name: "", price: "", quantity: "1" });
@@ -561,12 +580,16 @@ export default function NewReservationButton({
                 <select
                   required
                   value={formData.courtId}
-                  onChange={(e) =>
+                  onChange={(e) => {
+                    const courtId = e.target.value;
+                    const courtDetail = allCourts.find((c) => c._id === courtId);
+                    const isPadelOrFutbol = courtDetail?.sport === "padel" || courtDetail?.sport === "football";
                     setFormData((prev) => ({
                       ...prev,
-                      courtId: e.target.value,
-                    }))
-                  }
+                      courtId,
+                      reservationType: isPadelOrFutbol ? prev.reservationType : "standard",
+                    }));
+                  }}
                   disabled={!isTimeSelectionReady || courtsLoading || courts.length === 0}
                   className="w-full bg-zinc-50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-xl px-4 py-3 text-zinc-900 dark:text-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 hover:bg-zinc-100 dark:hover:bg-white/[0.08] transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed font-semibold"
                 >
@@ -591,6 +614,41 @@ export default function NewReservationButton({
                   )}
                 </select>
               </div>
+
+              {(() => {
+                const selectedCourtDetail = allCourts.find((c) => c._id === formData.courtId);
+                const showPadelOption = selectedCourtDetail?.sport === "padel";
+                const showFootballOption = selectedCourtDetail?.sport === "football";
+                const showSelector = showPadelOption || showFootballOption;
+
+                if (!showSelector) return null;
+
+                return (
+                  <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-200">
+                    <label className="text-sm font-medium text-zinc-500 dark:text-zinc-400 flex items-center gap-2">
+                      🎓 Tipo de turno
+                    </label>
+                    <select
+                      value={formData.reservationType}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          reservationType: e.target.value,
+                        }))
+                      }
+                      className="w-full bg-zinc-50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-xl px-4 py-3 text-zinc-900 dark:text-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 hover:bg-zinc-100 dark:hover:bg-white/[0.08] transition-all duration-300 font-semibold"
+                    >
+                      <option value="standard" className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-white">Particular / Cliente normal</option>
+                      {showPadelOption && (
+                        <option value="escuelita_padel" className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-white">Escuelita de Pádel</option>
+                      )}
+                      {showFootballOption && (
+                        <option value="escuelita_futbol" className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-white">Escuelita de Fútbol</option>
+                      )}
+                    </select>
+                  </div>
+                );
+              })()}
 
               {/* Consumos / Extras Adicionales */}
               {formData.courtId && (
