@@ -74,7 +74,7 @@ export class UsersController {
 
   @Patch('profile/password')
   async changePassword(@Req() req: any, @Body() body: any) {
-    const userId = req.user.sub;
+    const userId = req.user.userId;
     const { currentPassword, newPassword } = body;
 
     if (!currentPassword || !newPassword) {
