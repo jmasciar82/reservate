@@ -809,13 +809,11 @@ export default function NewReservationButton({
                       {showPadelOption && (
                         <>
                           <option value="escuelita_padel" className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-white">Escuelita de Pádel</option>
-                          <option value="clase_particular_padel" className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-white">Clase Particular de Pádel</option>
                         </>
                       )}
                       {showFootballOption && (
                         <>
                           <option value="escuelita_futbol" className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-white">Escuelita de Fútbol</option>
-                          <option value="clase_particular_futbol" className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-white">Clase Particular de Fútbol</option>
                         </>
                       )}
                     </select>
