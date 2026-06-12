@@ -46,6 +46,68 @@ export class ReservationsService {
     private readonly notificationsService: NotificationsService,
   ) {}
 
+  private getArgentinaTimeDetails(date: Date) {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Argentina/Buenos_Aires',
+      hourCycle: 'h23',
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: 'numeric'
+    }).formatToParts(date);
+
+    const map = new Map(parts.map(p => [p.type, p.value]));
+    const year = parseInt(map.get('year')!, 10);
+    const month = parseInt(map.get('month')!, 10) - 1;
+    const day = parseInt(map.get('day')!, 10);
+    const hour = parseInt(map.get('hour')!, 10);
+    const minute = parseInt(map.get('minute')!, 10);
+
+    const localDate = new Date(year, month, day, hour, minute);
+    const dayOfWeek = localDate.getDay();
+    const timeStr = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+
+    return {
+      dayOfWeek,
+      hour,
+      minute,
+      timeStr
+    };
+  }
+
+  private validateTeacherAvailability(teacher: any, start: Date, end: Date) {
+    if (!teacher.availability || teacher.availability.length === 0) {
+      return;
+    }
+
+    const startLocal = this.getArgentinaTimeDetails(start);
+    const endLocal = this.getArgentinaTimeDetails(end);
+
+    const reqStartMin = startLocal.hour * 60 + startLocal.minute;
+    const reqEndMin = endLocal.hour * 60 + endLocal.minute;
+    const dayOfWeek = startLocal.dayOfWeek;
+
+    const isCovered = teacher.availability.some((slot: any) => {
+      if (slot.dayOfWeek !== dayOfWeek) return false;
+
+      const [sh, sm] = slot.startTime.split(':').map(Number);
+      const [eh, em] = slot.endTime.split(':').map(Number);
+      const slotStartMin = sh * 60 + sm;
+      const slotEndMin = eh * 60 + em;
+
+      return reqStartMin >= slotStartMin && reqEndMin <= slotEndMin;
+    });
+
+    if (!isCovered) {
+      const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+      throw new BadRequestException(
+        `El profesor ${teacher.name} no tiene disponibilidad horaria configurada para el día ${days[dayOfWeek]} en el rango de ${startLocal.timeStr} a ${endLocal.timeStr}.`
+      );
+    }
+  }
+
+
   async create(
     createReservationDto: CreateReservationDto,
     callerClubId?: string,
@@ -97,8 +159,10 @@ export class ReservationsService {
       if (!teacher) {
         throw new NotFoundException('El profesor especificado no existe.');
       }
+      this.validateTeacherAvailability(teacher, start, end);
       teacherPrice = Math.round(durationHours * teacher.pricePerHour);
     }
+
 
     let productsPrice = 0;
     let productsList: any[] = [];
@@ -524,6 +588,8 @@ export class ReservationsService {
           throw new NotFoundException('El profesor especificado no existe.');
         }
 
+        this.validateTeacherAvailability(teacher, newStart, newEnd);
+
         // Check teacher overlap
         const teacherOverlapping = await this.reservationModel.findOne({
           _id: { $ne: new Types.ObjectId(id) },
@@ -536,6 +602,7 @@ export class ReservationsService {
         if (teacherOverlapping) {
           throw new ConflictException('El profesor seleccionado ya tiene otra clase reservada en este horario.');
         }
+
 
         teacherPrice = Math.round(durationHours * teacher.pricePerHour);
         updateReservationDto.teacherId = new Types.ObjectId(teacherIdToUse) as any;

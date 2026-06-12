@@ -31,6 +31,13 @@ export type ReservationStatus =
 
 export type PaymentStatus = "pending" | "paid";
 
+export interface ReservationStudent {
+  firstName: string;
+  lastName: string;
+  email?: string;
+  phone?: string;
+}
+
 export interface Reservation {
   _id: string;
   courtId?: Court | null;
@@ -53,6 +60,13 @@ export interface Reservation {
   reservationType?: string;
   teacherId?: string | Teacher | null;
   teacherPrice?: number;
+  students?: ReservationStudent[];
+}
+
+export interface AvailabilitySlot {
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
 }
 
 export interface Teacher {
@@ -64,6 +78,7 @@ export interface Teacher {
   sport: string;
   isActive: boolean;
   clubId: string;
+  availability?: AvailabilitySlot[];
   createdAt?: string;
   updatedAt?: string;
 }
@@ -78,3 +93,4 @@ export interface Product {
   createdAt?: string;
   updatedAt?: string;
 }
+

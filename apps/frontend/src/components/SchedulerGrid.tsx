@@ -358,9 +358,15 @@ export default function SchedulerGrid({
                             <div className="mt-2.5">
                               <h4 className="text-sm font-black text-zinc-900 dark:text-white truncate capitalize flex items-center gap-1.5 min-w-0 select-none">
                                 <span className="truncate">
-                                  {reservation.firstName
-                                    ? `${reservation.firstName} ${reservation.lastName}`
-                                    : (reservation.userId || "Jugador")}
+                                  {(() => {
+                                    const baseName = reservation.firstName
+                                      ? `${reservation.firstName} ${reservation.lastName}`
+                                      : (reservation.userId || "Jugador");
+                                    const extraStudentsCount = reservation.students && reservation.students.length > 1
+                                      ? reservation.students.length - 1
+                                      : 0;
+                                    return extraStudentsCount > 0 ? `${baseName} (+${extraStudentsCount} alumnos)` : baseName;
+                                  })()}
                                 </span>
                                 {isEscuelitaPadel && (
                                   <span className="inline-flex items-center text-[9px] font-black text-indigo-400 bg-indigo-500/10 px-1.5 py-0.5 rounded border border-indigo-500/20 shrink-0 uppercase tracking-wide shadow-[0_0_8px_rgba(99,102,241,0.15)]">
@@ -452,9 +458,15 @@ export default function SchedulerGrid({
                           <div className="text-center w-full animate-in fade-in zoom-in-95 duration-200 select-none">
                             <h4 className="text-base font-black text-zinc-900 dark:text-white capitalize flex items-center justify-center gap-1.5 w-full">
                               <span className="truncate max-w-[150px]">
-                                {reservation.firstName
-                                  ? `${reservation.firstName} ${reservation.lastName}`
-                                  : (reservation.userId || "Jugador")}
+                                {(() => {
+                                  const baseName = reservation.firstName
+                                    ? `${reservation.firstName} ${reservation.lastName}`
+                                    : (reservation.userId || "Jugador");
+                                  const extraStudentsCount = reservation.students && reservation.students.length > 1
+                                    ? reservation.students.length - 1
+                                    : 0;
+                                  return extraStudentsCount > 0 ? `${baseName} (+${extraStudentsCount} alumnos)` : baseName;
+                                })()}
                               </span>
                               {reservation.isRecurring && (() => {
                                 const isPartiallyPaid = (reservation.depositAmount ?? 0) > 0 && (reservation.depositAmount ?? 0) < (reservation.totalPrice ?? 0);

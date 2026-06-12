@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Calendar, Clock, MapPin, User, X, Mail, Phone } from "lucide-react";
+import { Calendar, Clock, MapPin, User, X, Mail, Phone, Users, Plus } from "lucide-react";
 import { createPortal } from "react-dom";
 import { apiFetch } from "@/lib/api";
 import type { Court, Product, Teacher } from "@/lib/types";
@@ -142,6 +142,10 @@ export default function NewReservationButton({
   const [availableProducts, setAvailableProducts] = useState<Product[]>([]);
   const [allCourts, setAllCourts] = useState<Court[]>([]);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
+  const [bookingStudents, setBookingStudents] = useState<
+    Array<{ firstName: string; lastName: string; phone?: string; email?: string }>
+  >([{ firstName: "", lastName: "", phone: "", email: "" }]);
+
 
   useEffect(() => {
     if (isOpen && activeClubId) {
@@ -384,27 +388,56 @@ export default function NewReservationButton({
         finalPaymentStatus = "paid";
       }
 
+      const isClassOrEscuelita =
+        formData.reservationType.startsWith("clase_particular_") ||
+        formData.reservationType.startsWith("escuelita_");
+
+      let payload: any = {
+        courtId: formData.courtId,
+        startTime: startTime.toISOString(),
+        endTime: endTime.toISOString(),
+        isRecurring: formData.isRecurring,
+        recurrenceWeeks: formData.isRecurring ? Number(formData.recurrenceWeeks) : undefined,
+        payBlock: formData.isRecurring && paymentType === "full" ? true : undefined,
+        depositAmount: finalDepositAmount,
+        paymentStatus: finalPaymentStatus,
+        products: products,
+        reservationType: formData.reservationType,
+        teacherId: formData.teacherId || undefined,
+      };
+
+      if (isClassOrEscuelita) {
+        const validStudents = bookingStudents.filter((s) => s.firstName.trim() && s.lastName.trim());
+        if (validStudents.length === 0) {
+          alert("Debes ingresar al menos un alumno con nombre y apellido.");
+          setLoading(false);
+          return;
+        }
+        const primaryStudent = validStudents[0];
+        payload = {
+          ...payload,
+          userId: `${primaryStudent.firstName} ${primaryStudent.lastName}`.trim(),
+          firstName: primaryStudent.firstName,
+          lastName: primaryStudent.lastName,
+          email: primaryStudent.email || undefined,
+          phone: primaryStudent.phone || undefined,
+          students: validStudents,
+        };
+      } else {
+        payload = {
+          ...payload,
+          userId: formData.playerName,
+          email: formData.email || undefined,
+          phone: formData.phone || undefined,
+        };
+      }
+
       const response = await apiFetch("/reservations", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          userId: formData.playerName,
-          email: formData.email,
-          phone: formData.phone,
-          courtId: formData.courtId,
-          startTime: startTime.toISOString(),
-          endTime: endTime.toISOString(),
-          isRecurring: formData.isRecurring,
-          recurrenceWeeks: formData.isRecurring ? Number(formData.recurrenceWeeks) : undefined,
-          payBlock: formData.isRecurring && paymentType === "full" ? true : undefined,
-          depositAmount: finalDepositAmount,
-          paymentStatus: finalPaymentStatus,
-          products: products,
-          reservationType: formData.reservationType,
-          teacherId: formData.teacherId || undefined,
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (response.ok) {
@@ -426,6 +459,7 @@ export default function NewReservationButton({
         });
         setProducts([]);
         setCustomProduct({ name: "", price: "", quantity: "1" });
+        setBookingStudents([{ firstName: "", lastName: "", phone: "", email: "" }]);
         setPaymentType("pending");
         router.refresh();
       } else {
@@ -479,67 +513,158 @@ export default function NewReservationButton({
                 <X className="w-4 h-4" />
               </button>
             </div>
-
             <form onSubmit={handleSubmit} className="p-6 space-y-5 overflow-y-auto flex-1">
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-zinc-500 dark:text-zinc-400 flex items-center gap-2">
-                  <User className="w-4 h-4 text-primary" />
-                  Nombre del jugador
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Ej. Juan Pérez"
-                  value={formData.playerName}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      playerName: e.target.value,
-                    }))
-                  }
-                  className="w-full bg-zinc-50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-xl px-4 py-3 text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-505 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 hover:bg-zinc-100 dark:hover:bg-white/[0.08] transition-all duration-300 font-medium"
-                />
-              </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-zinc-500 dark:text-zinc-400 flex items-center gap-2">
-                    <Mail className="w-4 h-4 text-primary" />
-                    Correo electrónico
-                  </label>
-                  <input
-                    type="email"
-                    placeholder="ejemplo@correo.com"
-                    value={formData.email}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        email: e.target.value,
-                      }))
-                    }
-                    className="w-full bg-zinc-50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-xl px-4 py-3 text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-505 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 hover:bg-zinc-100 dark:hover:bg-white/[0.08] transition-all duration-300 font-medium"
-                  />
-                </div>
+              {(() => {
+                const isClassOrEscuelita =
+                  formData.reservationType.startsWith("clase_particular_") ||
+                  formData.reservationType.startsWith("escuelita_");
 
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-zinc-500 dark:text-zinc-400 flex items-center gap-2">
-                    <Phone className="w-4 h-4 text-primary" />
-                    Teléfono / Celular
-                  </label>
-                  <input
-                    type="tel"
-                    placeholder="Ej. +54 9 11 1234 5678"
-                    value={formData.phone}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        phone: e.target.value,
-                      }))
-                    }
-                    className="w-full bg-zinc-50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-xl px-4 py-3 text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-505 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 hover:bg-zinc-100 dark:hover:bg-white/[0.08] transition-all duration-300 font-medium"
-                  />
-                </div>
-              </div>
+                if (isClassOrEscuelita) {
+                  return (
+                    <div className="space-y-4 border-b border-zinc-200 dark:border-white/5 pb-4">
+                      <div className="flex items-center justify-between">
+                        <label className="text-sm font-bold text-zinc-600 dark:text-zinc-300 flex items-center gap-1.5">
+                          <Users className="w-4 h-4 text-primary" />
+                          Alumnos de la clase ({bookingStudents.length})
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setBookingStudents(prev => [...prev, { firstName: "", lastName: "", phone: "", email: "" }])}
+                          className="text-xs font-black text-primary hover:underline flex items-center gap-1"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          Agregar Alumno
+                        </button>
+                      </div>
+
+                      <div className="space-y-3 max-h-[240px] overflow-y-auto pr-1">
+                        {bookingStudents.map((student, idx) => (
+                          <div
+                            key={idx}
+                            className="p-3 bg-zinc-50/50 dark:bg-white/[0.02] border border-zinc-200 dark:border-white/5 rounded-xl space-y-2 relative"
+                          >
+                            <div className="flex justify-between items-center">
+                              <span className="text-[10px] font-black uppercase text-primary">
+                                Alumno #{idx + 1} {idx === 0 ? "(Principal)" : ""}
+                              </span>
+                              {bookingStudents.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => setBookingStudents(prev => prev.filter((_, i) => i !== idx))}
+                                  className="text-[10px] text-red-400 hover:text-red-300"
+                                >
+                                  Quitar
+                                </button>
+                              )}
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2">
+                              <input
+                                type="text"
+                                placeholder="Nombre"
+                                required
+                                value={student.firstName}
+                                onChange={(e) => setBookingStudents(prev => prev.map((s, i) => i === idx ? { ...s, firstName: e.target.value } : s))}
+                                className="bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-none focus:border-primary font-semibold"
+                              />
+                              <input
+                                type="text"
+                                placeholder="Apellido"
+                                required
+                                value={student.lastName}
+                                onChange={(e) => setBookingStudents(prev => prev.map((s, i) => i === idx ? { ...s, lastName: e.target.value } : s))}
+                                className="bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-none focus:border-primary font-semibold"
+                              />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2">
+                              <input
+                                type="tel"
+                                placeholder="Teléfono"
+                                value={student.phone || ""}
+                                onChange={(e) => setBookingStudents(prev => prev.map((s, i) => i === idx ? { ...s, phone: e.target.value } : s))}
+                                className="bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-none focus:border-primary font-medium"
+                              />
+                              <input
+                                type="email"
+                                placeholder="Email"
+                                value={student.email || ""}
+                                onChange={(e) => setBookingStudents(prev => prev.map((s, i) => i === idx ? { ...s, email: e.target.value } : s))}
+                                className="bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-none focus:border-primary font-medium"
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                }
+
+                return (
+                  <>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-zinc-500 dark:text-zinc-400 flex items-center gap-2">
+                        <User className="w-4 h-4 text-primary" />
+                        Nombre del jugador
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Ej. Juan Pérez"
+                        value={formData.playerName}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            playerName: e.target.value,
+                          }))
+                        }
+                        className="w-full bg-zinc-50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-xl px-4 py-3 text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-505 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 hover:bg-zinc-100 dark:hover:bg-white/[0.08] transition-all duration-300 font-medium"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium text-zinc-500 dark:text-zinc-400 flex items-center gap-2">
+                          <Mail className="w-4 h-4 text-primary" />
+                          Correo electrónico
+                        </label>
+                        <input
+                          type="email"
+                          placeholder="ejemplo@correo.com"
+                          value={formData.email}
+                          onChange={(e) =>
+                            setFormData((prev) => ({
+                              ...prev,
+                              email: e.target.value,
+                            }))
+                          }
+                          className="w-full bg-zinc-50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-xl px-4 py-3 text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-505 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 hover:bg-zinc-100 dark:hover:bg-white/[0.08] transition-all duration-300 font-medium"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium text-zinc-500 dark:text-zinc-400 flex items-center gap-2">
+                          <Phone className="w-4 h-4 text-primary" />
+                          Teléfono / Celular
+                        </label>
+                        <input
+                          type="tel"
+                          placeholder="Ej. +54 9 11 1234 5678"
+                          value={formData.phone}
+                          onChange={(e) =>
+                            setFormData((prev) => ({
+                              ...prev,
+                              phone: e.target.value,
+                            }))
+                          }
+                          className="w-full bg-zinc-50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-xl px-4 py-3 text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-505 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 hover:bg-zinc-100 dark:hover:bg-white/[0.08] transition-all duration-300 font-medium"
+                        />
+                      </div>
+                    </div>
+                  </>
+                );
+              })()}
 
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-zinc-500 dark:text-zinc-400 flex items-center gap-2">

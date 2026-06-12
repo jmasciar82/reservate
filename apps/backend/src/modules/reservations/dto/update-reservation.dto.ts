@@ -22,6 +22,13 @@ export class UpdateReservationDto {
   reservationType?: string;
   teacherId?: string | null;
   teacherPrice?: number;
+  students?: Array<{
+    firstName: string;
+    lastName: string;
+    email?: string;
+    phone?: string;
+  }>;
 }
+
 
 

@@ -6,4 +6,10 @@ export class UpdateTeacherDto {
   sport?: string;
   isActive?: boolean;
   clubId?: string;
+  availability?: Array<{
+    dayOfWeek: number;
+    startTime: string;
+    endTime: string;
+  }>;
 }
+

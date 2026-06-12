@@ -21,6 +21,23 @@ export class ReservationProduct {
 
 const ReservationProductSchema = SchemaFactory.createForClass(ReservationProduct);
 
+@Schema({ _id: false })
+export class ReservationStudent {
+  @Prop({ required: true })
+  firstName: string;
+
+  @Prop({ required: true })
+  lastName: string;
+
+  @Prop({ required: false })
+  email?: string;
+
+  @Prop({ required: false })
+  phone?: string;
+}
+
+const ReservationStudentSchema = SchemaFactory.createForClass(ReservationStudent);
+
 @Schema({ timestamps: true })
 export class Reservation {
   @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'Court', required: true })
@@ -94,7 +111,11 @@ export class Reservation {
 
   @Prop({ default: 0 })
   productsPrice: number;
+
+  @Prop({ type: [ReservationStudentSchema], default: [] })
+  students: ReservationStudent[];
 }
 
 export const ReservationSchema = SchemaFactory.createForClass(Reservation);
+
 

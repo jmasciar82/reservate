@@ -25,6 +25,13 @@ export class CreateReservationDto {
   reservationType?: string;
   teacherId?: string;
   teacherPrice?: number;
+  students?: Array<{
+    firstName: string;
+    lastName: string;
+    email?: string;
+    phone?: string;
+  }>;
 }
+
 
 

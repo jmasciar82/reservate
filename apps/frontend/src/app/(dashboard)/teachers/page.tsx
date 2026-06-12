@@ -3,27 +3,26 @@
 import { useEffect, useState } from "react";
 import { useClub } from "@/providers/ClubProvider";
 import { apiFetch } from "@/lib/api";
-import type { Teacher } from "@/lib/types";
+import type { Teacher, Court, AvailabilitySlot } from "@/lib/types";
 import {
   GraduationCap,
   UserPlus,
   Edit2,
   Trash2,
-  DollarSign,
   Clock,
   Calendar,
-  Search,
-  Activity,
-  FileText,
   X,
   Plus,
+  Users,
+  ChevronRight,
+  Sparkles,
 } from "lucide-react";
 
 export default function TeachersPage() {
   const { activeClubId } = useClub();
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"manage" | "settlements">("manage");
+  const [activeTab, setActiveTab] = useState<"manage" | "booking">("manage");
 
   // Manage Teacher Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -36,25 +35,52 @@ export default function TeachersPage() {
     sport: "padel",
     isActive: true,
   });
+  const [teacherAvailability, setTeacherAvailability] = useState<AvailabilitySlot[]>([]);
+  const [newSlot, setNewSlot] = useState({ dayOfWeek: 1, startTime: "09:00", endTime: "18:00" });
 
-  // Settlements state
-  const [selectedTeacherId, setSelectedTeacherId] = useState("");
-  const [startDate, setStartDate] = useState(() => {
-    const d = new Date();
-    d.setDate(1); // Default to start of current month
-    return d.toISOString().split("T")[0];
-  });
-  const [endDate, setEndDate] = useState(() => {
+  // Class Booking Form state
+  const [bookingSport, setBookingSport] = useState<"padel" | "football">("padel");
+  const [bookingTeacherId, setBookingTeacherId] = useState("");
+  const [bookingDate, setBookingDate] = useState(() => {
     return new Date().toISOString().split("T")[0];
   });
-  const [settlementData, setSettlementData] = useState<any>(null);
-  const [settlementLoading, setSettlementLoading] = useState(false);
+  const [bookingStartTime, setBookingStartTime] = useState("18:00");
+  const [bookingEndTime, setBookingEndTime] = useState("19:00");
+  const [bookingCourtId, setBookingCourtId] = useState("");
+  const [bookingPaymentStatus, setBookingPaymentStatus] = useState<"pending" | "paid">("pending");
+  const [bookingStudents, setBookingStudents] = useState<
+    Array<{ firstName: string; lastName: string; phone?: string; email?: string }>
+  >([{ firstName: "", lastName: "", phone: "", email: "" }]);
+
+  const [availableCourts, setAvailableCourts] = useState<Court[]>([]);
+  const [courtsLoading, setCourtsLoading] = useState(false);
+  const [bookingSubmitting, setBookingSubmitting] = useState(false);
 
   useEffect(() => {
     if (activeClubId) {
       fetchTeachers();
     }
   }, [activeClubId]);
+
+  // Load available courts when booking parameters change
+  useEffect(() => {
+    if (activeClubId && bookingDate && bookingStartTime && bookingEndTime) {
+      fetchAvailableCourts();
+    }
+  }, [activeClubId, bookingDate, bookingStartTime, bookingEndTime, bookingSport]);
+
+  // Reset booking teacher when sport changes
+  useEffect(() => {
+    const sportFilteredTeachers = teachers.filter(
+      (t) => t.sport === bookingSport && t.isActive
+    );
+    if (sportFilteredTeachers.length > 0) {
+      setBookingTeacherId(sportFilteredTeachers[0]._id);
+    } else {
+      setBookingTeacherId("");
+    }
+    setBookingCourtId("");
+  }, [bookingSport, teachers]);
 
   const fetchTeachers = async () => {
     setLoading(true);
@@ -63,14 +89,37 @@ export default function TeachersPage() {
       if (res.ok) {
         const data = await res.json();
         setTeachers(data);
-        if (data.length > 0 && !selectedTeacherId) {
-          setSelectedTeacherId(data[0]._id);
-        }
       }
     } catch (err) {
       console.error("Error fetching teachers:", err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchAvailableCourts = async () => {
+    setCourtsLoading(true);
+    try {
+      const startIso = new Date(`${bookingDate}T${bookingStartTime}:00.000-03:00`).toISOString();
+      const endIso = new Date(`${bookingDate}T${bookingEndTime}:00.000-03:00`).toISOString();
+
+      const res = await apiFetch(
+        `/public/courts/available?startTime=${startIso}&endTime=${endIso}&clubId=${activeClubId}`
+      );
+      if (res.ok) {
+        const data = await res.json();
+        const filtered = data.filter((c: any) => c.sport === bookingSport && c.isActive);
+        setAvailableCourts(filtered);
+        if (filtered.length > 0) {
+          setBookingCourtId(filtered[0]._id);
+        } else {
+          setBookingCourtId("");
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching available courts:", err);
+    } finally {
+      setCourtsLoading(false);
     }
   };
 
@@ -85,6 +134,7 @@ export default function TeachersPage() {
         sport: teacher.sport,
         isActive: teacher.isActive,
       });
+      setTeacherAvailability(teacher.availability || []);
     } else {
       setEditingTeacher(null);
       setFormData({
@@ -95,8 +145,34 @@ export default function TeachersPage() {
         sport: "padel",
         isActive: true,
       });
+      setTeacherAvailability([]);
     }
+    setNewSlot({ dayOfWeek: 1, startTime: "09:00", endTime: "18:00" });
     setIsModalOpen(true);
+  };
+
+  const handleAddAvailabilitySlot = () => {
+    if (!newSlot.startTime || !newSlot.endTime) return;
+    if (newSlot.startTime >= newSlot.endTime) {
+      alert("La hora de inicio debe ser menor que la hora de fin.");
+      return;
+    }
+    // Check duplication
+    const isDuplicate = teacherAvailability.some(
+      (s) =>
+        s.dayOfWeek === newSlot.dayOfWeek &&
+        s.startTime === newSlot.startTime &&
+        s.endTime === newSlot.endTime
+    );
+    if (isDuplicate) {
+      alert("Este horario ya está configurado.");
+      return;
+    }
+    setTeacherAvailability((prev) => [...prev, { ...newSlot }].sort((a, b) => a.dayOfWeek - b.dayOfWeek || a.startTime.localeCompare(b.startTime)));
+  };
+
+  const handleRemoveAvailabilitySlot = (index: number) => {
+    setTeacherAvailability((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSaveTeacher = async (e: React.FormEvent) => {
@@ -107,6 +183,7 @@ export default function TeachersPage() {
       ...formData,
       pricePerHour: Number(formData.pricePerHour) || 0,
       clubId: activeClubId,
+      availability: teacherAvailability,
     };
 
     try {
@@ -129,7 +206,8 @@ export default function TeachersPage() {
         setIsModalOpen(false);
         fetchTeachers();
       } else {
-        alert("Ocurrió un error al guardar el profesor.");
+        const errorData = await res.json();
+        alert(errorData.message || "Ocurrió un error al guardar el profesor.");
       }
     } catch (err) {
       console.error(err);
@@ -151,25 +229,93 @@ export default function TeachersPage() {
     }
   };
 
-  const handleGenerateSettlement = async () => {
-    if (!selectedTeacherId || !startDate || !endDate) return;
-    setSettlementLoading(true);
+  // Student list row handlers
+  const handleAddStudentRow = () => {
+    setBookingStudents((prev) => [...prev, { firstName: "", lastName: "", phone: "", email: "" }]);
+  };
+
+  const handleRemoveStudentRow = (index: number) => {
+    if (bookingStudents.length === 1) return;
+    setBookingStudents((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleStudentChange = (index: number, field: string, value: string) => {
+    setBookingStudents((prev) =>
+      prev.map((s, i) => (i === index ? { ...s, [field]: value } : s))
+    );
+  };
+
+  const handleBookClass = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!bookingCourtId || !bookingTeacherId) {
+      alert("Por favor completá los campos de Cancha y Profesor.");
+      return;
+    }
+
+    const validStudents = bookingStudents.filter((s) => s.firstName.trim() && s.lastName.trim());
+    if (validStudents.length === 0) {
+      alert("Debes agregar al menos un alumno con nombre y apellido.");
+      return;
+    }
+
+    setBookingSubmitting(true);
+
+    const startIso = new Date(`${bookingDate}T${bookingStartTime}:00.000-03:00`).toISOString();
+    const endIso = new Date(`${bookingDate}T${bookingEndTime}:00.000-03:00`).toISOString();
+    const durationHours =
+      (new Date(endIso).getTime() - new Date(startIso).getTime()) / (1000 * 60 * 60);
+
+    const teacherObj = teachers.find((t) => t._id === bookingTeacherId);
+    const teacherPrice = Math.round(durationHours * (teacherObj?.pricePerHour || 0));
+
+    // Map first student as main contact for notification systems
+    const primaryStudent = validStudents[0];
+
+    const payload = {
+      courtId: bookingCourtId,
+      startTime: startIso,
+      endTime: endIso,
+      reservationType:
+        bookingSport === "padel" ? "clase_particular_padel" : "clase_particular_futbol",
+      teacherId: bookingTeacherId,
+      teacherPrice,
+      paymentStatus: bookingPaymentStatus,
+      status: bookingPaymentStatus === "paid" ? "confirmed" : "pending",
+      depositAmount: bookingPaymentStatus === "paid" ? undefined : 0,
+      firstName: primaryStudent.firstName,
+      lastName: primaryStudent.lastName,
+      email: primaryStudent.email || undefined,
+      phone: primaryStudent.phone || undefined,
+      students: validStudents,
+    };
+
     try {
-      const res = await apiFetch(
-        `/teachers/${selectedTeacherId}/settlement?start=${startDate}&end=${endDate}`
-      );
+      const res = await apiFetch("/reservations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
       if (res.ok) {
-        const data = await res.json();
-        setSettlementData(data);
+        alert("¡Clase reservada con éxito!");
+        // Reset booking form state
+        setBookingStudents([{ firstName: "", lastName: "", phone: "", email: "" }]);
+        fetchAvailableCourts();
       } else {
-        alert("Error al calcular la liquidación.");
+        const errorData = await res.json();
+        alert(errorData.message || "Error al crear la reserva de la clase.");
       }
     } catch (err) {
       console.error(err);
-      alert("Error de red.");
+      alert("Error de conexión.");
     } finally {
-      setSettlementLoading(false);
+      setBookingSubmitting(false);
     }
+  };
+
+  const getTeacherAvailabilitySlots = (teacherId: string) => {
+    const t = teachers.find((x) => x._id === teacherId);
+    return t?.availability || [];
   };
 
   return (
@@ -179,10 +325,10 @@ export default function TeachersPage() {
         <div>
           <h1 className="text-3xl font-black text-zinc-900 dark:text-white flex items-center gap-3">
             <span className="w-2.5 h-8 bg-primary rounded-full shadow-[0_0_12px_rgba(57,255,20,0.5)]" />
-            Agenda y Liquidación de Profesores
+            Profesores y Clases
           </h1>
           <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-            Administrá el staff de entrenadores, controlá sus clases particulares y generá sus reportes de pago.
+            Administrá la disponibilidad de tus profesores y agendá sus clases directamente.
           </p>
         </div>
 
@@ -211,14 +357,14 @@ export default function TeachersPage() {
           Gestión de Staff
         </button>
         <button
-          onClick={() => setActiveTab("settlements")}
+          onClick={() => setActiveTab("booking")}
           className={`px-5 py-3 text-sm font-black transition-all duration-300 relative ${
-            activeTab === "settlements"
+            activeTab === "booking"
               ? "text-primary border-b-2 border-primary"
               : "text-zinc-400 hover:text-zinc-200"
           }`}
         >
-          Liquidaciones
+          Reservar Clase
         </button>
       </div>
 
@@ -247,56 +393,80 @@ export default function TeachersPage() {
             teachers.map((teacher) => (
               <div
                 key={teacher._id}
-                className="relative bg-white/95 dark:bg-zinc-950/80 backdrop-blur-xl border border-zinc-200 dark:border-white/5 rounded-2xl p-5 shadow-[0_4px_20px_rgba(0,0,0,0.02)] hover:border-primary/30 transition-all duration-300 group overflow-hidden"
+                className="relative bg-white/95 dark:bg-zinc-950/80 backdrop-blur-xl border border-zinc-200 dark:border-white/5 rounded-2xl p-5 shadow-[0_4px_20px_rgba(0,0,0,0.02)] hover:border-primary/30 transition-all duration-300 group overflow-hidden flex flex-col justify-between"
               >
-                {/* Header card info */}
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-primary/10 border border-primary/20 rounded-xl flex items-center justify-center font-black text-xl text-primary shadow-inner">
-                      {teacher.name.charAt(0).toUpperCase()}
+                <div>
+                  {/* Header card info */}
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 bg-primary/10 border border-primary/20 rounded-xl flex items-center justify-center font-black text-xl text-primary shadow-inner">
+                        {teacher.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <h3 className="font-extrabold text-zinc-900 dark:text-white text-base group-hover:text-primary transition-colors">
+                          {teacher.name}
+                        </h3>
+                        <span className="inline-block px-2 py-0.5 mt-1 text-[10px] font-black uppercase tracking-wider rounded bg-zinc-100 dark:bg-white/5 text-zinc-500 dark:text-zinc-300">
+                          {teacher.sport === "padel" ? "🏸 Pádel" : "⚽ Fútbol"}
+                        </span>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="font-extrabold text-zinc-900 dark:text-white text-base group-hover:text-primary transition-colors">
-                        {teacher.name}
-                      </h3>
-                      <span className="inline-block px-2 py-0.5 mt-1 text-[10px] font-black uppercase tracking-wider rounded bg-zinc-100 dark:bg-white/5 text-zinc-500 dark:text-zinc-300">
-                        {teacher.sport === "padel" ? "🏸 Pádel" : "⚽ Fútbol"}
-                      </span>
-                    </div>
+
+                    <span
+                      className={`px-2 py-0.5 text-[9px] font-black uppercase rounded-full ${
+                        teacher.isActive
+                          ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                          : "bg-red-500/10 text-red-400 border border-red-500/20"
+                      }`}
+                    >
+                      {teacher.isActive ? "Activo" : "Inactivo"}
+                    </span>
                   </div>
 
-                  <span
-                    className={`px-2 py-0.5 text-[9px] font-black uppercase rounded-full ${
-                      teacher.isActive
-                        ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-                        : "bg-red-500/10 text-red-400 border border-red-500/20"
-                    }`}
-                  >
-                    {teacher.isActive ? "Activo" : "Inactivo"}
-                  </span>
-                </div>
-
-                {/* Details list */}
-                <div className="mt-5 space-y-2 border-t border-zinc-150 dark:border-white/5 pt-4 text-xs text-zinc-500 dark:text-zinc-400">
-                  {teacher.email && (
+                  {/* Details list */}
+                  <div className="mt-5 space-y-2 border-t border-zinc-150 dark:border-white/5 pt-4 text-xs text-zinc-500 dark:text-zinc-400">
+                    {teacher.email && (
+                      <div className="flex justify-between">
+                        <span className="font-medium">Correo:</span>
+                        <span className="font-bold text-zinc-800 dark:text-zinc-200 truncate max-w-[150px]">
+                          {teacher.email}
+                        </span>
+                      </div>
+                    )}
+                    {teacher.phone && (
+                      <div className="flex justify-between">
+                        <span className="font-medium">Teléfono:</span>
+                        <span className="font-bold text-zinc-800 dark:text-zinc-200">{teacher.phone}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between">
-                      <span className="font-medium">Correo:</span>
-                      <span className="font-bold text-zinc-800 dark:text-zinc-200 truncate max-w-[150px]">
-                        {teacher.email}
+                      <span className="font-medium">Tarifa por hora:</span>
+                      <span className="font-extrabold text-primary text-sm">
+                        ${teacher.pricePerHour.toLocaleString("es-AR")}
                       </span>
                     </div>
-                  )}
-                  {teacher.phone && (
-                    <div className="flex justify-between">
-                      <span className="font-medium">Teléfono:</span>
-                      <span className="font-bold text-zinc-800 dark:text-zinc-200">{teacher.phone}</span>
+
+                    {/* Availability Slots Display */}
+                    <div className="pt-2 border-t border-zinc-100 dark:border-white/5">
+                      <span className="font-semibold block text-zinc-400 mb-1">Horarios:</span>
+                      {teacher.availability && teacher.availability.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {teacher.availability.map((slot, idx) => {
+                            const days = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+                            return (
+                              <span
+                                key={idx}
+                                className="inline-block bg-zinc-100 dark:bg-white/5 border border-zinc-200 dark:border-white/5 rounded px-1.5 py-0.5 text-[9px] font-bold text-zinc-600 dark:text-zinc-300"
+                              >
+                                {days[slot.dayOfWeek]} {slot.startTime}-{slot.endTime}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <span className="text-[10px] text-zinc-500 italic">Disponibilidad total (24/7)</span>
+                      )}
                     </div>
-                  )}
-                  <div className="flex justify-between">
-                    <span className="font-medium">Tarifa por hora:</span>
-                    <span className="font-extrabold text-primary text-sm">
-                      ${teacher.pricePerHour.toLocaleString("es-AR")}
-                    </span>
                   </div>
                 </div>
 
@@ -323,169 +493,310 @@ export default function TeachersPage() {
         </div>
       )}
 
-      {/* Tab CONTENT: Settlements */}
-      {!loading && activeTab === "settlements" && (
-        <div className="space-y-6">
-          {/* Controls Bar */}
-          <div className="p-5 bg-white/95 dark:bg-zinc-950/80 backdrop-blur-xl border border-zinc-200 dark:border-white/5 rounded-2xl shadow-sm space-y-4">
-            <h3 className="text-sm font-bold text-zinc-600 dark:text-zinc-200">
-              Filtros de Reporte
+      {/* Tab CONTENT: Book Class Wizard */}
+      {!loading && activeTab === "booking" && (
+        <form
+          onSubmit={handleBookClass}
+          className="max-w-4xl mx-auto bg-white/95 dark:bg-zinc-950/80 backdrop-blur-xl border border-zinc-200 dark:border-white/5 rounded-2xl shadow-xl overflow-hidden p-6 space-y-6"
+        >
+          <div className="border-b border-zinc-200 dark:border-white/5 pb-4">
+            <h3 className="text-lg font-black text-zinc-900 dark:text-white flex items-center gap-2">
+              <span className="w-1.5 h-5 bg-primary rounded-full shadow-[0_0_8px_rgba(57,255,20,0.5)]" />
+              Asistente de Reserva de Clase
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+              Seleccioná un profesor disponible en el horario requerido, definí la cancha y registrá a los alumnos.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Left Column - Main Details */}
+            <div className="space-y-4">
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-zinc-400">Seleccionar Profesor</label>
+                <label className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">Disciplina</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setBookingSport("padel")}
+                    className={`py-2.5 px-4 rounded-xl border text-sm font-black transition-all ${
+                      bookingSport === "padel"
+                        ? "bg-primary/10 border-primary text-primary shadow-[0_0_12px_rgba(57,255,20,0.15)]"
+                        : "border-zinc-200 dark:border-white/5 bg-zinc-50 dark:bg-white/5 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-white/10"
+                    }`}
+                  >
+                    🏸 Pádel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setBookingSport("football")}
+                    className={`py-2.5 px-4 rounded-xl border text-sm font-black transition-all ${
+                      bookingSport === "football"
+                        ? "bg-primary/10 border-primary text-primary shadow-[0_0_12px_rgba(57,255,20,0.15)]"
+                        : "border-zinc-200 dark:border-white/5 bg-zinc-50 dark:bg-white/5 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-white/10"
+                    }`}
+                  >
+                    ⚽ Fútbol
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">Profesor</label>
                 <select
-                  value={selectedTeacherId}
-                  onChange={(e) => setSelectedTeacherId(e.target.value)}
-                  className="w-full bg-zinc-50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-xl px-3 py-2 text-sm text-zinc-900 dark:text-white focus:outline-none focus:border-primary font-bold"
+                  required
+                  value={bookingTeacherId}
+                  onChange={(e) => setBookingTeacherId(e.target.value)}
+                  className="w-full bg-zinc-50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-zinc-900 dark:text-white focus:outline-none focus:border-primary font-bold"
                 >
                   <option value="" disabled>-- Seleccioná un profesor --</option>
-                  {teachers.map((t) => (
-                    <option key={t._id} value={t._id} className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-white">
-                      {t.name} ({t.sport === "padel" ? "Pádel" : "Fútbol"})
-                    </option>
-                  ))}
+                  {teachers
+                    .filter((t) => t.sport === bookingSport && t.isActive)
+                    .map((t) => (
+                      <option key={t._id} value={t._id} className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-white">
+                        {t.name} (${t.pricePerHour.toLocaleString("es-AR")}/hs)
+                      </option>
+                    ))}
                 </select>
+
+                {/* Display selected teacher's agenda */}
+                {bookingTeacherId && (() => {
+                  const slots = getTeacherAvailabilitySlots(bookingTeacherId);
+                  return (
+                    <div className="mt-2 bg-zinc-50 dark:bg-white/[0.02] border border-zinc-200 dark:border-white/5 rounded-xl p-3">
+                      <span className="text-[10px] font-black uppercase text-zinc-400 dark:text-zinc-500 block mb-1">
+                        📅 Horarios disponibles del profesor:
+                      </span>
+                      {slots.length === 0 ? (
+                        <span className="text-xs text-zinc-500 italic">Disponibilidad total (24/7)</span>
+                      ) : (
+                        <div className="flex flex-wrap gap-1">
+                          {slots.map((s, i) => {
+                            const days = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+                            return (
+                              <span
+                                key={i}
+                                className="inline-block bg-primary/10 border border-primary/20 text-primary rounded px-2 py-0.5 text-[10px] font-bold"
+                              >
+                                {days[s.dayOfWeek]} {s.startTime} a {s.endTime} hs
+                              </span>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">Fecha</label>
+                  <input
+                    type="date"
+                    required
+                    value={bookingDate}
+                    onChange={(e) => setBookingDate(e.target.value)}
+                    className="w-full bg-zinc-50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-xl px-3 py-2 text-sm text-zinc-900 dark:text-white focus:outline-none focus:border-primary font-bold dark:[color-scheme:dark]"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">Hora Inicio</label>
+                  <input
+                    type="time"
+                    required
+                    value={bookingStartTime}
+                    onChange={(e) => setBookingStartTime(e.target.value)}
+                    className="w-full bg-zinc-50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-xl px-3 py-2 text-sm text-zinc-900 dark:text-white focus:outline-none focus:border-primary font-bold"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">Hora Fin</label>
+                  <input
+                    type="time"
+                    required
+                    value={bookingEndTime}
+                    onChange={(e) => setBookingEndTime(e.target.value)}
+                    className="w-full bg-zinc-50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-xl px-3 py-2 text-sm text-zinc-900 dark:text-white focus:outline-none focus:border-primary font-bold"
+                  />
+                </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-zinc-400">Desde</label>
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full bg-zinc-50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-xl px-3 py-2 text-sm text-zinc-900 dark:text-white focus:outline-none focus:border-primary font-bold"
-                />
+                <label className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">Cancha</label>
+                <div className="relative">
+                  <select
+                    required
+                    value={bookingCourtId}
+                    onChange={(e) => setBookingCourtId(e.target.value)}
+                    disabled={courtsLoading || availableCourts.length === 0}
+                    className="w-full bg-zinc-50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-zinc-900 dark:text-white focus:outline-none focus:border-primary font-bold disabled:opacity-50"
+                  >
+                    {courtsLoading ? (
+                      <option>Buscando canchas libres...</option>
+                    ) : availableCourts.length === 0 ? (
+                      <option>Sin canchas libres para el horario/disciplina seleccionado</option>
+                    ) : (
+                      availableCourts.map((c) => (
+                        <option key={c._id} value={c._id} className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-white">
+                          {c.name} {c.isCovered ? "(Techada)" : "(Descubierta)"} - ${c.pricePerHour.toLocaleString("es-AR")}/hs
+                        </option>
+                      ))
+                    )}
+                  </select>
+                </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-zinc-400">Hasta</label>
-                <input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className="w-full bg-zinc-50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-xl px-3 py-2 text-sm text-zinc-900 dark:text-white focus:outline-none focus:border-primary font-bold"
-                />
+                <label className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">Estado de Pago</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setBookingPaymentStatus("pending")}
+                    className={`py-2.5 px-4 rounded-xl border text-sm font-black transition-all ${
+                      bookingPaymentStatus === "pending"
+                        ? "bg-amber-500/10 border-amber-500 text-amber-500 shadow-[0_0_12px_rgba(245,158,11,0.15)]"
+                        : "border-zinc-200 dark:border-white/5 bg-zinc-50 dark:bg-white/5 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-white/10"
+                    }`}
+                  >
+                    Debe (Pendiente)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setBookingPaymentStatus("paid")}
+                    className={`py-2.5 px-4 rounded-xl border text-sm font-black transition-all ${
+                      bookingPaymentStatus === "paid"
+                        ? "bg-green-500/10 border-green-500 text-green-500 shadow-[0_0_12px_rgba(34,197,94,0.15)]"
+                        : "border-zinc-200 dark:border-white/5 bg-zinc-50 dark:bg-white/5 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-white/10"
+                    }`}
+                  >
+                    Abonado (Pagado)
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column - Students List */}
+            <div className="space-y-4 flex flex-col">
+              <div className="flex items-center justify-between border-b border-zinc-200 dark:border-white/5 pb-2">
+                <label className="text-xs font-bold text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5">
+                  <Users className="w-4 h-4 text-primary" />
+                  Alumnos Inscritos ({bookingStudents.length})
+                </label>
+                <button
+                  type="button"
+                  onClick={handleAddStudentRow}
+                  className="text-xs font-black text-primary flex items-center gap-1 hover:underline"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Agregar Alumno
+                </button>
               </div>
 
-              <button
-                onClick={handleGenerateSettlement}
-                disabled={settlementLoading || !selectedTeacherId}
-                className="w-full py-2 px-4 bg-primary text-black font-extrabold rounded-xl shadow-[0_0_10px_rgba(57,255,20,0.15)] hover:scale-[1.01] active:scale-99 transition-all disabled:opacity-50 text-sm"
-              >
-                {settlementLoading ? "Calculando..." : "Generar Liquidación"}
-              </button>
+              <div className="space-y-3.5 flex-1 overflow-y-auto max-h-[380px] pr-1">
+                {bookingStudents.map((student, idx) => (
+                  <div
+                    key={idx}
+                    className="relative p-4 bg-zinc-50 dark:bg-white/[0.02] border border-zinc-200 dark:border-white/5 rounded-xl space-y-3"
+                  >
+                    <div className="flex justify-between items-center">
+                      <span className="text-[10px] font-black uppercase text-primary tracking-wider">
+                        Alumno #{idx + 1} {idx === 0 ? "(Contacto Principal)" : ""}
+                      </span>
+                      {bookingStudents.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveStudentRow(idx)}
+                          className="text-[10px] font-bold text-red-400 hover:text-red-350"
+                        >
+                          Quitar
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <input
+                        type="text"
+                        placeholder="Nombre"
+                        required
+                        value={student.firstName}
+                        onChange={(e) => handleStudentChange(idx, "firstName", e.target.value)}
+                        className="bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-white/10 rounded-lg px-3 py-1.5 text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-none focus:border-primary font-semibold"
+                      />
+                      <input
+                        type="text"
+                        placeholder="Apellido"
+                        required
+                        value={student.lastName}
+                        onChange={(e) => handleStudentChange(idx, "lastName", e.target.value)}
+                        className="bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-white/10 rounded-lg px-3 py-1.5 text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-none focus:border-primary font-semibold"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <input
+                        type="tel"
+                        placeholder="Teléfono"
+                        value={student.phone || ""}
+                        onChange={(e) => handleStudentChange(idx, "phone", e.target.value)}
+                        className="bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-white/10 rounded-lg px-3 py-1.5 text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-none focus:border-primary font-medium"
+                      />
+                      <input
+                        type="email"
+                        placeholder="Email"
+                        value={student.email || ""}
+                        onChange={(e) => handleStudentChange(idx, "email", e.target.value)}
+                        className="bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-white/10 rounded-lg px-3 py-1.5 text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-none focus:border-primary font-medium"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 
-          {/* Settlement Result Cards */}
-          {settlementData && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-top-1 duration-300">
-              {/* Summary Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                <div className="p-5 bg-white/95 dark:bg-zinc-950/80 backdrop-blur-xl border border-zinc-200 dark:border-white/5 rounded-2xl shadow-sm flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-bold text-xl">
-                    <DollarSign className="w-6 h-6" />
+          {/* Form Actions / Summary */}
+          <div className="border-t border-zinc-200 dark:border-white/5 pt-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+            {/* Price details summary */}
+            {(() => {
+              const start = new Date(`${bookingDate}T${bookingStartTime}:00.000-03:00`);
+              const end = new Date(`${bookingDate}T${bookingEndTime}:00.000-03:00`);
+              const durationHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+
+              const teacherObj = teachers.find((t) => t._id === bookingTeacherId);
+              const selectedCourtObj = availableCourts.find((c) => c._id === bookingCourtId);
+
+              const validDuration = !isNaN(durationHours) && durationHours > 0;
+              const courtPrice = validDuration && selectedCourtObj ? Math.round(durationHours * selectedCourtObj.pricePerHour) : 0;
+              const teacherPrice = validDuration && teacherObj ? Math.round(durationHours * teacherObj.pricePerHour) : 0;
+              const total = courtPrice + teacherPrice;
+
+              return (
+                <div className="text-xs text-zinc-500 dark:text-zinc-400 flex flex-wrap gap-x-6 gap-y-1.5">
+                  <div>
+                    Cancha: <strong className="text-zinc-900 dark:text-white">${courtPrice.toLocaleString("es-AR")}</strong>
                   </div>
                   <div>
-                    <span className="text-xs font-semibold text-zinc-400">Total a Liquidar</span>
-                    <h4 className="text-2xl font-black text-primary mt-0.5">
-                      ${settlementData.summary.totalEarnings.toLocaleString("es-AR")}
-                    </h4>
+                    Honorario Profesor: <strong className="text-zinc-900 dark:text-white">${teacherPrice.toLocaleString("es-AR")}</strong>
+                  </div>
+                  <div className="text-sm">
+                    Total: <strong className="text-primary font-black text-base">${total.toLocaleString("es-AR")}</strong>
                   </div>
                 </div>
+              );
+            })()}
 
-                <div className="p-5 bg-white/95 dark:bg-zinc-950/80 backdrop-blur-xl border border-zinc-200 dark:border-white/5 rounded-2xl shadow-sm flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 font-bold text-xl">
-                    <Clock className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <span className="text-xs font-semibold text-zinc-400">Horas Totales</span>
-                    <h4 className="text-2xl font-black text-zinc-900 dark:text-white mt-0.5">
-                      {settlementData.summary.totalHours} hs
-                    </h4>
-                  </div>
-                </div>
-
-                <div className="p-5 bg-white/95 dark:bg-zinc-950/80 backdrop-blur-xl border border-zinc-200 dark:border-white/5 rounded-2xl shadow-sm flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 font-bold text-xl">
-                    <FileText className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <span className="text-xs font-semibold text-zinc-400">Clases Dadas</span>
-                    <h4 className="text-2xl font-black text-zinc-900 dark:text-white mt-0.5">
-                      {settlementData.summary.totalClasses}
-                    </h4>
-                  </div>
-                </div>
-              </div>
-
-              {/* Detailed Table */}
-              <div className="bg-white/95 dark:bg-zinc-950/80 backdrop-blur-xl border border-zinc-200 dark:border-white/5 rounded-2xl shadow-sm overflow-hidden">
-                <div className="p-5 border-b border-zinc-200/80 dark:border-white/5 flex justify-between items-center bg-zinc-50/50 dark:bg-white/[0.01]">
-                  <h3 className="text-base font-black text-zinc-900 dark:text-white">
-                    Detalle de clases de {settlementData.teacher.name}
-                  </h3>
-                  <button
-                    onClick={() => window.print()}
-                    className="px-3.5 py-1.5 text-xs font-extrabold rounded-lg bg-zinc-100 hover:bg-zinc-200 dark:bg-white/5 dark:hover:bg-white/10 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-white/5 transition-all"
-                  >
-                    🖨️ Imprimir Reporte
-                  </button>
-                </div>
-
-                <div className="overflow-x-auto">
-                  <table className="w-full border-collapse text-left text-sm">
-                    <thead>
-                      <tr className="border-b border-zinc-200 dark:border-white/5 bg-zinc-50/50 dark:bg-white/[0.01] text-zinc-500 dark:text-zinc-400 font-bold text-xs uppercase">
-                        <th className="py-4 px-6">Fecha / Hora</th>
-                        <th className="py-4 px-6">Cancha</th>
-                        <th className="py-4 px-6">Deporte</th>
-                        <th className="py-4 px-6">Alumno / Jugador</th>
-                        <th className="py-4 px-6">Duración</th>
-                        <th className="py-4 px-6 text-right">Honorario</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-zinc-200 dark:divide-white/5">
-                      {settlementData.classes.length === 0 ? (
-                        <tr>
-                          <td colSpan={6} className="py-8 text-center text-zinc-500">
-                            No se registraron clases particulares cobradas para este profesor en las fechas indicadas.
-                          </td>
-                        </tr>
-                      ) : (
-                        settlementData.classes.map((cls: any) => (
-                          <tr key={cls.id} className="hover:bg-zinc-50/50 dark:hover:bg-white/[0.01] transition-colors font-medium text-zinc-800 dark:text-zinc-200">
-                            <td className="py-4 px-6">
-                              {new Date(cls.startTime).toLocaleDateString("es-AR", {
-                                timeZone: "America/Argentina/Buenos_Aires",
-                              })} - {new Date(cls.startTime).toLocaleTimeString("es-AR", {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                                timeZone: "America/Argentina/Buenos_Aires",
-                              })} hs
-                            </td>
-                            <td className="py-4 px-6 font-bold">{cls.courtName}</td>
-                            <td className="py-4 px-6 uppercase text-xs tracking-wider text-zinc-500">
-                              {cls.sport === "padel" ? "🏸 Pádel" : "⚽ Fútbol"}
-                            </td>
-                            <td className="py-4 px-6 font-bold text-zinc-900 dark:text-white">
-                              {cls.playerName}
-                            </td>
-                            <td className="py-4 px-6">{cls.hours} hs</td>
-                            <td className="py-4 px-6 text-right font-black text-primary">
-                              ${cls.earnings.toLocaleString("es-AR")}
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
+            <button
+              type="submit"
+              disabled={bookingSubmitting || courtsLoading || !bookingCourtId || !bookingTeacherId}
+              className="w-full sm:w-auto px-6 py-3 bg-primary text-black font-extrabold rounded-xl shadow-[0_4px_15px_rgba(57,255,20,0.25)] hover:scale-[1.02] active:scale-98 transition-all disabled:opacity-50 text-sm flex items-center justify-center gap-2"
+            >
+              {bookingSubmitting ? "Creando Reserva..." : "Reservar Clase"}
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        </form>
       )}
 
       {/* CRUD Modal dialog */}
@@ -496,7 +807,7 @@ export default function TeachersPage() {
             onClick={() => setIsModalOpen(false)}
           />
 
-          <div className="relative w-full max-w-md bg-white/95 dark:bg-zinc-950/85 backdrop-blur-xl border border-zinc-200 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          <div className="relative w-full max-w-lg bg-white/95 dark:bg-zinc-950/85 backdrop-blur-xl border border-zinc-200 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <div className="px-6 py-4 border-b border-zinc-200 dark:border-white/5 flex justify-between items-center bg-zinc-50/50 dark:bg-white/[0.02]">
               <h2 className="text-lg font-black text-zinc-900 dark:text-white flex items-center gap-2">
                 <span className="w-1.5 h-5 bg-primary rounded-full" />
@@ -510,7 +821,7 @@ export default function TeachersPage() {
               </button>
             </div>
 
-            <form onSubmit={handleSaveTeacher} className="p-6 space-y-4">
+            <form onSubmit={handleSaveTeacher} className="p-6 space-y-4 overflow-y-auto max-h-[80vh]">
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-zinc-400">Nombre Completo</label>
                 <input
@@ -585,6 +896,82 @@ export default function TeachersPage() {
                       <div className="w-9 h-5 bg-zinc-200 dark:bg-white/10 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-zinc-400 after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary peer-checked:after:bg-black"></div>
                     </label>
                   </div>
+                </div>
+              </div>
+
+              {/* Teacher Availability slots configuration */}
+              <div className="space-y-3 pt-4 border-t border-zinc-200 dark:border-white/5">
+                <label className="text-xs font-black text-zinc-400 flex items-center gap-1">
+                  <Sparkles className="w-3.5 h-3.5 text-primary" />
+                  Configurar Agenda de Disponibilidad
+                </label>
+                
+                <div className="flex gap-2 items-center bg-zinc-50 dark:bg-white/5 p-3 rounded-xl border border-zinc-200 dark:border-white/5">
+                  <select
+                    value={newSlot.dayOfWeek}
+                    onChange={(e) => setNewSlot((prev) => ({ ...prev, dayOfWeek: Number(e.target.value) }))}
+                    className="flex-1 bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-zinc-900 dark:text-white font-bold"
+                  >
+                    <option value={1}>Lunes</option>
+                    <option value={2}>Martes</option>
+                    <option value={3}>Miércoles</option>
+                    <option value={4}>Jueves</option>
+                    <option value={5}>Viernes</option>
+                    <option value={6}>Sábado</option>
+                    <option value={0}>Domingo</option>
+                  </select>
+
+                  <input
+                    type="time"
+                    value={newSlot.startTime}
+                    onChange={(e) => setNewSlot((prev) => ({ ...prev, startTime: e.target.value }))}
+                    className="w-20 bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-white/10 rounded-lg px-2 py-1 text-xs text-zinc-900 dark:text-white font-bold"
+                  />
+                  <span className="text-zinc-400 text-xs">a</span>
+                  <input
+                    type="time"
+                    value={newSlot.endTime}
+                    onChange={(e) => setNewSlot((prev) => ({ ...prev, endTime: e.target.value }))}
+                    className="w-20 bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-white/10 rounded-lg px-2 py-1 text-xs text-zinc-900 dark:text-white font-bold"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={handleAddAvailabilitySlot}
+                    className="px-3 py-1.5 bg-primary text-black font-extrabold text-xs rounded-lg hover:scale-105 transition-all"
+                  >
+                    Agregar
+                  </button>
+                </div>
+
+                {/* Slots List */}
+                <div className="space-y-1.5 max-h-[140px] overflow-y-auto pr-1">
+                  {teacherAvailability.length === 0 ? (
+                    <span className="text-xs text-zinc-500 italic block py-2">
+                      Sin horarios semanales definidos (disponible en cualquier horario).
+                    </span>
+                  ) : (
+                    teacherAvailability.map((slot, index) => {
+                      const days = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+                      return (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between p-2 rounded-lg bg-zinc-100/50 dark:bg-white/[0.02] border border-zinc-200/80 dark:border-white/5 text-xs"
+                        >
+                          <span className="font-bold text-zinc-800 dark:text-zinc-200">
+                            {days[slot.dayOfWeek]}: {slot.startTime} a {slot.endTime} hs
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveAvailabilitySlot(index)}
+                            className="text-[10px] font-bold text-red-400 hover:text-red-300"
+                          >
+                            Eliminar
+                          </button>
+                        </div>
+                      );
+                    })
+                  )}
                 </div>
               </div>
 
