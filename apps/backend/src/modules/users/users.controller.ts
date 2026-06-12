@@ -9,6 +9,7 @@ import {
   ForbiddenException,
   Req,
   BadRequestException,
+  Patch,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -69,6 +70,33 @@ export class UsersController {
       clubId: targetClubId,
       tenantId: targetTenantId,
     });
+  }
+
+  @Patch('profile/password')
+  async changePassword(@Req() req: any, @Body() body: any) {
+    const userId = req.user.sub;
+    const { currentPassword, newPassword } = body;
+
+    if (!currentPassword || !newPassword) {
+      throw new BadRequestException('La contraseña actual y la nueva contraseña son obligatorias.');
+    }
+
+    const user = await this.usersService.findById(userId);
+    if (!user) {
+      throw new BadRequestException('Usuario no encontrado.');
+    }
+
+    const isValid = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!isValid) {
+      throw new BadRequestException('La contraseña actual es incorrecta.');
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(newPassword, salt);
+
+    await this.usersService.updatePassword(userId, passwordHash);
+
+    return { message: 'Contraseña actualizada con éxito.' };
   }
 
   @Delete(':id')

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import Cookies from "js-cookie";
 import { Trophy, Lock, Mail, Download, X } from "lucide-react";
 import { apiUrl } from "@/lib/api";
@@ -137,6 +138,14 @@ export default function LoginPage() {
                 className="w-full bg-zinc-950/50 border border-zinc-800 rounded-lg py-3 pl-10 pr-4 text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
                 placeholder="••••••••"
               />
+            </div>
+            <div className="flex justify-end mt-1.5">
+              <Link
+                href="/forgot-password"
+                className="text-xs text-primary hover:underline font-semibold"
+              >
+                ¿Olvidaste tu contraseña?
+              </Link>
             </div>
           </div>
 
