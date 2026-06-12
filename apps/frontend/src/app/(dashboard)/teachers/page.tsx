@@ -508,14 +508,24 @@ export default function TeachersPage() {
           onSubmit={handleBookClass}
           className="max-w-4xl mx-auto bg-white/95 dark:bg-zinc-950/80 backdrop-blur-xl border border-zinc-200 dark:border-white/5 rounded-2xl shadow-xl overflow-hidden p-6 space-y-6"
         >
-          <div className="border-b border-zinc-200 dark:border-white/5 pb-4">
-            <h3 className="text-lg font-black text-zinc-900 dark:text-white flex items-center gap-2">
-              <span className="w-1.5 h-5 bg-primary rounded-full shadow-[0_0_8px_rgba(57,255,20,0.5)]" />
-              Asistente de Reserva de Clase
-            </h3>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-              Seleccioná un profesor disponible en el horario requerido, definí la cancha y registrá a los alumnos.
-            </p>
+          <div className="border-b border-zinc-200 dark:border-white/5 pb-4 flex justify-between items-start">
+            <div>
+              <h3 className="text-lg font-black text-zinc-900 dark:text-white flex items-center gap-2">
+                <span className="w-1.5 h-5 bg-primary rounded-full shadow-[0_0_8px_rgba(57,255,20,0.5)]" />
+                Asistente de Reserva de Clase
+              </h3>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+                Seleccioná un profesor disponible en el horario requerido, definí la cancha y registrá a los alumnos.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setActiveTab("manage")}
+              className="p-1.5 text-zinc-400 hover:text-zinc-950 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-white/5 rounded-lg transition-all"
+              title="Cerrar Asistente"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -557,7 +567,7 @@ export default function TeachersPage() {
                   onChange={(e) => setBookingTeacherId(e.target.value)}
                   className="w-full bg-zinc-50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-zinc-900 dark:text-white focus:outline-none focus:border-primary font-bold"
                 >
-                  <option value="" disabled>-- Seleccioná un profesor --</option>
+                  <option value="" disabled className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-white">-- Seleccioná un profesor --</option>
                   {teachers
                     .filter((t) => t.sport === bookingSport && t.isActive)
                     .map((t) => (
@@ -643,9 +653,9 @@ export default function TeachersPage() {
                     className="w-full bg-zinc-50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-zinc-900 dark:text-white focus:outline-none focus:border-primary font-bold disabled:opacity-50"
                   >
                     {courtsLoading ? (
-                      <option>Buscando canchas libres...</option>
+                      <option className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-white">Buscando canchas libres...</option>
                     ) : availableCourts.length === 0 ? (
-                      <option>Sin canchas libres para el horario/disciplina seleccionado</option>
+                      <option className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-white">Sin canchas libres para el horario/disciplina seleccionado</option>
                     ) : (
                       availableCourts.map((c) => (
                         <option key={c._id} value={c._id} className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-white">
@@ -923,8 +933,8 @@ export default function TeachersPage() {
                     onChange={(e) => setFormData((prev) => ({ ...prev, sport: e.target.value }))}
                     className="w-full bg-zinc-50 dark:bg-white/5 border border-zinc-355 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-zinc-900 dark:text-white focus:outline-none focus:border-primary font-bold"
                   >
-                    <option value="padel">Pádel</option>
-                    <option value="football">Fútbol</option>
+                    <option value="padel" className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-white">Pádel</option>
+                    <option value="football" className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-white">Fútbol</option>
                   </select>
                 </div>
 
@@ -957,13 +967,13 @@ export default function TeachersPage() {
                     onChange={(e) => setNewSlot((prev) => ({ ...prev, dayOfWeek: Number(e.target.value) }))}
                     className="flex-1 bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-zinc-900 dark:text-white font-bold"
                   >
-                    <option value={1}>Lunes</option>
-                    <option value={2}>Martes</option>
-                    <option value={3}>Miércoles</option>
-                    <option value={4}>Jueves</option>
-                    <option value={5}>Viernes</option>
-                    <option value={6}>Sábado</option>
-                    <option value={0}>Domingo</option>
+                    <option value={1} className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-white">Lunes</option>
+                    <option value={2} className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-white">Martes</option>
+                    <option value={3} className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-white">Miércoles</option>
+                    <option value={4} className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-white">Jueves</option>
+                    <option value={5} className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-white">Viernes</option>
+                    <option value={6} className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-white">Sábado</option>
+                    <option value={0} className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-white">Domingo</option>
                   </select>
 
                   <input
