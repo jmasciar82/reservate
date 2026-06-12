@@ -48,14 +48,8 @@ export class ReservationsService {
     createReservationDto: CreateReservationDto,
     callerClubId?: string,
   ): Promise<Reservation> {
-    const { courtId, startTime, endTime, isRecurring, recurrenceWeeks } = createReservationDto;
-
-    if (!Types.ObjectId.isValid(courtId)) {
-      throw new BadRequestException('La cancha indicada no es válida.');
-    }
-
-    const start = new Date(startTime);
-    const end = new Date(endTime);
+    const start = new Date(createReservationDto.startTime);
+    const end = new Date(createReservationDto.endTime);
 
     if (
       Number.isNaN(start.getTime()) ||
@@ -63,6 +57,24 @@ export class ReservationsService {
       end <= start
     ) {
       throw new BadRequestException('El horario de la reserva no es válido.');
+    }
+
+    const isEscuelita = createReservationDto.reservationType === 'escuelita_padel' || createReservationDto.reservationType === 'escuelita_futbol';
+    if (isEscuelita) {
+      const durationMin = Math.round((end.getTime() - start.getTime()) / (1000 * 60));
+      if (durationMin !== 60) {
+        throw new BadRequestException('Las reservas de escuelita deben ser de exactamente 1 hora.');
+      }
+      createReservationDto.isRecurring = true;
+      if (!createReservationDto.recurrenceWeeks) {
+        createReservationDto.recurrenceWeeks = 12;
+      }
+    }
+
+    const { courtId, startTime, endTime, isRecurring, recurrenceWeeks } = createReservationDto;
+
+    if (!Types.ObjectId.isValid(courtId)) {
+      throw new BadRequestException('La cancha indicada no es válida.');
     }
 
     const court = await this.courtModel.findById(courtId).populate('clubId').exec();
@@ -184,6 +196,14 @@ export class ReservationsService {
       });
 
       const savedReservations = await this.reservationModel.insertMany(reservationsToSave);
+
+      if (
+        savedReservations[0] &&
+        savedReservations[0].paymentStatus === 'paid' &&
+        (savedReservations[0].reservationType === 'escuelita_padel' || savedReservations[0].reservationType === 'escuelita_futbol')
+      ) {
+        await this.extendEscuelitaSeries(savedReservations[0]);
+      }
 
       if (isBlockPayment && savedReservations.length > 0) {
         try {
@@ -384,6 +404,17 @@ export class ReservationsService {
     const wasConfirmed = existingReservation.status === 'confirmed';
 
     let courtPrice = existingReservation.totalPrice - (existingReservation.productsPrice || 0);
+
+    const currentResType = updateReservationDto.reservationType || existingReservation.reservationType;
+    const isEscuelita = currentResType === 'escuelita_padel' || currentResType === 'escuelita_futbol';
+    if (isEscuelita) {
+      const newStart = updateReservationDto.startTime ? new Date(updateReservationDto.startTime) : new Date(existingReservation.startTime);
+      const newEnd = updateReservationDto.endTime ? new Date(updateReservationDto.endTime) : new Date(existingReservation.endTime);
+      const durationMin = Math.round((newEnd.getTime() - newStart.getTime()) / (1000 * 60));
+      if (durationMin !== 60) {
+        throw new BadRequestException('Las reservas de escuelita deben ser de exactamente 1 hora.');
+      }
+    }
 
     // Validaciones de reprogramación (Rescheduling / Drag and Drop)
     if (
@@ -660,6 +691,12 @@ export class ReservationsService {
       .populate('courtId')
       .exec();
 
+    // Trigger escuelita auto-extension if newly paid
+    const isNowPaid = updated && updated.paymentStatus === 'paid' && existingReservation.paymentStatus !== 'paid';
+    if (isNowPaid && (updated.reservationType === 'escuelita_padel' || updated.reservationType === 'escuelita_futbol')) {
+      await this.extendEscuelitaSeries(updated);
+    }
+
     if (updated && updated.email && !wasConfirmed && updated.status === 'confirmed') {
       const court = await this.courtModel
         .findById(updated.courtId)
@@ -785,6 +822,96 @@ export class ReservationsService {
 
     const savedReservations = await this.reservationModel.insertMany(reservationsToSave);
     return savedReservations[0];
+  }
+
+  async extendEscuelitaSeries(paidReservation: ReservationDocument): Promise<void> {
+    if (
+      paidReservation.reservationType !== 'escuelita_padel' &&
+      paidReservation.reservationType !== 'escuelita_futbol'
+    ) {
+      return;
+    }
+
+    const { recurrenceGroupId, courtId, startTime, endTime } = paidReservation;
+    if (!recurrenceGroupId) return;
+
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+    const durationMs = end.getTime() - start.getTime();
+
+    const conflicts: string[] = [];
+    const weeksToCreate: { start: Date; end: Date }[] = [];
+
+    // Check next 12 weeks (3 months)
+    for (let i = 1; i <= 12; i++) {
+      const weekStart = new Date(start.getTime() + i * 7 * 24 * 60 * 60 * 1000);
+      const weekEnd = new Date(weekStart.getTime() + durationMs);
+
+      // Check if there is already a reservation for this recurrence group at this exact weekStart
+      const existingInGroup = await this.reservationModel.findOne({
+        recurrenceGroupId,
+        status: { $ne: 'cancelled' },
+        startTime: weekStart,
+      }).exec();
+
+      if (existingInGroup) {
+        continue;
+      }
+
+      // Check for overlap with other reservations
+      const overlapping = await this.reservationModel.findOne({
+        courtId,
+        status: { $ne: 'cancelled' },
+        startTime: { $lt: weekEnd },
+        endTime: { $gt: weekStart },
+      }).exec();
+
+      if (overlapping) {
+        const dateStr = weekStart.toLocaleDateString('es-AR', {
+          timeZone: 'America/Argentina/Buenos_Aires',
+        });
+        conflicts.push(`Semana ${i} (${dateStr})`);
+      } else {
+        weeksToCreate.push({ start: weekStart, end: weekEnd });
+      }
+    }
+
+    if (conflicts.length > 0) {
+      throw new ConflictException(
+        `No se pudo extender la escuelita para los próximos 3 meses por solapamientos en: ${conflicts.join(', ')}.`,
+      );
+    }
+
+    if (weeksToCreate.length > 0) {
+      const court = await this.courtModel.findById(courtId).exec();
+      if (!court) {
+        throw new NotFoundException('La cancha especificada no existe.');
+      }
+      const durationHours = durationMs / (1000 * 60 * 60);
+      const totalPrice = Math.round(durationHours * court.pricePerHour);
+
+      const reservationsToSave = weeksToCreate.map((week) => {
+        return new this.reservationModel({
+          courtId: paidReservation.courtId,
+          userId: paidReservation.userId,
+          firstName: paidReservation.firstName,
+          lastName: paidReservation.lastName,
+          email: paidReservation.email,
+          phone: paidReservation.phone,
+          isPublic: paidReservation.isPublic || false,
+          startTime: week.start,
+          endTime: week.end,
+          totalPrice,
+          paymentStatus: 'pending',
+          isRecurring: true,
+          recurrenceGroupId,
+          reservationType: paidReservation.reservationType,
+          status: 'pending',
+        });
+      });
+
+      await this.reservationModel.insertMany(reservationsToSave);
+    }
   }
 
   async findOne(id: string): Promise<Reservation | null> {

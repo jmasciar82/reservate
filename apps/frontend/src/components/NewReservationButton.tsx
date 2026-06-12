@@ -170,6 +170,18 @@ export default function NewReservationButton({
     }
   }, [isOpen, activeClubId]);
 
+  useEffect(() => {
+    const isEscuelita = formData.reservationType === "escuelita_padel" || formData.reservationType === "escuelita_futbol";
+    if (isEscuelita) {
+      setFormData((prev) => ({
+        ...prev,
+        duration: "1",
+        isRecurring: true,
+        recurrenceWeeks: 12,
+      }));
+    }
+  }, [formData.reservationType]);
+
   const addPresetProduct = (preset: { name: string; price: number }) => {
     setProducts(prev => {
       const existing = prev.find(p => p.name === preset.name);
@@ -339,11 +351,13 @@ export default function NewReservationButton({
       let finalDepositAmount = 0;
       let finalPaymentStatus = "pending";
 
+      const isEscuelita = formData.reservationType === "escuelita_padel" || formData.reservationType === "escuelita_futbol";
+
       if (paymentType === "deposit") {
         finalDepositAmount = formData.depositAmount ? Number(formData.depositAmount) : 0;
         finalPaymentStatus = "paid";
       } else if (paymentType === "full") {
-        finalDepositAmount = formData.isRecurring
+        finalDepositAmount = (formData.isRecurring && !isEscuelita)
           ? Math.round(calculatedTotalPrice * Number(formData.recurrenceWeeks || 4) * 0.90) + productsPrice
           : totalWithProducts;
         finalPaymentStatus = "paid";
@@ -553,6 +567,7 @@ export default function NewReservationButton({
                   <select
                     required
                     value={formData.duration}
+                    disabled={formData.reservationType === "escuelita_padel" || formData.reservationType === "escuelita_futbol"}
                     onChange={(e) => {
                       const nextDuration = e.target.value;
                       setFormData((prev) => ({
@@ -564,7 +579,7 @@ export default function NewReservationButton({
                             : prev.time,
                       }));
                     }}
-                    className="w-full bg-zinc-50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-xl px-4 py-3 text-zinc-900 dark:text-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 hover:bg-zinc-100 dark:hover:bg-white/[0.08] transition-all duration-300 font-semibold"
+                    className="w-full bg-zinc-50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-xl px-4 py-3 text-zinc-900 dark:text-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 hover:bg-zinc-100 dark:hover:bg-white/[0.08] transition-all duration-300 font-semibold disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     <option value="1" className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-white">1 hora</option>
                     <option value="1.5" className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-white">1.5 horas</option>
@@ -777,7 +792,7 @@ export default function NewReservationButton({
                     <span>Valor estimado total:</span>
                     <span className="text-primary text-sm font-black">${totalWithProducts.toLocaleString("es-AR")}</span>
                   </div>
-                  {formData.isRecurring && (
+                  {formData.isRecurring && formData.reservationType === "standard" && (
                     <div className="flex flex-col gap-1 border-t border-zinc-200/80 dark:border-white/5 pt-2.5">
                       <div className="flex justify-between items-center text-xs font-semibold text-zinc-500 dark:text-zinc-400">
                         <span>Total normal ({Number(formData.recurrenceWeeks || 4)} sem):</span>
@@ -828,6 +843,15 @@ export default function NewReservationButton({
                     ))}
                   </div>
 
+                  {paymentType === "full" && (
+                    <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-1 animate-in fade-in slide-in-from-top-1 duration-150">
+                      {formData.reservationType === "escuelita_padel" || formData.reservationType === "escuelita_futbol"
+                        ? `Se registrará el pago individual de la primera clase por $${totalWithProducts.toLocaleString("es-AR")}.`
+                        : `Se registrará el pago de todo el bloque (${formData.recurrenceWeeks} sem) con 10% OFF.`
+                      }
+                    </p>
+                  )}
+
                   {paymentType === "deposit" && (
                     <div className="space-y-1.5 pt-2 animate-in fade-in slide-in-from-top-1 duration-150">
                       <label className="text-xs font-bold text-zinc-500 dark:text-zinc-400">Monto de la seña ($)</label>
@@ -850,10 +874,11 @@ export default function NewReservationButton({
                   <span className="text-sm font-bold text-zinc-600 dark:text-zinc-200 flex items-center gap-2">
                     <span className="text-indigo-400">🔁</span> Turno Fijo
                   </span>
-                  <label className="relative inline-flex items-center cursor-pointer">
+                  <label className={`relative inline-flex items-center ${(formData.reservationType === "escuelita_padel" || formData.reservationType === "escuelita_futbol") ? "cursor-not-allowed opacity-70" : "cursor-pointer"}`}>
                     <input
                       type="checkbox"
                       checked={formData.isRecurring}
+                      disabled={formData.reservationType === "escuelita_padel" || formData.reservationType === "escuelita_futbol"}
                       onChange={(e) =>
                         setFormData((prev) => ({
                           ...prev,
@@ -869,7 +894,15 @@ export default function NewReservationButton({
                 {formData.isRecurring && (
                   <div className="space-y-1.5 pt-2 border-t border-zinc-200/80 dark:border-white/5 animate-in fade-in slide-in-from-top-1 duration-150">
                     <p className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-relaxed">
-                      Se creará un bloque de <strong className="text-zinc-900 dark:text-white">4 semanas (1 mes)</strong>. Podrás renovarlo de forma indefinida y cobrar el próximo mes en un solo clic.
+                      {formData.reservationType === "escuelita_padel" || formData.reservationType === "escuelita_futbol" ? (
+                        <>
+                          Se creará un bloque de <strong className="text-zinc-900 dark:text-white">12 semanas (3 meses)</strong>. Al registrar el pago de cualquiera de las clases, se reservará automáticamente el próximo período.
+                        </>
+                      ) : (
+                        <>
+                          Se creará un bloque de <strong className="text-zinc-900 dark:text-white">4 semanas (1 mes)</strong>. Podrás renovarlo de forma indefinida y cobrar el próximo mes en un solo clic.
+                        </>
+                      )}
                     </p>
                   </div>
                 )}
