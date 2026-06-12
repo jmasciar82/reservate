@@ -1,5 +1,5 @@
 import { Court } from "@/lib/types";
-import { Building2, Check, DollarSign, Home, Pencil, Sun, Trash2 } from "lucide-react";
+import { Building2, Check, DollarSign, Home, Pencil, Sun, Trash2, Users } from "lucide-react";
 
 interface CourtCardProps {
   court: Court;
@@ -110,6 +110,59 @@ export default function CourtCard({ court, clubName, onEdit, onDelete }: CourtCa
             </div>
           ),
         };
+      case "parrilla":
+        return {
+          bg: "bg-red-600/20",
+          border: "border-red-500/50",
+          accent: "text-red-400",
+          label: "Parrilla",
+          courtBg: "bg-red-700/30",
+          lines: "border-white/40",
+          renderField: () => (
+            <div className="absolute inset-0 opacity-20 pointer-events-none flex flex-col items-center justify-center p-4">
+              {/* Representación de parrilla */}
+              <div className="w-full h-full relative flex items-center justify-center">
+                <div className="w-3/4 h-2/3 border-2 border-white/50 rounded-lg relative">
+                  {/* Barras de la parrilla */}
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} className="absolute w-full h-[2px] bg-white/50" style={{ top: `${20 + i * 15}%` }} />
+                  ))}
+                  {/* Llamas */}
+                  <div className="absolute -bottom-3 left-1/4 w-2 h-4 bg-orange-400/60 rounded-full blur-[2px]" />
+                  <div className="absolute -bottom-3 left-1/2 w-2 h-5 bg-red-400/60 rounded-full blur-[2px]" />
+                  <div className="absolute -bottom-3 right-1/4 w-2 h-4 bg-orange-400/60 rounded-full blur-[2px]" />
+                </div>
+              </div>
+            </div>
+          ),
+        };
+      case "quincho":
+        return {
+          bg: "bg-yellow-700/20",
+          border: "border-yellow-600/50",
+          accent: "text-yellow-500",
+          label: "Quincho",
+          courtBg: "bg-yellow-800/30",
+          lines: "border-white/40",
+          renderField: () => (
+            <div className="absolute inset-0 opacity-20 pointer-events-none flex flex-col items-center justify-center p-4">
+              {/* Representación de quincho */}
+              <div className="w-full h-full relative flex flex-col items-center justify-center">
+                {/* Techo */}
+                <div className="w-full h-0 border-b-[40px] border-l-[20px] border-r-[20px] border-b-white/40 border-l-transparent border-r-transparent" />
+                {/* Estructura */}
+                <div className="w-4/5 h-1/2 border-2 border-t-0 border-white/50 relative">
+                  {/* Pilares */}
+                  <div className="absolute -left-[2px] top-0 w-[2px] h-full bg-white/50" />
+                  <div className="absolute -right-[2px] top-0 w-[2px] h-full bg-white/50" />
+                  {/* Mesa */}
+                  <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-1/2 h-[2px] bg-white/60" />
+                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1/3 h-2 border-t-2 border-l-2 border-r-2 border-white/40" />
+                </div>
+              </div>
+            </div>
+          ),
+        };
       default:
         return {
           bg: "bg-zinc-800/50",
@@ -162,6 +215,11 @@ export default function CourtCard({ court, clubName, onEdit, onDelete }: CourtCa
               ) : (
                 <span className="flex items-center text-[10px] font-extrabold text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/25 backdrop-blur-md shadow-[0_0_8px_rgba(245,158,11,0.15)]">
                   <Sun className="w-2.5 h-2.5 mr-1" /> Libre
+                </span>
+              )}
+              {(court as any).capacity && (
+                <span className="flex items-center text-[10px] font-extrabold text-violet-400 bg-violet-500/10 px-2.5 py-0.5 rounded-full border border-violet-500/25 backdrop-blur-md shadow-[0_0_8px_rgba(139,92,246,0.15)]">
+                  <Users className="w-2.5 h-2.5 mr-1" /> {(court as any).capacity} pers.
                 </span>
               )}
             </div>

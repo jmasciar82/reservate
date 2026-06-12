@@ -24,6 +24,7 @@ type CourtFormData = {
   isActive: boolean;
   clubId: string;
   pricePerHour: number;
+  capacity?: number;
 };
 
 const initialFormData: CourtFormData = {
@@ -33,6 +34,7 @@ const initialFormData: CourtFormData = {
   isActive: true,
   clubId: "",
   pricePerHour: 10000,
+  capacity: undefined,
 };
 
 async function fetchJson<T>(url: string): Promise<T> {
@@ -51,10 +53,14 @@ function sportLabel(sport: string) {
     football: "Fútbol",
     padel: "Pádel",
     tennis: "Tenis",
+    parrilla: "Parrilla",
+    quincho: "Quincho",
   };
 
   return labels[sport] ?? sport;
 }
+
+const isAmenity = (sport: string) => sport === "parrilla" || sport === "quincho";
 
 export default function CourtsPage() {
   const [courts, setCourts] = useState<Court[]>([]);
@@ -172,6 +178,7 @@ export default function CourtsPage() {
       isActive: court.isActive,
       clubId: court.clubId,
       pricePerHour: court.pricePerHour || 0,
+      capacity: court.capacity || undefined,
     });
     setShowForm(true);
   };
@@ -212,9 +219,9 @@ export default function CourtsPage() {
     <div className="flex-1 overflow-y-auto p-6 lg:p-8 z-10">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold mb-2">Gestión de canchas</h1>
+          <h1 className="text-3xl font-bold mb-2">Gestión de canchas y espacios</h1>
           <p className="text-zinc-500 dark:text-zinc-400">
-            Administrá disponibilidad, deporte, club y precio por hora.
+            Administrá canchas, parrillas, quinchos y otros espacios reservables.
           </p>
         </div>
         <button
@@ -229,7 +236,7 @@ export default function CourtsPage() {
           className="px-4 py-2 bg-primary text-primary-foreground font-semibold rounded-lg shadow-[0_0_15px_rgba(57,255,20,0.3)] hover:scale-[1.02] transition-transform flex items-center justify-center disabled:opacity-50 disabled:pointer-events-none"
         >
           {showForm ? <X className="w-5 h-5 mr-2" /> : <Plus className="w-5 h-5 mr-2" />}
-          {showForm ? "Cancelar" : "Añadir cancha"}
+          {showForm ? "Cancelar" : "Añadir espacio"}
         </button>
       </div>
 
@@ -242,7 +249,7 @@ export default function CourtsPage() {
       {showForm && (
         <div className="bg-card border border-border p-5 rounded-lg mb-8 shadow-lg max-w-5xl animate-in fade-in slide-in-from-top-4 duration-200">
           <h2 className="text-xl font-bold mb-4">
-            {editingCourtId ? "Editar cancha" : "Nueva cancha"}
+            {editingCourtId ? "Editar espacio" : "Nuevo espacio"}
           </h2>
           <form onSubmit={handleFormSubmit} className="space-y-5">
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
@@ -253,7 +260,7 @@ export default function CourtsPage() {
                 <input
                   type="text"
                   required
-                  placeholder="Ej. Cancha 1"
+                  placeholder="Ej. Cancha 1, Parrilla Norte"
                   className="w-full bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-lg py-3 px-4 text-zinc-900 dark:text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
                   value={formData.name}
                   onChange={(e) =>
@@ -266,19 +273,25 @@ export default function CourtsPage() {
 
               <div>
                 <label className="block text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-1">
-                  Deporte
+                  Tipo de espacio
                 </label>
                 <select
                   className="w-full bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-lg py-3 px-4 text-zinc-900 dark:text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
                   value={formData.sport}
                   onChange={(e) =>
-                    setFormData({ ...formData, sport: e.target.value })
+                    setFormData({ ...formData, sport: e.target.value, capacity: isAmenity(e.target.value) ? (formData.capacity || 10) : undefined })
                   }
                 >
-                  <option value="padel">Pádel</option>
-                  <option value="tennis">Tenis</option>
-                  <option value="football">Fútbol</option>
-                  <option value="basketball">Básquet</option>
+                  <optgroup label="Deportes">
+                    <option value="padel">Pádel</option>
+                    <option value="tennis">Tenis</option>
+                    <option value="football">Fútbol</option>
+                    <option value="basketball">Básquet</option>
+                  </optgroup>
+                  <optgroup label="Espacios">
+                    <option value="parrilla">Parrilla</option>
+                    <option value="quincho">Quincho</option>
+                  </optgroup>
                 </select>
               </div>
 
@@ -327,6 +340,27 @@ export default function CourtsPage() {
                 </div>
               </div>
 
+              {isAmenity(formData.sport) && (
+                <div>
+                  <label className="block text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-1">
+                    Capacidad (personas)
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    placeholder="Ej. 20"
+                    className="w-full bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-lg py-3 px-4 text-zinc-900 dark:text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                    value={formData.capacity || ""}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        capacity: e.target.value ? Number(e.target.value) : undefined,
+                      })
+                    }
+                  />
+                </div>
+              )}
+
               <label className="flex items-center gap-2 cursor-pointer text-sm text-zinc-600 dark:text-zinc-300 md:self-end md:pb-3">
                 <input
                   type="checkbox"
@@ -336,7 +370,7 @@ export default function CourtsPage() {
                   }
                   className="rounded border-zinc-300 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-primary focus:ring-0 focus:ring-offset-0 w-4 h-4"
                 />
-                Cancha activa
+                Espacio activo
               </label>
             </div>
 

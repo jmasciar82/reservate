@@ -19,6 +19,7 @@ export interface Court {
   isActive: boolean;
   isCovered: boolean;
   pricePerHour: number;
+  capacity?: number;
   isAvailable?: boolean;
 }
 

@@ -202,7 +202,7 @@ export default function SchedulerGrid({
             >
               <p className="font-black text-sm text-zinc-900 dark:text-white tracking-wide">{court.name}</p>
               <span className="inline-block mt-1.5 px-2.5 py-0.5 rounded-full border border-primary/20 bg-primary/10 text-[9px] font-extrabold text-primary uppercase tracking-wider shadow-[0_0_8px_rgba(57,255,20,0.15)]">
-                {court.sport} • {court.isCovered ? "Techada" : "Descubierta"}
+                {court.sport === "parrilla" ? "Parrilla" : court.sport === "quincho" ? "Quincho" : court.sport} • {court.isCovered ? "Techada" : "Descubierta"}
               </span>
             </div>
           ))}

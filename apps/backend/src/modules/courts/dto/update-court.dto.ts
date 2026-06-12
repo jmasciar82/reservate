@@ -5,4 +5,5 @@ export class UpdateCourtDto {
   isActive?: boolean;
   isCovered?: boolean;
   pricePerHour?: number;
+  capacity?: number;
 }

@@ -5,4 +5,5 @@ export class CreateCourtDto {
   isActive?: boolean;
   isCovered?: boolean;
   pricePerHour?: number;
+  capacity?: number;
 }

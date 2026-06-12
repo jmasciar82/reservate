@@ -23,6 +23,9 @@ export class Court {
 
   @Prop({ required: true, default: 0 })
   pricePerHour: number;
+
+  @Prop()
+  capacity: number;
 }
 
 export const CourtSchema = SchemaFactory.createForClass(Court);

@@ -45,6 +45,18 @@ const getDepositDescription = (totalPrice: number, club: Club | null): string =>
   return `Seña del 30% ($${Math.round(totalPrice * 0.3).toLocaleString()})`;
 };
 
+const sportLabel = (sport: string): string => {
+  const labels: Record<string, string> = {
+    padel: "Pádel",
+    tennis: "Tenis",
+    football: "Fútbol",
+    basketball: "Básquet",
+    parrilla: "Parrilla",
+    quincho: "Quincho",
+  };
+  return labels[sport] ?? sport;
+};
+
 export default function PublicBookingPage() {
   const router = useRouter();
   const [step, setStep] = useState(1);
@@ -359,7 +371,7 @@ export default function PublicBookingPage() {
                         : "bg-[#09090b] border-[#27272a] text-[#a1a1aa] hover:border-[#3f3f46]"
                     }`}
                   >
-                    {sport}
+                    {sportLabel(sport)}
                   </button>
                 ))}
               </div>
@@ -468,7 +480,7 @@ export default function PublicBookingPage() {
                 </div>
                 <h3 className="text-lg font-bold text-white">No hay canchas disponibles</h3>
                 <p className="text-xs text-[#a1a1aa] max-w-sm">
-                  Lamentablemente no quedan canchas libres de **{selectedSport}** para el horario seleccionado. Intentá con otra hora u otro día.
+                  Lamentablemente no quedan canchas libres de **{sportLabel(selectedSport)}** para el horario seleccionado. Intentá con otra hora u otro día.
                 </p>
                 <button
                   onClick={() => setStep(2)}
