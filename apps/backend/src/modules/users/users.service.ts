@@ -23,7 +23,10 @@ export class UsersService {
   async findAll(clubId?: string, tenantId?: string): Promise<UserDocument[]> {
     const filter: any = {};
     if (clubId) filter.clubId = clubId;
-    if (tenantId) filter.tenantId = tenantId;
+    if (tenantId) {
+      filter.tenantId = tenantId;
+      filter.role = { $ne: 'admin' }; // Excluir administradores globales del listado de la franquicia
+    }
     return this.userModel.find(filter, { passwordHash: 0 }).exec();
   }
 
