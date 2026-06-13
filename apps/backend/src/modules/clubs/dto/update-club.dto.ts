@@ -9,4 +9,6 @@ export class UpdateClubDto {
   mpAccessToken?: string;
   mpPublicKey?: string;
   tenantId?: string;
+  subdomain?: string;
+  customDomain?: string;
 }

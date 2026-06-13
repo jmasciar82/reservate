@@ -60,6 +60,36 @@ export class PublicService {
     return this.clubModel.find().exec();
   }
 
+  async findOneByDomain(hostname: string): Promise<Club> {
+    if (!hostname) {
+      throw new BadRequestException('El nombre de host no es válido.');
+    }
+
+    // Limpiar puerto si existe
+    const cleanHost = hostname.split(':')[0].toLowerCase();
+
+    // 1. Intentar buscar por customDomain exacto
+    let club = await this.clubModel.findOne({ customDomain: cleanHost }).exec();
+    if (club) return club;
+
+    // 2. Intentar extraer subdominio (ej: club.reservate.com o club.localhost)
+    const parts = cleanHost.split('.');
+    let subdomain = '';
+
+    if (parts.length > 2) {
+      subdomain = parts[0];
+    } else if (parts.length === 2 && parts[1] === 'localhost') {
+      subdomain = parts[0];
+    }
+
+    if (subdomain && subdomain !== 'www') {
+      club = await this.clubModel.findOne({ subdomain }).exec();
+      if (club) return club;
+    }
+
+    throw new NotFoundException('Sede no encontrada para el subdominio indicado.');
+  }
+
   async getAvailableCourts(startTime: string, endTime: string, clubId?: string): Promise<any[]> {
     await this.cleanAbandonedReservations();
     const start = new Date(startTime);

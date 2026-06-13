@@ -12,6 +12,8 @@ export function Header() {
 
   const activeClub = clubs.find((c) => c._id === activeClubId);
 
+  const [isSubdomainActive, setIsSubdomainActive] = useState(false);
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -19,6 +21,20 @@ export function Header() {
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
+
+    if (typeof window !== "undefined") {
+      const host = window.location.host;
+      const cleanHost = host.split(":")[0].toLowerCase();
+      const parts = cleanHost.split(".");
+      let isSub = false;
+      if (parts.length > 2) {
+        isSub = parts[0] !== "www";
+      } else if (parts.length === 2 && parts[1] === "localhost") {
+        isSub = parts[0] !== "www";
+      }
+      setIsSubdomainActive(isSub);
+    }
+
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
@@ -44,18 +60,29 @@ export function Header() {
 
         {clubs.length > 0 && (
           <div className="relative ml-4" ref={dropdownRef}>
-            <button
-              onClick={() => setIsOpen(!isOpen)}
-              className="flex items-center gap-2.5 bg-white border border-zinc-200 hover:border-primary/45 rounded-xl px-4 py-2 transition-all duration-300 shadow-[0_2px_10px_rgba(0,0,0,0.05)] dark:bg-white/5 dark:border-white/10 dark:hover:border-primary/45 dark:shadow-[0_2px_10px_rgba(0,0,0,0.2)] focus:outline-none focus:ring-2 focus:ring-primary/20 hover:bg-zinc-50 dark:hover:bg-white/[0.08]"
-            >
-              <Building2 className="w-4 h-4 text-primary drop-shadow-[0_0_5px_rgba(57,255,20,0.4)]" />
-              <span className="text-sm text-zinc-800 dark:text-zinc-100 font-bold tracking-wide transition-colors duration-300">
-                {activeClub ? activeClub.name : "Seleccionar Sede"}
-              </span>
-              <ChevronDown className={`w-3.5 h-3.5 text-zinc-400 transition-all duration-300 ${isOpen ? "rotate-180 text-primary" : ""}`} />
-            </button>
+            {isSubdomainActive ? (
+              <div
+                className="flex items-center gap-2.5 bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-2 dark:bg-white/5 dark:border-white/10 shadow-[0_2px_10px_rgba(0,0,0,0.02)] select-none"
+              >
+                <Building2 className="w-4 h-4 text-primary drop-shadow-[0_0_5px_rgba(57,255,20,0.4)]" />
+                <span className="text-sm text-zinc-800 dark:text-zinc-100 font-bold tracking-wide">
+                  {activeClub ? activeClub.name : "Club"}
+                </span>
+              </div>
+            ) : (
+              <button
+                onClick={() => setIsOpen(!isOpen)}
+                className="flex items-center gap-2.5 bg-white border border-zinc-200 hover:border-primary/45 rounded-xl px-4 py-2 transition-all duration-300 shadow-[0_2px_10px_rgba(0,0,0,0.05)] dark:bg-white/5 dark:border-white/10 dark:hover:border-primary/45 dark:shadow-[0_2px_10px_rgba(0,0,0,0.2)] focus:outline-none focus:ring-2 focus:ring-primary/20 hover:bg-zinc-50 dark:hover:bg-white/[0.08]"
+              >
+                <Building2 className="w-4 h-4 text-primary drop-shadow-[0_0_5px_rgba(57,255,20,0.4)]" />
+                <span className="text-sm text-zinc-800 dark:text-zinc-100 font-bold tracking-wide transition-colors duration-300">
+                  {activeClub ? activeClub.name : "Seleccionar Sede"}
+                </span>
+                <ChevronDown className={`w-3.5 h-3.5 text-zinc-400 transition-all duration-300 ${isOpen ? "rotate-180 text-primary" : ""}`} />
+              </button>
+            )}
 
-            {isOpen && (
+            {!isSubdomainActive && isOpen && (
               <div className="absolute top-full left-0 mt-2 w-56 bg-white dark:bg-zinc-950/80 backdrop-blur-xl border border-zinc-200 dark:border-white/10 rounded-2xl shadow-[0_15px_40px_rgba(0,0,0,0.1)] dark:shadow-[0_15px_40px_rgba(0,0,0,0.5)] overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
                 <div className="py-1.5 px-1 space-y-1">
                   {clubs.map((club) => (

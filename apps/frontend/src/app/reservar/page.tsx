@@ -76,6 +76,7 @@ export default function PublicBookingPage() {
   const [selectedTime, setSelectedTime] = useState<string>("");
   const [selectedDuration, setSelectedDuration] = useState<number>(1); // en horas
   const [selectedCourt, setSelectedCourt] = useState<Court | null>(null);
+  const [isSubdomainActive, setIsSubdomainActive] = useState(false);
 
   // Datos personales
   const [formData, setFormData] = useState({
@@ -90,6 +91,36 @@ export default function PublicBookingPage() {
     async function loadClubs() {
       try {
         setLoading(true);
+        // Detectar si estamos en un subdominio/dominio del club
+        const host = typeof window !== "undefined" ? window.location.host : "";
+        const cleanHost = host.split(":")[0].toLowerCase();
+        
+        // Determinar si hay subdominio (ej: club.reservate.com o club.localhost)
+        const parts = cleanHost.split(".");
+        let isSubdomain = false;
+        let subdomainName = "";
+        
+        if (parts.length > 2) {
+          subdomainName = parts[0];
+          isSubdomain = subdomainName !== "www";
+        } else if (parts.length === 2 && parts[1] === "localhost") {
+          subdomainName = parts[0];
+          isSubdomain = subdomainName !== "www";
+        }
+
+        if (isSubdomain) {
+          const res = await apiFetch(`/public/clubs/by-domain?hostname=${host}`);
+          if (res.ok) {
+            const club = await res.json();
+            setClubs([club]);
+            setSelectedClub(club);
+            setSelectedSport((club.sports && club.sports[0]) || "");
+            setIsSubdomainActive(true);
+            setStep(2); // Ir directo al paso de horarios
+            return;
+          }
+        }
+
         const res = await apiFetch("/public/clubs");
         if (res.ok) {
           const data = await res.json();
@@ -353,9 +384,11 @@ export default function PublicBookingPage() {
         {step === 2 && selectedClub && (
           <div className="flex-grow flex flex-col gap-6">
             <div>
-              <button onClick={() => setStep(1)} className="text-xs text-[#a1a1aa] hover:text-primary flex items-center gap-1 mb-2">
-                <ChevronLeft className="h-3 w-3" /> Volver a Sedes
-              </button>
+              {!isSubdomainActive && (
+                <button onClick={() => setStep(1)} className="text-xs text-[#a1a1aa] hover:text-primary flex items-center gap-1 mb-2">
+                  <ChevronLeft className="h-3 w-3" /> Volver a Sedes
+                </button>
+              )}
               <h2 className="text-2xl font-bold text-white">Elegí fecha y horario en {selectedClub.name}</h2>
             </div>
 

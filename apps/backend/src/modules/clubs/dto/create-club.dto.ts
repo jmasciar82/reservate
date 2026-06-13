@@ -9,4 +9,6 @@ export class CreateClubDto {
   mpAccessToken?: string;
   mpPublicKey?: string;
   tenantId?: string;
+  subdomain?: string;
+  customDomain?: string;
 }

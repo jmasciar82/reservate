@@ -11,6 +11,11 @@ export class PublicController {
     return this.publicService.getClubs();
   }
 
+  @Get('clubs/by-domain')
+  async getClubByDomain(@Query('hostname') hostname: string) {
+    return this.publicService.findOneByDomain(hostname);
+  }
+
   @Get('courts/available')
   async getAvailableCourts(
     @Query('startTime') startTime: string,

@@ -35,6 +35,12 @@ export class Club {
 
   @Prop({ required: false })
   mpPublicKey?: string;
+
+  @Prop({ unique: true, sparse: true, index: true, required: false })
+  subdomain?: string;
+
+  @Prop({ unique: true, sparse: true, index: true, required: false })
+  customDomain?: string;
 }
 
 export const ClubSchema = SchemaFactory.createForClass(Club);
