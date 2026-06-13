@@ -9,6 +9,8 @@ export interface Club {
   depositValue?: number;
   mpAccessToken?: string;
   mpPublicKey?: string;
+  subdomain?: string;
+  customDomain?: string;
 }
 
 export interface Court {

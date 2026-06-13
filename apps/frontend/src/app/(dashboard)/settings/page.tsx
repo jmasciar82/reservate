@@ -17,6 +17,8 @@ type ClubFormData = {
   depositValue: number;
   mpAccessToken: string;
   mpPublicKey: string;
+  subdomain: string;
+  customDomain: string;
 };
 
 const initialFormData: ClubFormData = {
@@ -29,6 +31,8 @@ const initialFormData: ClubFormData = {
   depositValue: 30,
   mpAccessToken: "",
   mpPublicKey: "",
+  subdomain: "",
+  customDomain: "",
 };
 
 async function fetchJson<T>(url: string): Promise<T> {
@@ -52,6 +56,8 @@ function toFormData(club: Club): ClubFormData {
     depositValue: club.depositValue ?? 30,
     mpAccessToken: club.mpAccessToken ?? "",
     mpPublicKey: club.mpPublicKey ?? "",
+    subdomain: club.subdomain ?? "",
+    customDomain: club.customDomain ?? "",
   };
 }
 
@@ -69,6 +75,8 @@ function toPayload(formData: ClubFormData) {
     depositValue: Number(formData.depositValue),
     mpAccessToken: formData.mpAccessToken.trim(),
     mpPublicKey: formData.mpPublicKey.trim(),
+    subdomain: formData.subdomain.trim(),
+    customDomain: formData.customDomain.trim(),
   };
 }
 
@@ -95,11 +103,36 @@ export default function SettingsPage() {
   const [requestLoading, setRequestLoading] = useState(false);
   const [requestError, setRequestError] = useState<string | null>(null);
 
+  const [requests, setRequests] = useState<any[]>([]);
+  const [loadingRequests, setLoadingRequests] = useState(false);
+
+  const fetchRequests = async () => {
+    setLoadingRequests(true);
+    try {
+      const response = await apiFetch("/audit-logs");
+      if (response.ok) {
+        const logs = await response.json();
+        const creationRequests = logs.filter((log: any) => log.action === "request_club_creation");
+        setRequests(creationRequests);
+      }
+    } catch (err) {
+      console.error("Error fetching requests:", err);
+    } finally {
+      setLoadingRequests(false);
+    }
+  };
+
   useEffect(() => {
     const userRole = getClientUserRole();
     setRole(userRole);
     setCheckingRole(false);
   }, []);
+
+  useEffect(() => {
+    if (role === "admin") {
+      fetchRequests();
+    }
+  }, [role]);
 
   const resetRequestForm = () => {
     setRequestFormData({
@@ -188,6 +221,9 @@ export default function SettingsPage() {
       setShowForm(false);
       resetForm();
       await refreshClubs();
+      if (role === "admin") {
+        fetchRequests();
+      }
     } catch (saveError) {
       console.error("Error saving club:", saveError);
       setError("No se pudo guardar el club.");
@@ -335,6 +371,50 @@ export default function SettingsPage() {
                   }
                   className="w-full bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-lg py-3 px-4 text-zinc-900 dark:text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
                 />
+              </div>
+
+              {/* Subdominio (Solo editable por Admin) */}
+              <div>
+                <label className="block text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-1 flex items-center gap-1">
+                  Subdominio {role !== "admin" && "🔒"}
+                </label>
+                <input
+                  type="text"
+                  disabled={role !== "admin"}
+                  placeholder="ej. clubpadel"
+                  value={formData.subdomain}
+                  onChange={(event) =>
+                    setFormData({ ...formData, subdomain: event.target.value })
+                  }
+                  className="w-full bg-white dark:bg-zinc-950 border border-zinc-350 dark:border-zinc-800 disabled:opacity-70 disabled:bg-zinc-100/50 dark:disabled:bg-zinc-900/20 rounded-lg py-3 px-4 text-zinc-900 dark:text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-mono text-sm"
+                />
+                <span className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-1 block font-medium">
+                  {role === "admin" 
+                    ? "Permite acceso directo via [subdominio].reservate.com" 
+                    : "Habilitado por el administrador general."}
+                </span>
+              </div>
+
+              {/* Dominio Personalizado (Solo editable por Admin) */}
+              <div>
+                <label className="block text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-1 flex items-center gap-1">
+                  Dominio Personalizado {role !== "admin" && "🔒"}
+                </label>
+                <input
+                  type="text"
+                  disabled={role !== "admin"}
+                  placeholder="ej. reservas.clubpadel.com"
+                  value={formData.customDomain}
+                  onChange={(event) =>
+                    setFormData({ ...formData, customDomain: event.target.value })
+                  }
+                  className="w-full bg-white dark:bg-zinc-950 border border-zinc-350 dark:border-zinc-800 disabled:opacity-70 disabled:bg-zinc-100/50 dark:disabled:bg-zinc-900/20 rounded-lg py-3 px-4 text-zinc-900 dark:text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-mono text-sm"
+                />
+                <span className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-1 block font-medium">
+                  {role === "admin" 
+                    ? "Dominio DNS propio apuntado mediante CNAME" 
+                    : "Habilitado por el administrador general si posees dominio propio."}
+                </span>
               </div>
             </div>
 
@@ -547,6 +627,102 @@ export default function SettingsPage() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {role === "admin" && requests.length > 0 && (
+        <div className="mt-12 bg-white/80 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 p-6 rounded-2xl shadow-lg">
+          <div className="flex flex-col gap-2 mb-6">
+            <h2 className="text-xl font-bold flex items-center gap-2">
+              <span className="w-2 h-5 bg-primary rounded-full shadow-[0_0_8px_rgba(57,255,20,0.5)]" />
+              Solicitudes de Nuevas Sedes
+            </h2>
+            <p className="text-xs text-zinc-500">
+              Pedidos de dueños de franquicia pendientes de activación.
+            </p>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-zinc-200 dark:border-zinc-800 text-xs font-bold text-zinc-500 uppercase tracking-wider bg-zinc-50/50 dark:bg-zinc-950/20">
+                  <th className="p-3">Sede Propuesta</th>
+                  <th className="p-3">Deportes</th>
+                  <th className="p-3 text-center">Notas</th>
+                  <th className="p-3">Solicitante</th>
+                  <th className="p-3">Fecha</th>
+                  <th className="p-3 text-right">Acciones</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800/60 text-xs">
+                {requests.map((reqItem) => {
+                  const details = reqItem.details || {};
+                  return (
+                    <tr key={reqItem._id} className="hover:bg-zinc-50 dark:hover:bg-white/[0.01] transition-colors">
+                      <td className="p-3">
+                        <div className="font-bold text-zinc-900 dark:text-white">{details.name || "Sin Nombre"}</div>
+                        <div className="text-[10px] text-zinc-500">{details.location}</div>
+                      </td>
+                      <td className="p-3">
+                        <div className="flex flex-wrap gap-1">
+                          {(details.sports || "")
+                            .split(",")
+                            .map((s: string) => s.trim())
+                            .filter(Boolean)
+                            .map((sport: string) => (
+                              <span key={sport} className="px-1.5 py-0.5 rounded border border-primary/20 bg-primary/10 text-[9px] font-bold text-primary uppercase">
+                                {sport}
+                              </span>
+                            ))}
+                        </div>
+                      </td>
+                      <td className="p-3 text-zinc-600 dark:text-zinc-350 max-w-[200px] truncate" title={details.comments}>
+                        {details.comments || <span className="text-zinc-500 italic">Sin notas</span>}
+                      </td>
+                      <td className="p-3">
+                        <div className="font-medium text-zinc-800 dark:text-zinc-200">{reqItem.userName}</div>
+                        <div className="text-[10px] text-zinc-500">{reqItem.userEmail}</div>
+                      </td>
+                      <td className="p-3 text-zinc-500">
+                        {new Date(reqItem.createdAt).toLocaleDateString("es-AR", {
+                          day: "2-digit",
+                          month: "2-digit",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </td>
+                      <td className="p-3 text-right">
+                        <button
+                          onClick={() => {
+                            setFormData({
+                              name: details.name || "",
+                              location: details.location || "",
+                              sports: details.sports || "padel",
+                              description: details.comments ? `Solicitada por ${reqItem.userName}. ${details.comments}` : `Habilitada para ${reqItem.userName}`,
+                              bookingEnabled: true,
+                              depositType: "percentage",
+                              depositValue: 30,
+                              mpAccessToken: "",
+                              mpPublicKey: "",
+                              subdomain: (details.name || "").toLowerCase().replace(/[^a-z0-9]/g, ""),
+                              customDomain: "",
+                            });
+                            setEditingClubId(null);
+                            setShowForm(true);
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                          }}
+                          className="px-3 py-1.5 bg-primary text-primary-foreground font-bold rounded hover:scale-105 transition-all text-[10px] shadow-[0_0_8px_rgba(57,255,20,0.15)] animate-pulse hover:animate-none"
+                        >
+                          Habilitar
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
