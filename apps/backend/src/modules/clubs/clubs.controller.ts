@@ -15,11 +15,45 @@ import { ClubsService } from './clubs.service';
 import { CreateClubDto } from './dto/create-club.dto';
 import { UpdateClubDto } from './dto/update-club.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { AuditLogsService } from '../audit-logs/audit-logs.service';
 
 @Controller('clubs')
 @UseGuards(JwtAuthGuard)
 export class ClubsController {
-  constructor(private readonly clubsService: ClubsService) {}
+  constructor(
+    private readonly clubsService: ClubsService,
+    private readonly auditLogsService: AuditLogsService,
+  ) {}
+
+  @Post('request-creation')
+  async requestCreation(@Body() body: any, @Request() req: any) {
+    const user = req.user;
+    if (user.role !== 'club_owner') {
+      throw new ForbiddenException('Solo los dueños de franquicias pueden solicitar la creación de una nueva sede.');
+    }
+
+    if (!body.name || !body.location) {
+      throw new BadRequestException('El nombre y la ubicación de la sede son requeridos.');
+    }
+
+    await this.auditLogsService.logAction({
+      userId: user.id || user._id,
+      userName: user.name || user.email || 'Dueño de Club',
+      userEmail: user.email,
+      action: 'request_club_creation',
+      targetType: 'club',
+      targetId: 'new',
+      tenantId: user.tenantId,
+      details: {
+        name: body.name,
+        location: body.location,
+        sports: body.sports,
+        comments: body.comments,
+      },
+    });
+
+    return { success: true, message: 'Solicitud de nueva sede registrada correctamente.' };
+  }
 
   @Post()
   async create(@Body() createClubDto: CreateClubDto, @Request() req: any) {

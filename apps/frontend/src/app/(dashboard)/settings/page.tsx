@@ -83,11 +83,58 @@ export default function SettingsPage() {
   const [role, setRole] = useState<string | null>(null);
   const [checkingRole, setCheckingRole] = useState(true);
 
+  // Solicitud de nueva sede
+  const [showRequestModal, setShowRequestModal] = useState(false);
+  const [requestFormData, setRequestFormData] = useState({
+    name: "",
+    location: "",
+    sports: "padel",
+    comments: "",
+  });
+  const [requestSent, setRequestSent] = useState(false);
+  const [requestLoading, setRequestLoading] = useState(false);
+  const [requestError, setRequestError] = useState<string | null>(null);
+
   useEffect(() => {
     const userRole = getClientUserRole();
     setRole(userRole);
     setCheckingRole(false);
   }, []);
+
+  const resetRequestForm = () => {
+    setRequestFormData({
+      name: "",
+      location: "",
+      sports: "padel",
+      comments: "",
+    });
+    setRequestSent(false);
+    setRequestError(null);
+  };
+
+  const handleRequestSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setRequestLoading(true);
+    setRequestError(null);
+    try {
+      const response = await apiFetch("/clubs/request-creation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(requestFormData),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Request failed with status ${response.status}`);
+      }
+
+      setRequestSent(true);
+    } catch (err) {
+      console.error("Error submitting club creation request:", err);
+      setRequestError("No se pudo enviar la solicitud. Por favor intenta más tarde o contacta al administrador del sistema.");
+    } finally {
+      setRequestLoading(false);
+    }
+  };
 
   const refreshClubs = async () => {
     await globalRefreshClubs();
@@ -199,9 +246,16 @@ export default function SettingsPage() {
               Añadir nueva sede
             </button>
           ) : (
-            <div className="text-xs text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-white/5 rounded-xl px-4 py-2.5 bg-zinc-50/50 dark:bg-white/[0.02] max-w-xs leading-relaxed font-semibold">
-              🔒 Para añadir una nueva sede o ampliar tu plan, por favor solicita la creación al administrador del sistema.
-            </div>
+            <button
+              onClick={() => {
+                resetRequestForm();
+                setShowRequestModal(true);
+              }}
+              className="flex items-center gap-2 px-5 py-2.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 border border-zinc-300 dark:border-zinc-700 font-bold rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:-translate-y-0.5 transition-all w-fit shadow-sm"
+            >
+              <Plus className="w-5 h-5 text-zinc-500" />
+              Solicitar nueva sede
+            </button>
           )
         )}
       </div>
@@ -493,6 +547,121 @@ export default function SettingsPage() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {showRequestModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-card border border-border w-full max-w-lg rounded-2xl shadow-2xl p-6 relative animate-in fade-in zoom-in duration-200">
+            <button 
+              onClick={() => setShowRequestModal(false)}
+              className="absolute top-4 right-4 text-zinc-500 hover:text-zinc-800 dark:hover:text-white transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {!requestSent ? (
+              <form onSubmit={handleRequestSubmit} className="space-y-4">
+                <div className="flex items-center gap-3 text-primary mb-2">
+                  <div className="p-2 bg-primary/10 rounded-lg">
+                    <Building2 className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-zinc-900 dark:text-white">Solicitar Nueva Sede</h2>
+                    <p className="text-xs text-zinc-500">Completá los datos para que el administrador la configure</p>
+                  </div>
+                </div>
+
+                {requestError && (
+                  <div className="p-3 text-xs bg-red-500/10 border border-red-500/20 text-red-400 rounded-lg">
+                    {requestError}
+                  </div>
+                )}
+
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1">Nombre de la nueva sede</label>
+                    <input
+                      required
+                      type="text"
+                      placeholder="Ej. Padel Club - Sede Norte"
+                      value={requestFormData.name}
+                      onChange={(e) => setRequestFormData({ ...requestFormData, name: e.target.value })}
+                      className="w-full bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-lg py-2.5 px-3 text-zinc-900 dark:text-white text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1">Ubicación / Dirección</label>
+                    <input
+                      required
+                      type="text"
+                      placeholder="Ej. Av. Cabildo 1234, CABA"
+                      value={requestFormData.location}
+                      onChange={(e) => setRequestFormData({ ...requestFormData, location: e.target.value })}
+                      className="w-full bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-lg py-2.5 px-3 text-zinc-900 dark:text-white text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1">Deportes (separados por coma)</label>
+                    <input
+                      required
+                      type="text"
+                      placeholder="Ej. padel, futbol"
+                      value={requestFormData.sports}
+                      onChange={(e) => setRequestFormData({ ...requestFormData, sports: e.target.value })}
+                      className="w-full bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-lg py-2.5 px-3 text-zinc-900 dark:text-white text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1">Notas adicionales / Cantidad de Canchas</label>
+                    <textarea
+                      placeholder="Contanos más detalles sobre las canchas que vas a configurar en esta nueva sede..."
+                      rows={3}
+                      value={requestFormData.comments}
+                      onChange={(e) => setRequestFormData({ ...requestFormData, comments: e.target.value })}
+                      className="w-full bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-lg py-2.5 px-3 text-zinc-900 dark:text-white text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary resize-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-3 pt-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowRequestModal(false)}
+                    className="px-4 py-2 bg-zinc-200 dark:bg-zinc-800 hover:bg-zinc-300 dark:hover:bg-zinc-700 text-zinc-900 dark:text-white text-sm font-semibold rounded-lg transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={requestLoading}
+                    className="px-5 py-2 bg-primary text-primary-foreground text-sm font-bold rounded-lg shadow-[0_0_15px_rgba(57,255,20,0.2)] hover:shadow-[0_0_20px_rgba(57,255,20,0.4)] transition-all disabled:opacity-50"
+                  >
+                    {requestLoading ? "Enviando..." : "Enviar Solicitud"}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div className="text-center py-6 space-y-4">
+                <div className="w-16 h-16 bg-primary/10 border border-primary/20 text-primary rounded-full flex items-center justify-center mx-auto shadow-[0_0_15px_rgba(57,255,20,0.1)]">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="animate-bounce"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                </div>
+                <h3 className="text-xl font-bold text-zinc-900 dark:text-white">¡Solicitud Enviada!</h3>
+                <p className="text-sm text-zinc-500 dark:text-zinc-400 max-w-sm mx-auto">
+                  Tu solicitud para la sede <strong className="text-zinc-900 dark:text-white">"{requestFormData.name}"</strong> ha sido enviada al administrador global. Te contactaremos pronto para realizar la habilitación y facturación.
+                </p>
+                <button
+                  onClick={() => setShowRequestModal(false)}
+                  className="px-6 py-2 bg-primary text-primary-foreground text-sm font-bold rounded-lg shadow-[0_0_10px_rgba(57,255,20,0.2)] transition-all mt-4"
+                >
+                  Entendido
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
