@@ -24,15 +24,8 @@ export class ClubsController {
   @Post()
   async create(@Body() createClubDto: CreateClubDto, @Request() req: any) {
     const user = req.user;
-    if (user.role !== 'admin' && user.role !== 'club_owner') {
-      throw new ForbiddenException('No tienes permiso para crear clubes.');
-    }
-
-    if (user.role === 'club_owner') {
-      if (!user.tenantId) {
-        throw new BadRequestException('El administrador no tiene una franquicia (tenant) asociada.');
-      }
-      createClubDto.tenantId = user.tenantId;
+    if (user.role !== 'admin') {
+      throw new ForbiddenException('Solo los administradores globales pueden crear sedes/clubes. Por favor, solicita la creación al administrador del sistema.');
     }
 
     return this.clubsService.create(createClubDto);

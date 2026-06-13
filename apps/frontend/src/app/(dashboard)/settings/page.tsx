@@ -106,7 +106,7 @@ export default function SettingsPage() {
     );
   }
 
-  if (role !== "admin") {
+  if (role !== "admin" && role !== "club_owner") {
     return (
       <div className="flex-1 p-8 bg-white dark:bg-zinc-950 flex flex-col items-center justify-center text-center">
         <div className="w-16 h-16 bg-red-500/10 border border-red-500/20 text-red-500 rounded-full flex items-center justify-center mb-4 shadow-[0_0_15px_rgba(239,68,68,0.1)]">
@@ -187,16 +187,22 @@ export default function SettingsPage() {
           </p>
         </div>
         {!showForm && (
-          <button
-            onClick={() => {
-              resetForm();
-              setShowForm(true);
-            }}
-            className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground font-bold rounded-lg shadow-[0_0_15px_rgba(57,255,20,0.2)] hover:shadow-[0_0_20px_rgba(57,255,20,0.4)] hover:-translate-y-0.5 transition-all w-fit"
-          >
-            <Plus className="w-5 h-5" />
-            Añadir nueva sede
-          </button>
+          role === "admin" ? (
+            <button
+              onClick={() => {
+                resetForm();
+                setShowForm(true);
+              }}
+              className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground font-bold rounded-lg shadow-[0_0_15px_rgba(57,255,20,0.2)] hover:shadow-[0_0_20px_rgba(57,255,20,0.4)] hover:-translate-y-0.5 transition-all w-fit"
+            >
+              <Plus className="w-5 h-5" />
+              Añadir nueva sede
+            </button>
+          ) : (
+            <div className="text-xs text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-white/5 rounded-xl px-4 py-2.5 bg-zinc-50/50 dark:bg-white/[0.02] max-w-xs leading-relaxed font-semibold">
+              🔒 Para añadir una nueva sede o ampliar tu plan, por favor solicita la creación al administrador del sistema.
+            </div>
+          )
         )}
       </div>
 
@@ -425,13 +431,15 @@ export default function SettingsPage() {
                   >
                     <Pencil className="w-4 h-4" />
                   </button>
-                  <button
-                    onClick={() => handleDelete(club._id)}
-                    className="p-2 bg-zinc-200/80 dark:bg-zinc-800/80 hover:bg-red-500/20 text-zinc-600 dark:text-zinc-300 hover:text-red-400 rounded-lg transition-colors"
-                    title="Eliminar sede"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
+                  {role === "admin" && (
+                    <button
+                      onClick={() => handleDelete(club._id)}
+                      className="p-2 bg-zinc-200/80 dark:bg-zinc-800/80 hover:bg-red-500/20 text-zinc-600 dark:text-zinc-300 hover:text-red-400 rounded-lg transition-colors"
+                      title="Eliminar sede"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
               </div>
 

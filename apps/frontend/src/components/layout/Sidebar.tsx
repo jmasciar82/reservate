@@ -159,7 +159,7 @@ export function Sidebar() {
           <User className={`w-5 h-5 mr-3 transition-colors ${isActive("/profile") ? "text-primary" : "text-zinc-400 dark:text-zinc-500"}`} />
           Mi perfil
         </Link>
-        {role === "admin" && (
+        {(role === "admin" || role === "club_owner") && (
           <Link
             href="/settings"
             className={`flex items-center px-4 py-3 rounded-xl font-bold transition-all duration-300 ${
