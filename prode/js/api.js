@@ -162,10 +162,10 @@ const ProdeAPI = {
       // Lista de proxies de respaldo para asegurar compatibilidad con diferentes orígenes (localhost y file://)
       const proxies = [
         url => url, // Consulta directa (CORS nativo soportado con Access-Control-Allow-Origin: *)
+        url => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`, // AllOrigins JSON (Estable, con caché)
         url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
         url => `https://proxy.corsfix.com/?${url}`,
-        url => `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
-        url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`
+        url => `https://corsproxy.io/?url=${encodeURIComponent(url)}`
       ];
 
       let apiTeams = null;
@@ -174,30 +174,60 @@ const ProdeAPI = {
 
       // Iterar sobre los proxies para intentar obtener los datos (los endpoints GET son públicos y no requieren auth)
       for (const getProxyUrl of proxies) {
+        // Determinar el nombre del proxy para logging informativo
+        const testUrl = getProxyUrl("TEST");
+        const proxyName = testUrl === "TEST" ? "Conexión Directa" :
+                          (testUrl.includes("allorigins.win/get") ? "AllOrigins (JSON)" :
+                          (testUrl.includes("codetabs") ? "CodeTabs" :
+                          (testUrl.includes("corsfix") ? "CORSFix" :
+                          (testUrl.includes("corsproxy.io") ? "CorsProxy.io" : "Proxy CORS"))));
+
         try {
-          console.log(`Intentando conectar usando el proxy: ${getProxyUrl("https://worldcup26.ir")}`);
+          console.log(`Intentando conectar usando: ${proxyName}`);
           
           // 1. Obtener equipos
           const teamsUrl = getProxyUrl("https://worldcup26.ir/get/teams");
           const teamsRes = await fetch(teamsUrl);
-          if (!teamsRes.ok) throw new Error(`Fallo al obtener equipos (${teamsRes.status})`);
-          const teamsData = await teamsRes.json();
+          if (!teamsRes.ok) throw new Error(`Fallo al obtener equipos (HTTP ${teamsRes.status})`);
+          
+          let teamsData = await teamsRes.json();
+          // Desempaquetar respuesta si viene de un proxy que encapsula (como AllOrigins JSON)
+          if (teamsData && typeof teamsData.contents === "string") {
+            teamsData = JSON.parse(teamsData.contents);
+          }
           apiTeams = teamsData.teams || teamsData;
 
           // 2. Obtener partidos
           const gamesUrl = getProxyUrl("https://worldcup26.ir/get/games");
           const gamesRes = await fetch(gamesUrl);
-          if (!gamesRes.ok) throw new Error(`Fallo al obtener partidos (${gamesRes.status})`);
-          const gamesData = await gamesRes.json();
+          if (!gamesRes.ok) throw new Error(`Fallo al obtener partidos (HTTP ${gamesRes.status})`);
+          
+          let gamesData = await gamesRes.json();
+          // Desempaquetar respuesta si viene de un proxy que encapsula (como AllOrigins JSON)
+          if (gamesData && typeof gamesData.contents === "string") {
+            gamesData = JSON.parse(gamesData.contents);
+          }
           apiMatches = gamesData.games || gamesData;
 
           if (apiTeams && apiMatches) {
-            console.log("Datos obtenidos exitosamente de la API.");
+            console.log(`Datos obtenidos exitosamente de la API usando: ${proxyName}`);
+            
+            // Agregar log de éxito en el panel si ProdeApp está disponible
+            if (typeof ProdeApp !== "undefined" && ProdeApp.addAdminLog) {
+              ProdeApp.addAdminLog(`Conexión exitosa a la API vía: ${proxyName}`);
+            }
+            
             fetchError = null;
             break; // Salió bien, rompemos el bucle
           }
         } catch (e) {
-          console.warn(`Error con el proxy actual:`, e);
+          const logMsg = `Fallo en sync vía ${proxyName}: ${e.message}`;
+          console.warn(logMsg);
+          
+          // Agregar log informativo en el panel de administrador
+          if (typeof ProdeApp !== "undefined" && ProdeApp.addAdminLog) {
+            ProdeApp.addAdminLog(logMsg);
+          }
           fetchError = e;
         }
       }
