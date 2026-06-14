@@ -167,7 +167,7 @@ export default function TeachersPage() {
     if (!activeClubId) return;
     setClassesLoading(true);
     try {
-      const res = await apiFetch(`/reservations?clubId=${activeClubId}`);
+      const res = await apiFetch(`/reservations?clubId=${activeClubId}&type=class`);
       if (res.ok) {
         const data = await res.json();
         const filtered = data.filter((r: any) =>

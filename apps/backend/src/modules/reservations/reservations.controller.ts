@@ -84,6 +84,7 @@ export class ReservationsController {
     @Request() req: any,
     @Query('date') date?: string,
     @Query('clubId') clubId?: string,
+    @Query('type') type?: string,
   ) {
     const user = req.user;
     if (user.role === 'club_owner') {
@@ -92,17 +93,17 @@ export class ReservationsController {
         if (!club || club.tenantId?.toString() !== user.tenantId?.toString()) {
           throw new ForbiddenException('No tienes permiso para consultar reservas de este club.');
         }
-        return this.reservationsService.findAll({ date, clubId });
+        return this.reservationsService.findAll({ date, clubId, type });
       } else {
         if (!user.tenantId) return [];
         const clubs = await this.clubsService.findByTenant(user.tenantId);
         const clubIds = clubs.map((c: any) => c._id.toString());
-        return this.reservationsService.findAll({ date, clubId: clubIds });
+        return this.reservationsService.findAll({ date, clubId: clubIds, type });
       }
     } else if (user.role === 'staff') {
-      return this.reservationsService.findAll({ date, clubId: user.clubId });
+      return this.reservationsService.findAll({ date, clubId: user.clubId, type });
     }
-    return this.reservationsService.findAll({ date, clubId });
+    return this.reservationsService.findAll({ date, clubId, type });
   }
 
   @Patch(':id')

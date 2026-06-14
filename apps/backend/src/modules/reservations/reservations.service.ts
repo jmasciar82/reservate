@@ -19,6 +19,7 @@ const PAYMENT_STATUSES = ['pending', 'paid'];
 interface ReservationQuery {
   date?: string;
   clubId?: string | string[];
+  type?: string;
 }
 
 function getArgentinaDayRange(date: string) {
@@ -452,8 +453,17 @@ export class ReservationsService {
       }
     }
 
+    let typeFilter = {};
+    if (query?.type === 'class') {
+      typeFilter = {
+        reservationType: { $in: ['escuelita_padel', 'escuelita_futbol', 'clase_particular_padel', 'clase_particular_futbol'] }
+      };
+    } else if (query?.type) {
+      typeFilter = { reservationType: query.type };
+    }
+
     const reservations = await this.reservationModel
-      .find({ ...dateFilter, ...clubFilter })
+      .find({ ...dateFilter, ...clubFilter, ...typeFilter })
       .populate('courtId')
       .populate('teacherId')
       .sort({ startTime: 1 })
