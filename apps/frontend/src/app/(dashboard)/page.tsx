@@ -419,6 +419,8 @@ export default async function Dashboard({
                           : (reservation.userId || "")
                       }
                       startTime={reservation.startTime}
+                      students={reservation.students}
+                      reservationType={reservation.reservationType}
                     />
                   </div>
                 </div>

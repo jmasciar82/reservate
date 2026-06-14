@@ -48,11 +48,25 @@ export default function TeachersPage() {
   const [bookingEndTime, setBookingEndTime] = useState("19:00");
   const [bookingCourtId, setBookingCourtId] = useState("");
   const [bookingPaymentStatus, setBookingPaymentStatus] = useState<"pending" | "paid">("pending");
+  const [bookingActivityType, setBookingActivityType] = useState<"clase" | "escuelita">("clase");
   const [bookingStudents, setBookingStudents] = useState<
-    Array<{ firstName: string; lastName: string; phone?: string; email?: string }>
-  >([{ firstName: "", lastName: "", phone: "", email: "" }]);
+    Array<{ firstName: string; lastName: string; phone?: string; email?: string; paidAbono?: boolean }>
+  >([{ firstName: "", lastName: "", phone: "", email: "", paidAbono: false }]);
   const [bookingIsRecurring, setBookingIsRecurring] = useState(false);
   const [bookingRecurrenceWeeks, setBookingRecurrenceWeeks] = useState(12);
+
+  // Enforce escuelita rules
+  useEffect(() => {
+    if (bookingActivityType === "escuelita") {
+      setBookingIsRecurring(true);
+      setBookingRecurrenceWeeks(12);
+      if (bookingStartTime) {
+        const [h, m] = bookingStartTime.split(":");
+        const newHour = (parseInt(h) + 1) % 24;
+        setBookingEndTime(`${String(newHour).padStart(2, "0")}:${m}`);
+      }
+    }
+  }, [bookingActivityType, bookingStartTime]);
 
 
 
@@ -235,7 +249,7 @@ export default function TeachersPage() {
 
   // Student list row handlers
   const handleAddStudentRow = () => {
-    setBookingStudents((prev) => [...prev, { firstName: "", lastName: "", phone: "", email: "" }]);
+    setBookingStudents((prev) => [...prev, { firstName: "", lastName: "", phone: "", email: "", paidAbono: false }]);
   };
 
   const handleRemoveStudentRow = (index: number) => {
@@ -243,7 +257,7 @@ export default function TeachersPage() {
     setBookingStudents((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleStudentChange = (index: number, field: string, value: string) => {
+  const handleStudentChange = (index: number, field: string, value: any) => {
     setBookingStudents((prev) =>
       prev.map((s, i) => (i === index ? { ...s, [field]: value } : s))
     );
@@ -280,12 +294,14 @@ export default function TeachersPage() {
       startTime: startIso,
       endTime: endIso,
       reservationType:
-        bookingSport === "padel" ? "clase_particular_padel" : "clase_particular_futbol",
+        bookingSport === "padel"
+          ? (bookingActivityType === "escuelita" ? "escuelita_padel" : "clase_particular_padel")
+          : (bookingActivityType === "escuelita" ? "escuelita_futbol" : "clase_particular_futbol"),
       teacherId: bookingTeacherId,
       teacherPrice,
-      paymentStatus: bookingPaymentStatus,
-      status: bookingPaymentStatus === "paid" ? "confirmed" : "pending",
-      depositAmount: bookingPaymentStatus === "paid" ? undefined : 0,
+      paymentStatus: bookingSport === "football" ? "pending" : bookingPaymentStatus,
+      status: bookingSport === "football" ? "pending" : (bookingPaymentStatus === "paid" ? "confirmed" : "pending"),
+      depositAmount: bookingSport === "football" ? 0 : (bookingPaymentStatus === "paid" ? undefined : 0),
       firstName: primaryStudent.firstName,
       lastName: primaryStudent.lastName,
       email: primaryStudent.email || undefined,
@@ -305,7 +321,7 @@ export default function TeachersPage() {
       if (res.ok) {
         alert("¡Clase reservada con éxito!");
         // Reset booking form state
-        setBookingStudents([{ firstName: "", lastName: "", phone: "", email: "" }]);
+        setBookingStudents([{ firstName: "", lastName: "", phone: "", email: "", paidAbono: false }]);
         setBookingIsRecurring(false);
         setBookingRecurrenceWeeks(12);
         fetchAvailableCourts();
@@ -560,6 +576,34 @@ export default function TeachersPage() {
               </div>
 
               <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">Tipo de Actividad</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setBookingActivityType("clase")}
+                    className={`py-2.5 px-4 rounded-xl border text-sm font-black transition-all ${
+                      bookingActivityType === "clase"
+                        ? "bg-primary/10 border-primary text-primary shadow-[0_0_12px_rgba(57,255,20,0.15)]"
+                        : "border-zinc-200 dark:border-white/5 bg-zinc-50 dark:bg-white/5 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-white/10"
+                    }`}
+                  >
+                    Clase Particular
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setBookingActivityType("escuelita")}
+                    className={`py-2.5 px-4 rounded-xl border text-sm font-black transition-all ${
+                      bookingActivityType === "escuelita"
+                        ? "bg-primary/10 border-primary text-primary shadow-[0_0_12px_rgba(57,255,20,0.15)]"
+                        : "border-zinc-200 dark:border-white/5 bg-zinc-50 dark:bg-white/5 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-white/10"
+                    }`}
+                  >
+                    Escuelita
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">Profesor</label>
                 <select
                   required
@@ -636,8 +680,9 @@ export default function TeachersPage() {
                     type="time"
                     required
                     value={bookingEndTime}
+                    disabled={bookingActivityType === "escuelita"}
                     onChange={(e) => setBookingEndTime(e.target.value)}
-                    className="w-full bg-zinc-50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-xl px-3 py-2 text-sm text-zinc-900 dark:text-white focus:outline-none focus:border-primary font-bold"
+                    className="w-full bg-zinc-50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-xl px-3 py-2 text-sm text-zinc-900 dark:text-white focus:outline-none focus:border-primary font-bold disabled:opacity-50"
                   />
                 </div>
               </div>
@@ -667,33 +712,35 @@ export default function TeachersPage() {
                 </div>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">Estado de Pago</label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setBookingPaymentStatus("pending")}
-                    className={`py-2.5 px-4 rounded-xl border text-sm font-black transition-all ${
-                      bookingPaymentStatus === "pending"
-                        ? "bg-amber-500/10 border-amber-500 text-amber-500 shadow-[0_0_12px_rgba(245,158,11,0.15)]"
-                        : "border-zinc-200 dark:border-white/5 bg-zinc-50 dark:bg-white/5 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-white/10"
-                    }`}
-                  >
-                    Debe (Pendiente)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setBookingPaymentStatus("paid")}
-                    className={`py-2.5 px-4 rounded-xl border text-sm font-black transition-all ${
-                      bookingPaymentStatus === "paid"
-                        ? "bg-green-500/10 border-green-500 text-green-500 shadow-[0_0_12px_rgba(34,197,94,0.15)]"
-                        : "border-zinc-200 dark:border-white/5 bg-zinc-50 dark:bg-white/5 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-white/10"
-                    }`}
-                  >
-                    Abonado (Pagado)
-                  </button>
+              {bookingSport !== "football" && (
+                <div className="space-y-1.5 animate-in fade-in duration-200">
+                  <label className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">Estado de Pago</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setBookingPaymentStatus("pending")}
+                      className={`py-2.5 px-4 rounded-xl border text-sm font-black transition-all ${
+                        bookingPaymentStatus === "pending"
+                          ? "bg-amber-500/10 border-amber-500 text-amber-500 shadow-[0_0_12px_rgba(245,158,11,0.15)]"
+                          : "border-zinc-200 dark:border-white/5 bg-zinc-50 dark:bg-white/5 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-white/10"
+                      }`}
+                    >
+                      Debe (Pendiente)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setBookingPaymentStatus("paid")}
+                      className={`py-2.5 px-4 rounded-xl border text-sm font-black transition-all ${
+                        bookingPaymentStatus === "paid"
+                          ? "bg-green-500/10 border-green-500 text-green-500 shadow-[0_0_12px_rgba(34,197,94,0.15)]"
+                          : "border-zinc-200 dark:border-white/5 bg-zinc-50 dark:bg-white/5 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-white/10"
+                      }`}
+                    >
+                      Abonado (Pagado)
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Recurrence Switcher & Dropdown */}
               <div className="space-y-3.5 bg-zinc-50/50 dark:bg-white/[0.02] border border-zinc-200/80 dark:border-white/5 rounded-xl p-4 shadow-inner">
@@ -706,6 +753,7 @@ export default function TeachersPage() {
                     <input
                       type="checkbox"
                       checked={bookingIsRecurring}
+                      disabled={bookingActivityType === "escuelita"}
                       onChange={(e) => setBookingIsRecurring(e.target.checked)}
                       className="sr-only peer"
                     />
@@ -718,6 +766,7 @@ export default function TeachersPage() {
                     <label className="text-xs font-semibold text-zinc-400 font-bold">Duración de la recurrencia</label>
                     <select
                       value={bookingRecurrenceWeeks}
+                      disabled={bookingActivityType === "escuelita"}
                       onChange={(e) => setBookingRecurrenceWeeks(Number(e.target.value))}
                       className="w-full bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-zinc-900 dark:text-white font-bold"
                     >
@@ -804,6 +853,38 @@ export default function TeachersPage() {
                         className="bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-white/10 rounded-lg px-3 py-1.5 text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-none focus:border-primary font-medium"
                       />
                     </div>
+
+                    {bookingSport === "football" && (
+                      <div className="flex items-center justify-between pt-2 border-t border-zinc-200/50 dark:border-white/5 mt-1.5 animate-in fade-in duration-200">
+                        <span className="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400">
+                          Abono Mensual
+                        </span>
+                        <div className="flex gap-1 bg-zinc-100 dark:bg-zinc-900/50 p-0.5 rounded-lg border border-zinc-200 dark:border-white/5">
+                          <button
+                            type="button"
+                            onClick={() => handleStudentChange(idx, "paidAbono", false)}
+                            className={`px-3 py-1 text-[10px] font-black uppercase rounded-md transition-all ${
+                              !student.paidAbono
+                                ? "bg-amber-500/15 text-amber-500 border border-amber-500/20 shadow-sm"
+                                : "text-zinc-500 hover:text-zinc-300"
+                            }`}
+                          >
+                            Debe
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleStudentChange(idx, "paidAbono", true)}
+                            className={`px-3 py-1 text-[10px] font-black uppercase rounded-md transition-all ${
+                              student.paidAbono
+                                ? "bg-green-500/15 text-green-400 border border-green-500/20 shadow-sm"
+                                : "text-zinc-500 hover:text-zinc-300"
+                            }`}
+                          >
+                            Pagado
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

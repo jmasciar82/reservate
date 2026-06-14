@@ -27,6 +27,7 @@ export class UpdateReservationDto {
     lastName: string;
     email?: string;
     phone?: string;
+    paidAbono?: boolean;
   }>;
 }
 

@@ -443,6 +443,8 @@ export default function SchedulerGrid({
                                   : (reservation.userId || "")
                               }
                               startTime={reservation.startTime}
+                              students={reservation.students}
+                              reservationType={reservation.reservationType}
                             />
                           </div>
                         ) : null}
@@ -564,6 +566,8 @@ export default function SchedulerGrid({
                                 : (reservation.userId || "")
                             }
                             startTime={reservation.startTime}
+                            students={reservation.students}
+                            reservationType={reservation.reservationType}
                           />
                             </div>
                           </div>

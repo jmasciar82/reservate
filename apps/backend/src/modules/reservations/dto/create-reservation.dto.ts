@@ -30,6 +30,7 @@ export class CreateReservationDto {
     lastName: string;
     email?: string;
     phone?: string;
+    paidAbono?: boolean;
   }>;
 }
 

@@ -3,9 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { Ban, CheckCircle, CircleDollarSign, Edit, MoreVertical, User, X } from "lucide-react";
+import { Ban, CheckCircle, CircleDollarSign, Edit, MoreVertical, User, X, Users } from "lucide-react";
 import { apiFetch } from "@/lib/api";
-import type { PaymentStatus, ReservationStatus, Product } from "@/lib/types";
+import type { PaymentStatus, ReservationStatus, Product, ReservationStudent } from "@/lib/types";
 import { useClub } from "@/providers/ClubProvider";
 
 interface ReservationActionsProps {
@@ -25,6 +25,8 @@ interface ReservationActionsProps {
     price: number;
     total?: number;
   }>;
+  students?: ReservationStudent[];
+  reservationType?: string;
 }
 
 const PRESET_PRODUCTS = [
@@ -47,6 +49,8 @@ export default function ReservationActions({
   playerName = "",
   startTime,
   products = [],
+  students = [],
+  reservationType,
 }: ReservationActionsProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -55,11 +59,19 @@ export default function ReservationActions({
   const [showBalanceModal, setShowBalanceModal] = useState(false);
   const [showEditNameModal, setShowEditNameModal] = useState(false);
   const [showSingleCancelModal, setShowSingleCancelModal] = useState(false);
+  const [showStudentsModal, setShowStudentsModal] = useState(false);
+  const [modalStudents, setModalStudents] = useState<ReservationStudent[]>(students || []);
   const [mounted, setMounted] = useState(false);
   const [nameInputValue, setNameInputValue] = useState(playerName || "");
   const [expandUp, setExpandUp] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+
+  useEffect(() => {
+    if (showStudentsModal) {
+      setModalStudents(students || []);
+    }
+  }, [showStudentsModal, students]);
 
   const { activeClubId } = useClub();
   const [showAddProductsModal, setShowAddProductsModal] = useState(false);
@@ -193,12 +205,14 @@ export default function ReservationActions({
     userId?: string;
     payBlock?: boolean;
     products?: Array<{ name: string; quantity: number; price: number }>;
+    students?: ReservationStudent[];
   }) => {
     setIsOpen(false);
     setShowCancelModal(false);
     setShowDepositModal(false);
     setShowEditNameModal(false);
     setShowAddProductsModal(false);
+    setShowStudentsModal(false);
 
     try {
       const response = await apiFetch(`/reservations/${reservationId}`, {
@@ -339,6 +353,19 @@ export default function ReservationActions({
                 <Edit className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
                 <span>Editar nombre</span>
               </button>
+
+              {students && students.length > 0 && (reservationType === "escuelita_futbol" || reservationType === "clase_particular_futbol") && (
+                <button
+                  onClick={() => {
+                    setIsOpen(false);
+                    setShowStudentsModal(true);
+                  }}
+                  className="w-full text-left px-4 py-2 text-sm text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-900 flex items-center gap-2.5 transition-colors border-t border-zinc-100 dark:border-zinc-900"
+                >
+                  <Users className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
+                  <span>Administrar Alumnos (Abono)</span>
+                </button>
+              )}
 
               <button
                 onClick={handleOpenAddProducts}
@@ -851,6 +878,109 @@ export default function ReservationActions({
                   Confirmar Consumos
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {renderModal(
+        showStudentsModal,
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/30 dark:bg-black/70 backdrop-blur-sm animate-in fade-in duration-200"
+            onClick={() => setShowStudentsModal(false)}
+          />
+          <div className="relative w-full max-w-md bg-white/95 dark:bg-zinc-950/85 backdrop-blur-xl border border-zinc-200 dark:border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-zinc-200/80 dark:border-white/5 flex justify-between items-center bg-zinc-50 dark:bg-white/[0.02]">
+              <h3 className="text-lg font-black text-zinc-900 dark:text-white flex items-center gap-2">
+                <span className="w-2 h-5 bg-primary rounded-full shadow-[0_0_8px_rgba(57,255,20,0.5)]" />
+                Administrar Alumnos (Abonos)
+              </h3>
+              <button
+                onClick={() => setShowStudentsModal(false)}
+                className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-all duration-300 p-1.5 bg-zinc-100/80 dark:bg-white/5 hover:bg-zinc-200 dark:hover:bg-white/10 rounded-lg border border-zinc-200/80 dark:border-white/5"
+                title="Cerrar"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
+              {modalStudents.length === 0 ? (
+                <p className="text-sm text-zinc-500 dark:text-zinc-400 text-center italic">
+                  No hay alumnos registrados en esta clase.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {modalStudents.map((student, idx) => (
+                    <div
+                      key={idx}
+                      className="p-4 bg-zinc-50 dark:bg-white/[0.02] border border-zinc-200 dark:border-white/5 rounded-xl space-y-2.5"
+                    >
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-black text-zinc-800 dark:text-zinc-200">
+                          {student.firstName} {student.lastName}
+                        </span>
+                        <div className="flex gap-1 bg-zinc-100 dark:bg-zinc-900/50 p-0.5 rounded-lg border border-zinc-200 dark:border-white/5">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setModalStudents(prev => prev.map((s, i) => i === idx ? { ...s, paidAbono: false } : s));
+                            }}
+                            className={`px-3 py-1 text-[10px] font-black uppercase rounded-md transition-all ${
+                              !student.paidAbono
+                                ? "bg-amber-500/15 text-amber-500 border border-amber-500/20 shadow-sm"
+                                : "text-zinc-500 hover:text-zinc-350"
+                            }`}
+                          >
+                            Debe
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setModalStudents(prev => prev.map((s, i) => i === idx ? { ...s, paidAbono: true } : s));
+                            }}
+                            className={`px-3 py-1 text-[10px] font-black uppercase rounded-md transition-all ${
+                              student.paidAbono
+                                ? "bg-green-500/15 text-green-400 border border-green-500/20 shadow-sm"
+                                : "text-zinc-555 hover:text-zinc-350"
+                            }`}
+                          >
+                            Pagado
+                          </button>
+                        </div>
+                      </div>
+                      {(student.phone || student.email) && (
+                        <div className="text-[10px] text-zinc-500 dark:text-zinc-400 space-y-0.5 pt-1.5 border-t border-zinc-200/50 dark:border-white/5">
+                          {student.phone && <div>📞 {student.phone}</div>}
+                          {student.email && <div>✉️ {student.email}</div>}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="p-6 border-t border-zinc-200/80 dark:border-white/5 flex gap-3 bg-zinc-50/50 dark:bg-white/[0.01]">
+              <button
+                type="button"
+                onClick={() => setShowStudentsModal(false)}
+                className="flex-1 py-3 bg-zinc-150 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-300 font-bold rounded-xl border border-zinc-300 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-700 transition-all text-sm"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  handleUpdate({
+                    students: modalStudents,
+                  });
+                }}
+                className="flex-1 py-3 bg-primary text-primary-foreground font-black rounded-xl shadow-[0_4px_15px_rgba(57,255,20,0.25)] hover:shadow-[0_4px_20px_rgba(57,255,20,0.45)] transition-all text-sm"
+              >
+                Guardar Cambios
+              </button>
             </div>
           </div>
         </div>

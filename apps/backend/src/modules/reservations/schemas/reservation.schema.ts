@@ -34,6 +34,9 @@ export class ReservationStudent {
 
   @Prop({ required: false })
   phone?: string;
+
+  @Prop({ required: false, default: false })
+  paidAbono?: boolean;
 }
 
 const ReservationStudentSchema = SchemaFactory.createForClass(ReservationStudent);

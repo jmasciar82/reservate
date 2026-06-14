@@ -38,6 +38,7 @@ export interface ReservationStudent {
   lastName: string;
   email?: string;
   phone?: string;
+  paidAbono?: boolean;
 }
 
 export interface Reservation {
