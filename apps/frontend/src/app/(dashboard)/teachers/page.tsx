@@ -111,8 +111,14 @@ export default function TeachersPage() {
   const [sociosLoading, setSociosLoading] = useState(false);
   const [dragOverClassId, setDragOverClassId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [classSearchQuery, setClassSearchQuery] = useState("");
   const [isNewClassModalOpen, setIsNewClassModalOpen] = useState(false);
+
+  // New Search Filters for Clases Programadas
+  const [searchFilterActivity, setSearchFilterActivity] = useState<"all" | "escuelita" | "clase">("all");
+  const [searchFilterTeacherId, setSearchFilterTeacherId] = useState<string>("");
+  const [searchFilterDate, setSearchFilterDate] = useState<string>("");
+  const [searchFilterTime, setSearchFilterTime] = useState<string>("");
+  const [hasSearched, setHasSearched] = useState(false);
 
   useEffect(() => {
     if (activeClubId) {
@@ -540,19 +546,70 @@ export default function TeachersPage() {
     return t?.availability || [];
   };
 
-  // Filter scheduled classes based on search query
+  // Filter scheduled classes based on search filters
   const filteredClasses = useMemo(() => {
-    let list = scheduledClasses;
-    if (classSearchQuery) {
-      const q = classSearchQuery.toLowerCase().trim();
-      list = list.filter(
-        (c) =>
-          (c.teacherId?.name && c.teacherId.name.toLowerCase().includes(q)) ||
-          (c.courtId?.name && c.courtId.name.toLowerCase().includes(q))
-      );
+    if (!hasSearched) return [];
+
+    return scheduledClasses.filter((c) => {
+      // 1. Activity filter
+      if (searchFilterActivity !== "all") {
+        const isEscuelita = c.reservationType?.includes("escuelita");
+        if (searchFilterActivity === "escuelita" && !isEscuelita) return false;
+        if (searchFilterActivity === "clase" && isEscuelita) return false;
+      }
+
+      // 2. Teacher filter
+      if (searchFilterTeacherId) {
+        const teacherId = typeof c.teacherId === "object" ? c.teacherId?._id : c.teacherId;
+        if (teacherId !== searchFilterTeacherId) return false;
+      }
+
+      // 3. Date filter
+      if (searchFilterDate) {
+        const d = new Date(c.startTime);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        const classDateStr = `${year}-${month}-${day}`;
+        if (classDateStr !== searchFilterDate) return false;
+      }
+
+      // 4. Time filter
+      if (searchFilterTime) {
+        const d = new Date(c.startTime);
+        const classTimeStr = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+        if (classTimeStr !== searchFilterTime) return false;
+      }
+
+      return true;
+    }).sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
+  }, [scheduledClasses, hasSearched, searchFilterActivity, searchFilterTeacherId, searchFilterDate, searchFilterTime]);
+
+  // Suggest teacher availability slots if no scheduled classes are found
+  const teacherSuggestions = useMemo(() => {
+    if (!hasSearched || !searchFilterTeacherId) return [];
+    const teacher = teachers.find((t) => t._id === searchFilterTeacherId);
+    if (!teacher || !teacher.availability || teacher.availability.length === 0) return [];
+
+    if (searchFilterDate) {
+      const parts = searchFilterDate.split('-');
+      const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+      const dayOfWeek = d.getDay(); // 0: Sunday, 1: Monday, etc.
+
+      const slots = teacher.availability.filter((slot) => slot.dayOfWeek === dayOfWeek);
+      return slots.map((s) => ({
+        teacher,
+        slot: s,
+        date: searchFilterDate,
+      }));
     }
-    return [...list].sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
-  }, [scheduledClasses, classSearchQuery]);
+
+    return teacher.availability.map((s) => ({
+      teacher,
+      slot: s,
+      date: null,
+    }));
+  }, [hasSearched, searchFilterTeacherId, searchFilterDate, teachers]);
 
   // Filter socios based on search query
   const filteredSocios = useMemo(() => {
@@ -745,54 +802,178 @@ export default function TeachersPage() {
       {!loading && activeTab === "booking" && (
         <div className="space-y-6">
           {/* Header controls for Board */}
-          <div className="p-4 bg-white/70 dark:bg-zinc-950/40 backdrop-blur-md rounded-2xl border border-zinc-200 dark:border-white/5 flex flex-col sm:flex-row gap-4 items-center justify-between">
-            <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto items-center">
-              <div className="relative w-full sm:w-64">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
-                <input
-                  type="text"
-                  placeholder="Buscar clase por profesor o cancha..."
-                  value={classSearchQuery}
-                  onChange={(e) => setClassSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-white/5 rounded-xl text-xs text-zinc-900 dark:text-white focus:outline-none focus:border-primary font-medium"
-                />
-              </div>
+          <div className="p-5 bg-white/70 dark:bg-zinc-950/45 backdrop-blur-xl rounded-2xl border border-zinc-200 dark:border-white/5 space-y-4 shadow-sm">
+            <div className="flex flex-col gap-1">
+              <h3 className="text-xs font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">Buscador de Clases</h3>
+              <p className="text-[11px] text-zinc-500">Filtrá por tipo, profesor, día u horario para encontrar la clase programada.</p>
             </div>
             
-            <button
-              type="button"
-              onClick={() => {
-                setBookingStudents([{ firstName: "", lastName: "", phone: "", email: "", paidAbono: false }]);
-                setBookingIsRecurring(true);
-                setBookingRecurrenceWeeks(12);
-                setIsNewClassModalOpen(true);
-              }}
-              className="w-full sm:w-auto px-4 py-2.5 bg-primary text-black font-extrabold text-xs rounded-xl shadow-[0_4px_15px_rgba(57,255,20,0.2)] hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              Programar Nueva Clase
-            </button>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 items-end">
+              {/* Activity Filter */}
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-zinc-400 block">Actividad</label>
+                <select
+                  value={searchFilterActivity}
+                  onChange={(e) => setSearchFilterActivity(e.target.value as any)}
+                  className="w-full bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-white/5 rounded-xl px-3 py-2 text-xs text-zinc-900 dark:text-white focus:outline-none focus:border-primary font-semibold font-sans"
+                >
+                  <option value="all">Todas</option>
+                  <option value="escuelita">🎓 Escuelitas</option>
+                  <option value="clase">👤 Clases Particulares</option>
+                </select>
+              </div>
+
+              {/* Teacher Filter */}
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-zinc-400 block">Profesor</label>
+                <select
+                  value={searchFilterTeacherId}
+                  onChange={(e) => setSearchFilterTeacherId(e.target.value)}
+                  className="w-full bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-white/5 rounded-xl px-3 py-2 text-xs text-zinc-900 dark:text-white focus:outline-none focus:border-primary font-semibold font-sans"
+                >
+                  <option value="">Todos</option>
+                  {teachers.filter(t => t.isActive).map(t => (
+                    <option key={t._id} value={t._id}>{t.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Date Filter */}
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-zinc-400 block">Fecha</label>
+                <input
+                  type="date"
+                  value={searchFilterDate}
+                  onChange={(e) => setSearchFilterDate(e.target.value)}
+                  className="w-full bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-white/5 rounded-xl px-3 py-2 text-xs text-zinc-900 dark:text-white focus:outline-none focus:border-primary font-semibold dark:[color-scheme:dark]"
+                />
+              </div>
+
+              {/* Time Filter */}
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-zinc-400 block">Horario (Inicio)</label>
+                <input
+                  type="time"
+                  value={searchFilterTime}
+                  onChange={(e) => setSearchFilterTime(e.target.value)}
+                  className="w-full bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-white/5 rounded-xl px-3 py-2 text-xs text-zinc-900 dark:text-white focus:outline-none focus:border-primary font-semibold dark:[color-scheme:dark]"
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setHasSearched(true)}
+                  className="flex-1 px-4 py-2.5 bg-primary text-black font-black text-xs rounded-xl shadow-[0_4px_12px_rgba(57,255,20,0.15)] hover:scale-[1.02] active:scale-98 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <Search className="w-3.5 h-3.5" />
+                  Buscar
+                </button>
+                
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchFilterActivity("all");
+                    setSearchFilterTeacherId("");
+                    setSearchFilterDate("");
+                    setSearchFilterTime("");
+                    setHasSearched(false);
+                  }}
+                  className="px-3 py-2.5 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-900 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 font-bold text-xs rounded-xl border border-zinc-200 dark:border-white/5 cursor-pointer"
+                  title="Limpiar Filtros"
+                >
+                  Limpiar
+                </button>
+              </div>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
             {/* Left/Middle: Scheduled Classes List */}
             <div className="lg:col-span-2 space-y-4">
-              <div className="flex items-center justify-between pb-1 border-b border-zinc-200 dark:border-white/5">
-                <h3 className="text-sm font-black text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">
-                  Clases Programadas ({filteredClasses.length})
-                </h3>
-                <span className="text-[10px] text-zinc-500 font-bold">Arrastrá un socio de la derecha para inscribir</span>
+              <div className="flex items-center justify-between pb-2 border-b border-zinc-200 dark:border-white/5">
+                <div className="flex items-center gap-3">
+                  <h3 className="text-sm font-black text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">
+                    Clases Programadas ({filteredClasses.length})
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBookingStudents([{ firstName: "", lastName: "", phone: "", email: "", paidAbono: false }]);
+                      setBookingIsRecurring(true);
+                      setBookingRecurrenceWeeks(12);
+                      setIsNewClassModalOpen(true);
+                    }}
+                    className="px-3 py-1.5 bg-primary text-black font-extrabold text-[10px] rounded-lg shadow-[0_2px_8px_rgba(57,255,20,0.15)] hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-1 cursor-pointer"
+                  >
+                    <Plus className="w-3 h-3" />
+                    Programar Clase
+                  </button>
+                </div>
+                <span className="text-[10px] text-zinc-500 font-bold hidden sm:inline">Arrastrá un socio de la derecha para inscribir</span>
               </div>
 
               {classesLoading ? (
                 <div className="flex justify-center py-10">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
                 </div>
-              ) : filteredClasses.length === 0 ? (
+              ) : !hasSearched ? (
                 <div className="text-center py-16 bg-white/40 dark:bg-zinc-950/20 backdrop-blur-md border border-zinc-200 dark:border-white/5 rounded-2xl">
-                  <Calendar className="w-12 h-12 text-zinc-300 dark:text-zinc-700 mx-auto mb-3" />
-                  <h4 className="text-xs font-bold text-zinc-700 dark:text-zinc-300">No hay clases programadas</h4>
-                  <p className="text-[11px] text-zinc-500 mt-1">Hacé click en "Programar Nueva Clase" para crear la primera.</p>
+                  <Search className="w-12 h-12 text-zinc-300 dark:text-zinc-700 mx-auto mb-3" />
+                  <h4 className="text-xs font-bold text-zinc-700 dark:text-zinc-300">Buscador de Clases</h4>
+                  <p className="text-[11px] text-zinc-500 mt-1">Ingresá los filtros en el panel superior y hacé click en "Buscar" para visualizar las clases programadas.</p>
+                </div>
+              ) : filteredClasses.length === 0 ? (
+                <div className="text-center py-12 bg-white/40 dark:bg-zinc-950/20 backdrop-blur-md border border-zinc-200 dark:border-white/5 rounded-2xl space-y-4 animate-in fade-in duration-205">
+                  <Calendar className="w-12 h-12 text-zinc-300 dark:text-zinc-700 mx-auto" />
+                  <div>
+                    <h4 className="text-xs font-bold text-zinc-700 dark:text-zinc-300">No hay clases programadas</h4>
+                    <p className="text-[11px] text-zinc-500 mt-1">No se encontraron clases programadas que coincidan con la búsqueda.</p>
+                  </div>
+                  
+                  {teacherSuggestions.length > 0 && (
+                    <div className="max-w-md mx-auto p-4 bg-primary/5 border border-primary/20 rounded-xl space-y-3">
+                      <h5 className="text-[11px] font-black text-primary uppercase tracking-wider">Horarios sugeridos de disponibilidad del profesor</h5>
+                      <div className="space-y-2">
+                        {teacherSuggestions.slice(0, 3).map((sugg, sIdx) => {
+                          const days = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+                          const dayName = days[sugg.slot.dayOfWeek];
+                          
+                          return (
+                            <div key={sIdx} className="flex items-center justify-between bg-zinc-900/40 p-2.5 rounded-lg border border-white/5 text-xs text-left">
+                              <div>
+                                <span className="font-bold text-white block">
+                                  {sugg.date ? `${dayName} (${sugg.date.split('-').reverse().slice(0, 2).join('/')})` : `Todos los ${dayName}`}
+                                </span>
+                                <span className="text-[10px] text-zinc-400">
+                                  Horario: {sugg.slot.startTime} a {sugg.slot.endTime} hs
+                                </span>
+                              </div>
+                              
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setBookingTeacherId(sugg.teacher._id);
+                                  setBookingSport(sugg.teacher.sport as any);
+                                  setBookingDate(sugg.date || new Date().toISOString().split("T")[0]);
+                                  setBookingStartTime(sugg.slot.startTime);
+                                  setBookingEndTime(sugg.slot.endTime);
+                                  setBookingStudents([{ firstName: "", lastName: "", phone: "", email: "", paidAbono: false }]);
+                                  setBookingIsRecurring(true);
+                                  setBookingRecurrenceWeeks(12);
+                                  setIsNewClassModalOpen(true);
+                                }}
+                                className="px-2.5 py-1.5 bg-primary text-black font-extrabold text-[10px] rounded-lg hover:scale-105 active:scale-95 transition-all cursor-pointer animate-in fade-in"
+                              >
+                                Programar
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
