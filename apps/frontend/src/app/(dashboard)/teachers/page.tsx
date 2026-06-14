@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useClub } from "@/providers/ClubProvider";
 import { apiFetch } from "@/lib/api";
 import type { Teacher, Court, AvailabilitySlot } from "@/lib/types";
@@ -16,6 +16,7 @@ import {
   Users,
   ChevronRight,
   Sparkles,
+  Search,
 } from "lucide-react";
 
 export default function TeachersPage() {
@@ -103,9 +104,21 @@ export default function TeachersPage() {
   const [courtsLoading, setCourtsLoading] = useState(false);
   const [bookingSubmitting, setBookingSubmitting] = useState(false);
 
+  // Drag and drop / Board states
+  const [scheduledClasses, setScheduledClasses] = useState<any[]>([]);
+  const [socios, setSocios] = useState<any[]>([]);
+  const [classesLoading, setClassesLoading] = useState(false);
+  const [sociosLoading, setSociosLoading] = useState(false);
+  const [dragOverClassId, setDragOverClassId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [classSearchQuery, setClassSearchQuery] = useState("");
+  const [isNewClassModalOpen, setIsNewClassModalOpen] = useState(false);
+
   useEffect(() => {
     if (activeClubId) {
       fetchTeachers();
+      fetchScheduledClasses();
+      fetchSocios();
     }
   }, [activeClubId]);
 
@@ -141,6 +154,167 @@ export default function TeachersPage() {
       console.error("Error fetching teachers:", err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchScheduledClasses = async () => {
+    if (!activeClubId) return;
+    setClassesLoading(true);
+    try {
+      const res = await apiFetch(`/reservations?clubId=${activeClubId}`);
+      if (res.ok) {
+        const data = await res.json();
+        const filtered = data.filter((r: any) =>
+          r.reservationType &&
+          (r.reservationType.startsWith("escuelita_") || r.reservationType.startsWith("clase_particular_")) &&
+          r.status !== "cancelled"
+        );
+        setScheduledClasses(filtered);
+      }
+    } catch (err) {
+      console.error("Error fetching scheduled classes:", err);
+    } finally {
+      setClassesLoading(false);
+    }
+  };
+
+  const fetchSocios = async () => {
+    if (!activeClubId) return;
+    setSociosLoading(true);
+    try {
+      const res = await apiFetch(`/socios?clubId=${activeClubId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setSocios(data.filter((s: any) => s.status === "active"));
+      }
+    } catch (err) {
+      console.error("Error fetching socios:", err);
+    } finally {
+      setSociosLoading(false);
+    }
+  };
+
+  const quickAssignSocio = async (socio: any, classId: string) => {
+    const cls = scheduledClasses.find(c => c._id === classId);
+    if (!cls) return;
+    
+    const exists = cls.students?.some((s: any) => s.socioId === socio._id);
+    if (exists) {
+      alert(`El socio ${socio.firstName} ${socio.lastName} ya está inscrito en esta clase.`);
+      return;
+    }
+    
+    const currentMonthStr = getCurrentMonthString();
+    const isPaid = socio.payments?.some((p: any) => p.month === currentMonthStr && p.status === "paid");
+    
+    const newStudent = {
+      firstName: socio.firstName,
+      lastName: socio.lastName,
+      email: socio.email || "",
+      phone: socio.phone || "",
+      paidAbono: isPaid,
+      socioId: socio._id,
+    };
+    
+    const updatedStudents = [...(cls.students || []), newStudent];
+    
+    try {
+      const res = await apiFetch(`/reservations/${classId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          students: updatedStudents,
+          firstName: cls.students?.length === 0 ? socio.firstName : cls.firstName,
+          lastName: cls.students?.length === 0 ? socio.lastName : cls.lastName,
+          email: cls.students?.length === 0 ? (socio.email || undefined) : cls.email,
+          phone: cls.students?.length === 0 ? (socio.phone || undefined) : cls.phone,
+        }),
+      });
+      if (res.ok) {
+        fetchScheduledClasses();
+      } else {
+        alert("Error al inscribir al socio.");
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDropSocio = async (e: React.DragEvent, classId: string) => {
+    e.preventDefault();
+    setDragOverClassId(null);
+    const socioId = e.dataTransfer.getData("text/plain");
+    if (!socioId) return;
+    
+    const socio = socios.find(s => s._id === socioId);
+    if (!socio) return;
+    
+    await quickAssignSocio(socio, classId);
+  };
+
+  const handleToggleStudentAbono = async (cls: any, studentIndex: number, newPaidState: boolean) => {
+    const updatedStudents = cls.students.map((student: any, i: number) =>
+      i === studentIndex ? { ...student, paidAbono: newPaidState } : student
+    );
+    
+    const student = cls.students[studentIndex];
+    
+    try {
+      const res = await apiFetch(`/reservations/${cls._id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ students: updatedStudents }),
+      });
+      
+      if (res.ok) {
+        if (student.socioId) {
+          const currentMonthStr = getCurrentMonthString();
+          if (newPaidState) {
+            await apiFetch(`/socios/${student.socioId}/payments`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                month: currentMonthStr,
+                amount: 35000,
+                status: "paid",
+                paymentMethod: "Efectivo",
+                notes: "Registrado desde el tablero de clases",
+              }),
+            });
+          } else {
+            await apiFetch(`/socios/${student.socioId}/payments/${currentMonthStr}`, {
+              method: "DELETE",
+            });
+          }
+          fetchSocios();
+        }
+        fetchScheduledClasses();
+      } else {
+        alert("Error al actualizar abono del alumno.");
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleRemoveStudentFromClass = async (cls: any, studentIndex: number) => {
+    if (!confirm("¿Deseas desinscribir a este alumno de la clase?")) return;
+    
+    const updatedStudents = cls.students.filter((_: any, i: number) => i !== studentIndex);
+    
+    try {
+      const res = await apiFetch(`/reservations/${cls._id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ students: updatedStudents }),
+      });
+      if (res.ok) {
+        fetchScheduledClasses();
+      } else {
+        alert("Error al remover al alumno.");
+      }
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -299,11 +473,8 @@ export default function TeachersPage() {
       return;
     }
 
-    const validStudents = bookingStudents.filter((s) => s.firstName.trim() && s.lastName.trim());
-    if (validStudents.length === 0) {
-      alert("Debes agregar al menos un alumno con nombre y apellido.");
-      return;
-    }
+    const validStudents = bookingStudents.filter((s) => s.firstName && s.firstName.trim() && s.lastName && s.lastName.trim());
+    const primaryStudent = validStudents[0] || { firstName: "Clase", lastName: "Programada", email: "", phone: "" };
 
     setBookingSubmitting(true);
 
@@ -314,9 +485,6 @@ export default function TeachersPage() {
 
     const teacherObj = teachers.find((t) => t._id === bookingTeacherId);
     const teacherPrice = Math.round(durationHours * (teacherObj?.pricePerHour || 0));
-
-    // Map first student as main contact for notification systems
-    const primaryStudent = validStudents[0];
 
     const payload = {
       courtId: bookingCourtId,
@@ -349,11 +517,11 @@ export default function TeachersPage() {
 
       if (res.ok) {
         alert("¡Clase reservada con éxito!");
-        // Reset booking form state
         setBookingStudents([{ firstName: "", lastName: "", phone: "", email: "", paidAbono: false }]);
-        setBookingIsRecurring(false);
+        setBookingIsRecurring(true);
         setBookingRecurrenceWeeks(12);
-        fetchAvailableCourts();
+        setIsNewClassModalOpen(false);
+        fetchScheduledClasses();
       } else {
         const errorData = await res.json();
         alert(errorData.message || "Error al crear la reserva de la clase.");
@@ -371,6 +539,32 @@ export default function TeachersPage() {
     const t = teachers.find((x) => x._id === teacherId);
     return t?.availability || [];
   };
+
+  // Filter scheduled classes based on search query
+  const filteredClasses = useMemo(() => {
+    let list = scheduledClasses;
+    if (classSearchQuery) {
+      const q = classSearchQuery.toLowerCase().trim();
+      list = list.filter(
+        (c) =>
+          (c.teacherId?.name && c.teacherId.name.toLowerCase().includes(q)) ||
+          (c.courtId?.name && c.courtId.name.toLowerCase().includes(q))
+      );
+    }
+    return [...list].sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
+  }, [scheduledClasses, classSearchQuery]);
+
+  // Filter socios based on search query
+  const filteredSocios = useMemo(() => {
+    if (!searchQuery) return socios;
+    const q = searchQuery.toLowerCase().trim();
+    return socios.filter(
+      (s) =>
+        s.firstName.toLowerCase().includes(q) ||
+        s.lastName.toLowerCase().includes(q) ||
+        (s.dni && s.dni.includes(q))
+    );
+  }, [socios, searchQuery]);
 
   return (
     <div className="flex-1 overflow-y-auto p-6 space-y-6">
@@ -547,98 +741,386 @@ export default function TeachersPage() {
         </div>
       )}
 
-      {/* Tab CONTENT: Book Class Wizard */}
+      {/* Tab CONTENT: Book Class Drag-and-Drop Board */}
       {!loading && activeTab === "booking" && (
-        <form
-          onSubmit={handleBookClass}
-          className="max-w-4xl mx-auto bg-white/95 dark:bg-zinc-950/80 backdrop-blur-xl border border-zinc-200 dark:border-white/5 rounded-2xl shadow-xl overflow-hidden p-6 space-y-6"
-        >
-          <div className="border-b border-zinc-200 dark:border-white/5 pb-4 flex justify-between items-start">
-            <div>
-              <h3 className="text-lg font-black text-zinc-900 dark:text-white flex items-center gap-2">
-                <span className="w-1.5 h-5 bg-primary rounded-full shadow-[0_0_8px_rgba(57,255,20,0.5)]" />
-                Asistente de Reserva de Clase
-              </h3>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-                Seleccioná un profesor disponible en el horario requerido, definí la cancha y registrá a los alumnos.
-              </p>
+        <div className="space-y-6">
+          {/* Header controls for Board */}
+          <div className="p-4 bg-white/70 dark:bg-zinc-950/40 backdrop-blur-md rounded-2xl border border-zinc-200 dark:border-white/5 flex flex-col sm:flex-row gap-4 items-center justify-between">
+            <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto items-center">
+              <div className="relative w-full sm:w-64">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+                <input
+                  type="text"
+                  placeholder="Buscar clase por profesor o cancha..."
+                  value={classSearchQuery}
+                  onChange={(e) => setClassSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-white/5 rounded-xl text-xs text-zinc-900 dark:text-white focus:outline-none focus:border-primary font-medium"
+                />
+              </div>
             </div>
+            
             <button
               type="button"
-              onClick={() => setActiveTab("manage")}
-              className="p-1.5 text-zinc-400 hover:text-zinc-950 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-white/5 rounded-lg transition-all"
-              title="Cerrar Asistente"
+              onClick={() => {
+                setBookingStudents([{ firstName: "", lastName: "", phone: "", email: "", paidAbono: false }]);
+                setBookingIsRecurring(true);
+                setBookingRecurrenceWeeks(12);
+                setIsNewClassModalOpen(true);
+              }}
+              className="w-full sm:w-auto px-4 py-2.5 bg-primary text-black font-extrabold text-xs rounded-xl shadow-[0_4px_15px_rgba(57,255,20,0.2)] hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
             >
-              <X className="w-5 h-5" />
+              <Plus className="w-4 h-4" />
+              Programar Nueva Clase
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Left Column - Main Details */}
-            <div className="space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">Disciplina</label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setBookingSport("padel")}
-                    className={`py-2.5 px-4 rounded-xl border text-sm font-black transition-all ${
-                      bookingSport === "padel"
-                        ? "bg-primary/10 border-primary text-primary shadow-[0_0_12px_rgba(57,255,20,0.15)]"
-                        : "border-zinc-200 dark:border-white/5 bg-zinc-50 dark:bg-white/5 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-white/10"
-                    }`}
-                  >
-                    🏸 Pádel
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setBookingSport("football")}
-                    className={`py-2.5 px-4 rounded-xl border text-sm font-black transition-all ${
-                      bookingSport === "football"
-                        ? "bg-primary/10 border-primary text-primary shadow-[0_0_12px_rgba(57,255,20,0.15)]"
-                        : "border-zinc-200 dark:border-white/5 bg-zinc-50 dark:bg-white/5 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-white/10"
-                    }`}
-                  >
-                    ⚽ Fútbol
-                  </button>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+            {/* Left/Middle: Scheduled Classes List */}
+            <div className="lg:col-span-2 space-y-4">
+              <div className="flex items-center justify-between pb-1 border-b border-zinc-200 dark:border-white/5">
+                <h3 className="text-sm font-black text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">
+                  Clases Programadas ({filteredClasses.length})
+                </h3>
+                <span className="text-[10px] text-zinc-500 font-bold">Arrastrá un socio de la derecha para inscribir</span>
+              </div>
+
+              {classesLoading ? (
+                <div className="flex justify-center py-10">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+                </div>
+              ) : filteredClasses.length === 0 ? (
+                <div className="text-center py-16 bg-white/40 dark:bg-zinc-950/20 backdrop-blur-md border border-zinc-200 dark:border-white/5 rounded-2xl">
+                  <Calendar className="w-12 h-12 text-zinc-300 dark:text-zinc-700 mx-auto mb-3" />
+                  <h4 className="text-xs font-bold text-zinc-700 dark:text-zinc-300">No hay clases programadas</h4>
+                  <p className="text-[11px] text-zinc-500 mt-1">Hacé click en "Programar Nueva Clase" para crear la primera.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {filteredClasses.map((cls) => {
+                    const isOver = dragOverClassId === cls._id;
+                    const dateFormatted = new Date(cls.startTime).toLocaleDateString("es-AR", {
+                      weekday: "short",
+                      day: "2-digit",
+                      month: "2-digit",
+                    });
+                    const timeFormatted = `${new Date(cls.startTime).toLocaleTimeString("es-AR", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })} - ${new Date(cls.endTime).toLocaleTimeString("es-AR", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}`;
+
+                    return (
+                      <div
+                        key={cls._id}
+                        onDragOver={(e) => e.preventDefault()}
+                        onDragEnter={() => setDragOverClassId(cls._id)}
+                        onDragLeave={() => setDragOverClassId(null)}
+                        onDrop={(e) => handleDropSocio(e, cls._id)}
+                        className={`bg-white/95 dark:bg-zinc-950/80 backdrop-blur-xl border rounded-2xl p-4 flex flex-col justify-between shadow-sm transition-all duration-300 min-h-[260px] ${
+                          isOver
+                            ? "border-primary bg-primary/5 shadow-[0_0_15px_rgba(57,255,20,0.15)] scale-[1.01]"
+                            : "border-zinc-200 dark:border-white/5 hover:border-zinc-300 dark:hover:border-white/10"
+                        }`}
+                      >
+                        <div>
+                          {/* Class Card Header */}
+                          <div className="flex items-start justify-between gap-2 border-b border-zinc-100 dark:border-white/5 pb-2.5">
+                            <div>
+                              <span className={`inline-block px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${
+                                cls.reservationType.includes("escuelita")
+                                  ? "bg-teal-500/10 text-teal-400 border border-teal-500/20"
+                                  : "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20"
+                              }`}>
+                                {cls.reservationType.includes("escuelita") ? "🎓 Escuelita" : "👤 Clase Particular"}
+                              </span>
+                              <h4 className="font-extrabold text-zinc-900 dark:text-white text-sm mt-1">
+                                {cls.courtId?.name || "Cancha"}
+                              </h4>
+                            </div>
+                            <span className="text-[10px] font-bold text-zinc-500 text-right">
+                              <div className="capitalize">{dateFormatted}</div>
+                              <div className="text-zinc-400 dark:text-zinc-500 mt-0.5">{timeFormatted}</div>
+                            </span>
+                          </div>
+
+                          {/* Class Card Instructor Details */}
+                          <div className="mt-2.5 flex items-center justify-between text-[11px] font-bold text-zinc-500 dark:text-zinc-400">
+                            <span>Profesor: <strong className="text-zinc-800 dark:text-zinc-200">{cls.teacherId?.name || "Sin asignar"}</strong></span>
+                            {cls.isRecurring && (
+                              <span className="text-[9px] bg-primary/10 text-primary border border-primary/20 px-1.5 py-0.5 rounded-md font-black uppercase">
+                                Fijo
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Class Enrolled Students List */}
+                          <div className="mt-3.5 space-y-2">
+                            <span className="text-[9px] font-black uppercase text-zinc-400 dark:text-zinc-500 tracking-wider block">
+                              Alumnos Inscritos ({cls.students?.length || 0})
+                            </span>
+                            
+                            {(!cls.students || cls.students.length === 0) ? (
+                              <div className="py-4 text-center border border-dashed border-zinc-200 dark:border-white/5 rounded-xl text-[10px] text-zinc-400 font-semibold italic">
+                                Sin alumnos. Arrastrá un socio aquí.
+                              </div>
+                            ) : (
+                              <div className="space-y-1.5 max-h-[120px] overflow-y-auto pr-0.5">
+                                {cls.students.map((st: any, sIdx: number) => (
+                                  <div
+                                    key={sIdx}
+                                    className="flex items-center justify-between bg-zinc-50 dark:bg-white/[0.01] border border-zinc-150 dark:border-white/5 rounded-lg px-2.5 py-1.5 text-xs"
+                                  >
+                                    <span className="font-semibold text-zinc-800 dark:text-zinc-200 truncate max-w-[130px]" title={`${st.firstName} ${st.lastName}`}>
+                                      {st.lastName ? `${st.lastName}, ${st.firstName}` : st.firstName}
+                                    </span>
+                                    
+                                    <div className="flex items-center gap-2">
+                                      {/* Abono Payment Status Toggle */}
+                                      <button
+                                        type="button"
+                                        onClick={() => handleToggleStudentAbono(cls, sIdx, !st.paidAbono)}
+                                        className={`px-1.5 py-0.5 text-[9px] font-black uppercase rounded transition-all border ${
+                                          st.paidAbono
+                                            ? "bg-green-500/10 text-green-400 border-green-500/20"
+                                            : "bg-amber-500/10 text-amber-500 border-amber-500/20"
+                                        }`}
+                                      >
+                                        {st.paidAbono ? "Pagado" : "Debe"}
+                                      </button>
+                                      
+                                      {/* Remove Student Button */}
+                                      <button
+                                        type="button"
+                                        onClick={() => handleRemoveStudentFromClass(cls, sIdx)}
+                                        className="text-zinc-400 hover:text-red-400 p-0.5 transition-colors"
+                                        title="Quitar de la clase"
+                                      >
+                                        <X className="w-3.5 h-3.5" />
+                                      </button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Drop Zone Indicator inside Class Card */}
+                        <div className={`mt-4 border border-dashed rounded-xl py-3 text-center transition-all ${
+                          isOver
+                            ? "border-primary bg-primary/10 text-primary scale-95"
+                            : "border-zinc-200 dark:border-white/5 bg-zinc-50/50 dark:bg-white/[0.01] text-zinc-400 hover:border-zinc-300 dark:hover:border-white/10 hover:text-zinc-300"
+                        }`}>
+                          <span className="text-[10px] font-bold block">
+                            {isOver ? "¡Soltalo acá!" : "📥 Soltar Socio para inscribir"}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Right: Draggable Socios List */}
+            <div className="bg-white/95 dark:bg-zinc-950/80 backdrop-blur-xl border border-zinc-200 dark:border-white/5 rounded-2xl p-4 space-y-4 shadow-sm h-[600px] flex flex-col">
+              <div className="border-b border-zinc-150 dark:border-white/5 pb-2 flex items-center justify-between">
+                <h3 className="text-sm font-black text-zinc-855 dark:text-zinc-150 uppercase tracking-wider flex items-center gap-1.5">
+                  <Users className="w-4.5 h-4.5 text-primary" />
+                  Socios Disponibles
+                </h3>
+              </div>
+
+              {/* Search filter for socios */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+                <input
+                  type="text"
+                  placeholder="Buscar socio por nombre o DNI..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-white/5 rounded-xl text-xs text-zinc-900 dark:text-white focus:outline-none focus:border-primary font-semibold"
+                />
+              </div>
+
+              {/* Draggable items list */}
+              {sociosLoading ? (
+                <div className="flex-1 flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+                </div>
+              ) : filteredSocios.length === 0 ? (
+                <div className="flex-1 flex flex-col items-center justify-center text-center p-4">
+                  <Users className="w-10 h-10 text-zinc-650 mb-2" />
+                  <span className="text-xs font-bold text-zinc-550">No hay socios disponibles</span>
+                  <span className="text-[10px] text-zinc-500 mt-1">Asegurate de tener socios activos creados en la pestaña Socios.</span>
+                </div>
+              ) : (
+                <div className="flex-1 overflow-y-auto space-y-2.5 pr-1 select-none">
+                  {filteredSocios.map((socio) => {
+                    const currentMonth = getCurrentMonthString();
+                    const currentMonthPayment = socio.payments?.find((p: any) => p.month === currentMonth);
+                    const isPaid = currentMonthPayment && currentMonthPayment.status === "paid";
+
+                    return (
+                      <div
+                        key={socio._id}
+                        draggable={true}
+                        onDragStart={(e) => {
+                          e.dataTransfer.setData("text/plain", socio._id);
+                        }}
+                        className="relative p-3 bg-zinc-50 dark:bg-white/[0.01] hover:bg-zinc-100 dark:hover:bg-white/[0.03] border border-zinc-200 dark:border-white/5 hover:border-zinc-300 dark:hover:border-white/10 rounded-xl cursor-grab active:cursor-grabbing transition-all flex items-center justify-between group shadow-sm animate-in fade-in duration-200"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          {/* Drag handle grid icon */}
+                          <div className="text-zinc-400 dark:text-zinc-600 flex flex-col gap-0.5 justify-center">
+                            <div className="flex gap-0.5">
+                              <span className="w-1 h-1 bg-current rounded-full" />
+                              <span className="w-1 h-1 bg-current rounded-full" />
+                            </div>
+                            <div className="flex gap-0.5">
+                              <span className="w-1 h-1 bg-current rounded-full" />
+                              <span className="w-1 h-1 bg-current rounded-full" />
+                            </div>
+                            <div className="flex gap-0.5">
+                              <span className="w-1 h-1 bg-current rounded-full" />
+                              <span className="w-1 h-1 bg-current rounded-full" />
+                            </div>
+                          </div>
+
+                          <div className="min-w-0">
+                            <div className="font-extrabold text-xs text-zinc-900 dark:text-white truncate">
+                              {socio.lastName}, {socio.firstName}
+                            </div>
+                            <div className="flex items-center gap-1.5 mt-1">
+                              {socio.dni && <span className="text-[9px] font-bold text-zinc-400">DNI: {socio.dni}</span>}
+                              <span className={`w-1.5 h-1.5 rounded-full ${isPaid ? "bg-green-500" : "bg-amber-500"}`} title={isPaid ? "Abono Pagado" : "Abono Debe"} />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Quick Add Option (Mobile Fallback) */}
+                        <div className="relative">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (filteredClasses.length === 0) {
+                                alert("No hay clases programadas para inscribir.");
+                                return;
+                              }
+                              const selectedClassId = prompt(
+                                "Ingresá el número de la clase donde querés inscribir a este socio:\n\n" +
+                                filteredClasses.map((c, i) => `${i + 1}. ${c.courtId?.name || "Cancha"} - ${c.teacherId?.name || "Profe"} (${new Date(c.startTime).toLocaleTimeString("es-AR", {hour:"2-digit",minute:"2-digit"})})`).join("\n")
+                              );
+                              if (selectedClassId) {
+                                const idx = parseInt(selectedClassId) - 1;
+                                if (idx >= 0 && idx < filteredClasses.length) {
+                                  quickAssignSocio(socio, filteredClasses[idx]._id);
+                                } else {
+                                  alert("Opción no válida.");
+                                }
+                              }
+                            }}
+                            className="p-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 opacity-80 hover:opacity-100 transition-all"
+                            title="Inscribir en clase..."
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* NEW CLASS MODAL DIALOG */}
+      {isNewClassModalOpen && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="relative w-full max-w-xl bg-white/95 dark:bg-zinc-950/85 backdrop-blur-xl border border-zinc-200 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-zinc-200 dark:border-white/5 flex justify-between items-center bg-zinc-50/50 dark:bg-white/[0.02]">
+              <h2 className="text-lg font-black text-zinc-900 dark:text-white flex items-center gap-2">
+                <span className="w-1.5 h-5 bg-primary rounded-full" />
+                Programar Nueva Clase
+              </h2>
+              <button
+                onClick={() => setIsNewClassModalOpen(false)}
+                className="text-zinc-500 hover:text-zinc-900 dark:hover:text-white p-1 hover:bg-zinc-100 dark:hover:bg-white/5 rounded-lg border border-zinc-250 dark:border-white/5"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleBookClass} className="p-6 space-y-4 overflow-y-auto max-h-[80vh]">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-zinc-400">Disciplina</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setBookingSport("padel")}
+                      className={`py-2.5 px-4 rounded-xl border text-sm font-black transition-all ${
+                        bookingSport === "padel"
+                          ? "bg-primary/10 border-primary text-primary shadow-[0_0_12px_rgba(57,255,20,0.15)]"
+                          : "border-zinc-200 dark:border-white/5 bg-zinc-50 dark:bg-white/5 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-white/10"
+                      }`}
+                    >
+                      🏸 Pádel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setBookingSport("football")}
+                      className={`py-2.5 px-4 rounded-xl border text-sm font-black transition-all ${
+                        bookingSport === "football"
+                          ? "bg-primary/10 border-primary text-primary shadow-[0_0_12px_rgba(57,255,20,0.15)]"
+                          : "border-zinc-200 dark:border-white/5 bg-zinc-50 dark:bg-white/5 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-white/10"
+                      }`}
+                    >
+                      ⚽ Fútbol
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-zinc-400">Tipo de Actividad</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setBookingActivityType("clase")}
+                      className={`py-2.5 px-4 rounded-xl border text-sm font-black transition-all ${
+                        bookingActivityType === "clase"
+                          ? "bg-primary/10 border-primary text-primary shadow-[0_0_12px_rgba(57,255,20,0.15)]"
+                          : "border-zinc-200 dark:border-white/5 bg-zinc-50 dark:bg-white/5 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-white/10"
+                      }`}
+                    >
+                      Particular
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setBookingActivityType("escuelita")}
+                      className={`py-2.5 px-4 rounded-xl border text-sm font-black transition-all ${
+                        bookingActivityType === "escuelita"
+                          ? "bg-primary/10 border-primary text-primary shadow-[0_0_12px_rgba(57,255,20,0.15)]"
+                          : "border-zinc-200 dark:border-white/5 bg-zinc-50 dark:bg-white/5 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-white/10"
+                      }`}
+                    >
+                      Escuelita
+                    </button>
+                  </div>
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">Tipo de Actividad</label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setBookingActivityType("clase")}
-                    className={`py-2.5 px-4 rounded-xl border text-sm font-black transition-all ${
-                      bookingActivityType === "clase"
-                        ? "bg-primary/10 border-primary text-primary shadow-[0_0_12px_rgba(57,255,20,0.15)]"
-                        : "border-zinc-200 dark:border-white/5 bg-zinc-50 dark:bg-white/5 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-white/10"
-                    }`}
-                  >
-                    Clase Particular
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setBookingActivityType("escuelita")}
-                    className={`py-2.5 px-4 rounded-xl border text-sm font-black transition-all ${
-                      bookingActivityType === "escuelita"
-                        ? "bg-primary/10 border-primary text-primary shadow-[0_0_12px_rgba(57,255,20,0.15)]"
-                        : "border-zinc-200 dark:border-white/5 bg-zinc-50 dark:bg-white/5 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-white/10"
-                    }`}
-                  >
-                    Escuelita
-                  </button>
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">Profesor</label>
+                <label className="text-xs font-semibold text-zinc-450 dark:text-zinc-400">Profesor</label>
                 <select
                   required
                   value={bookingTeacherId}
                   onChange={(e) => setBookingTeacherId(e.target.value)}
-                  className="w-full bg-zinc-50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-zinc-900 dark:text-white focus:outline-none focus:border-primary font-bold"
+                  className="w-full bg-zinc-50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-zinc-900 dark:text-white focus:outline-none focus:border-primary font-bold"
                 >
                   <option value="" disabled className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-white">-- Seleccioná un profesor --</option>
                   {teachers
@@ -649,361 +1131,157 @@ export default function TeachersPage() {
                       </option>
                     ))}
                 </select>
-
-                {/* Display selected teacher's agenda */}
-                {bookingTeacherId && (() => {
-                  const slots = getTeacherAvailabilitySlots(bookingTeacherId);
-                  return (
-                    <div className="mt-2 bg-zinc-50 dark:bg-white/[0.02] border border-zinc-200 dark:border-white/5 rounded-xl p-3">
-                      <span className="text-[10px] font-black uppercase text-zinc-400 dark:text-zinc-500 block mb-1">
-                        📅 Horarios disponibles del profesor:
-                      </span>
-                      {slots.length === 0 ? (
-                        <span className="text-xs text-zinc-500 italic">Disponibilidad total (24/7)</span>
-                      ) : (
-                        <div className="flex flex-wrap gap-1">
-                          {slots.map((s, i) => {
-                            const days = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
-                            return (
-                              <span
-                                key={i}
-                                className="inline-block bg-primary/10 border border-primary/20 text-primary rounded px-2 py-0.5 text-[10px] font-bold"
-                              >
-                                {days[s.dayOfWeek]} {s.startTime} a {s.endTime} hs
-                              </span>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })()}
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-3 gap-3">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">Fecha</label>
+                  <label className="text-xs font-semibold text-zinc-450 dark:text-zinc-400">Fecha</label>
                   <input
                     type="date"
                     required
                     value={bookingDate}
                     onChange={(e) => setBookingDate(e.target.value)}
-                    className="w-full bg-zinc-50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-xl px-3 py-2 text-sm text-zinc-900 dark:text-white focus:outline-none focus:border-primary font-bold dark:[color-scheme:dark]"
+                    className="w-full bg-zinc-50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-xl px-3 py-2 text-xs text-zinc-900 dark:text-white focus:outline-none focus:border-primary font-bold dark:[color-scheme:dark]"
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">Hora Inicio</label>
+                  <label className="text-xs font-semibold text-zinc-455 dark:text-zinc-400">Hora Inicio</label>
                   <input
                     type="time"
                     required
                     value={bookingStartTime}
                     onChange={(e) => setBookingStartTime(e.target.value)}
-                    className="w-full bg-zinc-50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-xl px-3 py-2 text-sm text-zinc-900 dark:text-white focus:outline-none focus:border-primary font-bold"
+                    className="w-full bg-zinc-50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-xl px-3 py-2 text-xs text-zinc-900 dark:text-white focus:outline-none focus:border-primary font-bold dark:[color-scheme:dark]"
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">Hora Fin</label>
+                  <label className="text-xs font-semibold text-zinc-455 dark:text-zinc-400">Hora Fin</label>
                   <input
                     type="time"
                     required
-                    value={bookingEndTime}
                     disabled={bookingActivityType === "escuelita"}
+                    value={bookingEndTime}
                     onChange={(e) => setBookingEndTime(e.target.value)}
-                    className="w-full bg-zinc-50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-xl px-3 py-2 text-sm text-zinc-900 dark:text-white focus:outline-none focus:border-primary font-bold disabled:opacity-50"
+                    className="w-full bg-zinc-50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-xl px-3 py-2 text-xs text-zinc-900 dark:text-white focus:outline-none focus:border-primary font-bold disabled:opacity-50 dark:[color-scheme:dark]"
                   />
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">Cancha</label>
-                <div className="relative">
+                <label className="text-xs font-semibold text-zinc-455 dark:text-zinc-400">Cancha Disponible</label>
+                <select
+                  required
+                  value={bookingCourtId}
+                  onChange={(e) => setBookingCourtId(e.target.value)}
+                  className="w-full bg-zinc-50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-zinc-900 dark:text-white focus:outline-none focus:border-primary font-bold"
+                >
+                  <option value="" disabled className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-white">
+                    {courtsLoading ? "Buscando canchas disponibles..." : "-- Seleccioná la cancha --"}
+                  </option>
+                  {availableCourts
+                    .filter((c) => c.sport === bookingSport)
+                    .map((c) => (
+                      <option key={c._id} value={c._id} className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-white">
+                        {c.name} {c.isCovered ? "(Techada)" : "(Descubierta)"} - ${c.pricePerHour}/hs
+                      </option>
+                    ))}
+                </select>
+                {availableCourts.filter((c) => c.sport === bookingSport).length === 0 && !courtsLoading && (
+                  <span className="text-[10px] text-red-400 block font-semibold">
+                    ⚠️ No hay canchas disponibles para este horario. Intentá otro rango de horas.
+                  </span>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-zinc-455 dark:text-zinc-400">Estado de Pago Inicial</label>
                   <select
-                    required
-                    value={bookingCourtId}
-                    onChange={(e) => setBookingCourtId(e.target.value)}
-                    disabled={courtsLoading || availableCourts.length === 0}
-                    className="w-full bg-zinc-50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-zinc-900 dark:text-white focus:outline-none focus:border-primary font-bold disabled:opacity-50"
+                    value={bookingPaymentStatus}
+                    disabled={bookingSport === "football"}
+                    onChange={(e) => setBookingPaymentStatus(e.target.value as any)}
+                    className="w-full bg-zinc-50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-zinc-900 dark:text-white focus:outline-none focus:border-primary font-bold disabled:opacity-50"
                   >
-                    {courtsLoading ? (
-                      <option className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-white">Buscando canchas libres...</option>
-                    ) : availableCourts.length === 0 ? (
-                      <option className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-white">Sin canchas libres para el horario/disciplina seleccionado</option>
-                    ) : (
-                      availableCourts.map((c) => (
-                        <option key={c._id} value={c._id} className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-white">
-                          {c.name} {c.isCovered ? "(Techada)" : "(Descubierta)"} - ${c.pricePerHour.toLocaleString("es-AR")}/hs
-                        </option>
-                      ))
-                    )}
+                    <option value="pending" className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-white">Debe (Pendiente)</option>
+                    <option value="paid" className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-white">Abonado (Pagado)</option>
                   </select>
+                </div>
+
+                <div className="space-y-1.5 flex flex-col justify-end">
+                  <div className="flex items-center justify-between h-[42px] bg-zinc-50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-xl px-4">
+                    <span className="text-xs font-semibold text-zinc-500">Repetir semanalmente</span>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        disabled={bookingActivityType === "escuelita"}
+                        checked={bookingIsRecurring}
+                        onChange={(e) => setBookingIsRecurring(e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-9 h-5 bg-zinc-200 dark:bg-white/10 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-zinc-400 after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary peer-checked:after:bg-black disabled:opacity-50"></div>
+                    </label>
+                  </div>
                 </div>
               </div>
 
-              {bookingSport !== "football" && (
-                <div className="space-y-1.5 animate-in fade-in duration-200">
-                  <label className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">Estado de Pago</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setBookingPaymentStatus("pending")}
-                      className={`py-2.5 px-4 rounded-xl border text-sm font-black transition-all ${
-                        bookingPaymentStatus === "pending"
-                          ? "bg-amber-500/10 border-amber-500 text-amber-500 shadow-[0_0_12px_rgba(245,158,11,0.15)]"
-                          : "border-zinc-200 dark:border-white/5 bg-zinc-50 dark:bg-white/5 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-white/10"
-                      }`}
-                    >
-                      Debe (Pendiente)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setBookingPaymentStatus("paid")}
-                      className={`py-2.5 px-4 rounded-xl border text-sm font-black transition-all ${
-                        bookingPaymentStatus === "paid"
-                          ? "bg-green-500/10 border-green-500 text-green-500 shadow-[0_0_12px_rgba(34,197,94,0.15)]"
-                          : "border-zinc-200 dark:border-white/5 bg-zinc-50 dark:bg-white/5 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-white/10"
-                      }`}
-                    >
-                      Abonado (Pagado)
-                    </button>
-                  </div>
+              {bookingIsRecurring && (
+                <div className="space-y-1.5 p-3 bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/5 rounded-xl animate-in fade-in duration-200">
+                  <label className="text-xs font-semibold text-zinc-450 dark:text-zinc-400">Duración de la recurrencia (semanas)</label>
+                  <select
+                    value={bookingRecurrenceWeeks}
+                    disabled={bookingActivityType === "escuelita"}
+                    onChange={(e) => setBookingRecurrenceWeeks(Number(e.target.value))}
+                    className="w-full bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-white/10 rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-white focus:outline-none font-bold"
+                  >
+                    <option value={4} className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-white">4 Semanas (1 Mes)</option>
+                    <option value={8} className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-white">8 Semanas (2 Meses)</option>
+                    <option value={12} className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-white">12 Semanas (3 Meses)</option>
+                    <option value={24} className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-white">24 Semanas (6 Meses)</option>
+                  </select>
                 </div>
               )}
 
-              {/* Recurrence Switcher & Dropdown */}
-              <div className="space-y-3.5 bg-zinc-50/50 dark:bg-white/[0.02] border border-zinc-200/80 dark:border-white/5 rounded-xl p-4 shadow-inner">
-                <div className="flex items-center justify-between">
-                  <div className="flex flex-col">
-                    <span className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Repetir clase semanalmente (Turno Fijo)</span>
-                    <span className="text-[10px] text-zinc-500">Bloquea la cancha y el profesor en las siguientes semanas</span>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={bookingIsRecurring}
-                      disabled={bookingActivityType === "escuelita"}
-                      onChange={(e) => setBookingIsRecurring(e.target.checked)}
-                      className="sr-only peer"
-                    />
-                    <div className="w-9 h-5 bg-zinc-200 dark:bg-white/10 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-zinc-400 after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary peer-checked:after:bg-black"></div>
-                  </label>
-                </div>
+              {/* Form Actions / Summary */}
+              <div className="border-t border-zinc-200 dark:border-white/5 pt-5 flex items-center justify-between gap-4">
+                {(() => {
+                  const start = new Date(`${bookingDate}T${bookingStartTime}:00.000-03:00`);
+                  const end = new Date(`${bookingDate}T${bookingEndTime}:00.000-03:00`);
+                  const durationHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
 
-                {bookingIsRecurring && (
-                  <div className="space-y-1.5 pt-2 border-t border-zinc-200/80 dark:border-white/5 animate-in fade-in duration-200">
-                    <label className="text-xs font-semibold text-zinc-400 font-bold">Duración de la recurrencia</label>
-                    <select
-                      value={bookingRecurrenceWeeks}
-                      disabled={bookingActivityType === "escuelita"}
-                      onChange={(e) => setBookingRecurrenceWeeks(Number(e.target.value))}
-                      className="w-full bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-zinc-900 dark:text-white font-bold"
-                    >
-                      <option value={4} className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-white">4 Semanas (1 Mes)</option>
-                      <option value={8} className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-white">8 Semanas (2 Meses)</option>
-                      <option value={12} className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-white">12 Semanas (3 Meses - Recomendado)</option>
-                    </select>
-                  </div>
-                )}
-              </div>
-            </div>
+                  const teacherObj = teachers.find((t) => t._id === bookingTeacherId);
+                  const validDuration = !isNaN(durationHours) && durationHours > 0;
+                  const teacherPrice = validDuration && teacherObj ? Math.round(durationHours * teacherObj.pricePerHour) : 0;
 
+                  return (
+                    <div className="text-xs text-zinc-500">
+                      Costo Clase: <strong className="text-primary font-black text-sm">${teacherPrice.toLocaleString("es-AR")}</strong>
+                    </div>
+                  );
+                })()}
 
-            {/* Right Column - Students List */}
-            <div className="space-y-4 flex flex-col">
-              <div className="flex items-center justify-between border-b border-zinc-200 dark:border-white/5 pb-2">
-                <label className="text-xs font-bold text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5">
-                  <Users className="w-4 h-4 text-primary" />
-                  Alumnos Inscritos ({bookingStudents.length})
-                </label>
-                <button
-                  type="button"
-                  onClick={handleAddStudentRow}
-                  className="text-xs font-black text-primary flex items-center gap-1 hover:underline"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  Agregar Alumno
-                </button>
-              </div>
-
-              <div className="space-y-3.5 flex-1 overflow-y-auto max-h-[380px] pr-1">
-                {bookingStudents.map((student, idx) => (
-                  <div
-                    key={idx}
-                    className="relative p-4 bg-zinc-50 dark:bg-white/[0.02] border border-zinc-200 dark:border-white/5 rounded-xl space-y-3"
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsNewClassModalOpen(false)}
+                    className="px-4 py-2.5 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-900 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-bold rounded-xl border border-zinc-200 dark:border-white/5 text-xs"
                   >
-                    <div className="flex justify-between items-center">
-                      <span className="text-[10px] font-black uppercase text-primary tracking-wider">
-                        Alumno #{idx + 1} {idx === 0 ? "(Contacto Principal)" : ""}
-                      </span>
-                      {bookingStudents.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveStudentRow(idx)}
-                          className="text-[10px] font-bold text-red-400 hover:text-red-350"
-                        >
-                          Quitar
-                        </button>
-                      )}
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="relative">
-                        <input
-                          type="text"
-                          placeholder="Nombre"
-                          required
-                          value={student.firstName}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            handleStudentChange(idx, "firstName", val);
-                            searchSociosForStudent(idx, val);
-                          }}
-                          onFocus={() => setActiveSearchIdx(idx)}
-                          onBlur={() => setTimeout(() => setActiveSearchIdx(null), 250)}
-                          className="w-full bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-white/10 rounded-lg px-3 py-1.5 text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-none focus:border-primary font-semibold"
-                        />
-                        {activeSearchIdx === idx && socioSearchResults[idx] && socioSearchResults[idx].length > 0 && (
-                          <div className="absolute left-0 right-0 top-full mt-1 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-white/5 rounded-lg shadow-xl max-h-48 overflow-y-auto z-50 text-left">
-                            {socioSearchResults[idx].map((socio) => (
-                              <button
-                                key={socio._id}
-                                type="button"
-                                onMouseDown={() => {
-                                  const currentMonthStr = getCurrentMonthString();
-                                  const isAbonoPaid = socio.payments.some((p: any) => p.month === currentMonthStr && p.status === "paid");
-                                  
-                                  setBookingStudents((prev) =>
-                                    prev.map((s, i) =>
-                                      i === idx
-                                        ? {
-                                            firstName: socio.firstName,
-                                            lastName: socio.lastName,
-                                            phone: socio.phone || "",
-                                            email: socio.email || "",
-                                            paidAbono: isAbonoPaid,
-                                            socioId: socio._id,
-                                          }
-                                        : s
-                                    )
-                                  );
-                                  setSocioSearchResults((prev) => ({ ...prev, [idx]: [] }));
-                                }}
-                                className="w-full text-left px-3 py-2 hover:bg-zinc-50 dark:hover:bg-white/5 text-xs font-semibold border-b border-zinc-100 dark:border-white/5 last:border-0 text-zinc-800 dark:text-zinc-200"
-                              >
-                                <div>{socio.lastName}, {socio.firstName}</div>
-                                {socio.dni && <div className="text-[10px] text-zinc-400">DNI: {socio.dni}</div>}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                      <input
-                        type="text"
-                        placeholder="Apellido"
-                        required
-                        value={student.lastName}
-                        onChange={(e) => handleStudentChange(idx, "lastName", e.target.value)}
-                        className="w-full bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-white/10 rounded-lg px-3 py-1.5 text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-none focus:border-primary font-semibold"
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2">
-                      <input
-                        type="tel"
-                        placeholder="Teléfono"
-                        value={student.phone || ""}
-                        onChange={(e) => handleStudentChange(idx, "phone", e.target.value)}
-                        className="bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-white/10 rounded-lg px-3 py-1.5 text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-none focus:border-primary font-medium"
-                      />
-                      <input
-                        type="email"
-                        placeholder="Email"
-                        value={student.email || ""}
-                        onChange={(e) => handleStudentChange(idx, "email", e.target.value)}
-                        className="bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-white/10 rounded-lg px-3 py-1.5 text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-none focus:border-primary font-medium"
-                      />
-                    </div>
-
-                    {bookingSport === "football" && (
-                      <div className="flex items-center justify-between pt-2 border-t border-zinc-200/50 dark:border-white/5 mt-1.5 animate-in fade-in duration-200">
-                        <span className="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400">
-                          Abono Mensual
-                        </span>
-                        <div className="flex gap-1 bg-zinc-100 dark:bg-zinc-900/50 p-0.5 rounded-lg border border-zinc-200 dark:border-white/5">
-                          <button
-                            type="button"
-                            onClick={() => handleStudentChange(idx, "paidAbono", false)}
-                            className={`px-3 py-1 text-[10px] font-black uppercase rounded-md transition-all ${
-                              !student.paidAbono
-                                ? "bg-amber-500/15 text-amber-500 border border-amber-500/20 shadow-sm"
-                                : "text-zinc-500 hover:text-zinc-300"
-                            }`}
-                          >
-                            Debe
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleStudentChange(idx, "paidAbono", true)}
-                            className={`px-3 py-1 text-[10px] font-black uppercase rounded-md transition-all ${
-                              student.paidAbono
-                                ? "bg-green-500/15 text-green-400 border border-green-500/20 shadow-sm"
-                                : "text-zinc-500 hover:text-zinc-300"
-                            }`}
-                          >
-                            Pagado
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Form Actions / Summary */}
-          <div className="border-t border-zinc-200 dark:border-white/5 pt-5 flex flex-col sm:flex-row items-center justify-between gap-4">
-            {/* Price details summary */}
-            {(() => {
-              const start = new Date(`${bookingDate}T${bookingStartTime}:00.000-03:00`);
-              const end = new Date(`${bookingDate}T${bookingEndTime}:00.000-03:00`);
-              const durationHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
-
-              const teacherObj = teachers.find((t) => t._id === bookingTeacherId);
-              const selectedCourtObj = availableCourts.find((c) => c._id === bookingCourtId);
-
-              const validDuration = !isNaN(durationHours) && durationHours > 0;
-              const courtPrice = validDuration && selectedCourtObj ? Math.round(durationHours * selectedCourtObj.pricePerHour) : 0;
-              const teacherPrice = validDuration && teacherObj ? Math.round(durationHours * teacherObj.pricePerHour) : 0;
-              const total = teacherPrice;
-
-              return (
-                <div className="text-xs text-zinc-500 dark:text-zinc-400 flex flex-wrap gap-x-6 gap-y-1.5">
-                  <div>
-                    Cancha: <strong className="text-zinc-400 italic font-bold">Incluida en la clase</strong>
-                  </div>
-                  <div>
-                    Valor Clase: <strong className="text-zinc-900 dark:text-white">${teacherPrice.toLocaleString("es-AR")}</strong>
-                  </div>
-                  <div className="text-sm">
-                    Total a pagar: <strong className="text-primary font-black text-base">${total.toLocaleString("es-AR")}</strong>
-                  </div>
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={bookingSubmitting || courtsLoading || !bookingCourtId || !bookingTeacherId}
+                    className="px-5 py-2.5 bg-primary text-black font-extrabold rounded-xl shadow-[0_4px_15px_rgba(57,255,20,0.25)] hover:scale-[1.02] active:scale-98 transition-all disabled:opacity-50 text-xs flex items-center justify-center gap-1.5"
+                  >
+                    {bookingSubmitting ? "Creando..." : "Programar Clase"}
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
                 </div>
-              );
-
-            })()}
-
-            <button
-              type="submit"
-              disabled={bookingSubmitting || courtsLoading || !bookingCourtId || !bookingTeacherId}
-              className="w-full sm:w-auto px-6 py-3 bg-primary text-black font-extrabold rounded-xl shadow-[0_4px_15px_rgba(57,255,20,0.25)] hover:scale-[1.02] active:scale-98 transition-all disabled:opacity-50 text-sm flex items-center justify-center gap-2"
-            >
-              {bookingSubmitting ? "Creando Reserva..." : "Reservar Clase"}
-              <ChevronRight className="w-4 h-4" />
-            </button>
+              </div>
+            </form>
           </div>
-        </form>
+        </div>
       )}
 
       {/* CRUD Modal dialog */}
