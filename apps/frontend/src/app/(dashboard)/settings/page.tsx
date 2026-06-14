@@ -14,7 +14,7 @@ type ClubFormData = {
   description: string;
   bookingEnabled: boolean;
   depositType: "percentage" | "fixed" | "none";
-  depositValue: number;
+  depositValue: number | "";
   mpAccessToken: string;
   mpPublicKey: string;
   subdomain: string;
@@ -72,7 +72,7 @@ function toPayload(formData: ClubFormData) {
     description: formData.description.trim(),
     bookingEnabled: formData.bookingEnabled,
     depositType: formData.depositType,
-    depositValue: Number(formData.depositValue),
+    depositValue: formData.depositValue === "" ? 0 : Number(formData.depositValue),
     mpAccessToken: formData.mpAccessToken.trim(),
     mpPublicKey: formData.mpPublicKey.trim(),
     subdomain: formData.subdomain.trim(),
@@ -468,7 +468,7 @@ export default function SettingsPage() {
                       min="0"
                       value={formData.depositValue}
                       onChange={(event) =>
-                        setFormData({ ...formData, depositValue: Number(event.target.value) })
+                        setFormData({ ...formData, depositValue: event.target.value === "" ? "" : Number(event.target.value) })
                       }
                       className="w-full bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-lg py-3 px-4 text-zinc-900 dark:text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
                     />

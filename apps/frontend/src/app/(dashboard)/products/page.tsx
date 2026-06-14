@@ -18,7 +18,7 @@ import { useClub } from "@/providers/ClubProvider";
 
 type ProductFormData = {
   name: string;
-  price: number;
+  price: number | "";
   icon: string;
   isActive: boolean;
   clubId: string;
@@ -88,7 +88,7 @@ export default function ProductsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name.trim() || formData.price < 0 || !formData.clubId) {
+    if (!formData.name.trim() || formData.price === "" || formData.price < 0 || !formData.clubId) {
       setError("Por favor completa todos los campos requeridos correctamente.");
       return;
     }
@@ -332,8 +332,8 @@ export default function ProductsPage() {
                     required
                     min="0"
                     placeholder="0.00"
-                    value={formData.price || ""}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, price: Number(e.target.value) }))}
+                    value={formData.price}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, price: e.target.value === "" ? "" : Number(e.target.value) }))}
                     className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 rounded-xl pl-8 pr-3.5 py-2.5 text-xs text-zinc-900 dark:text-white focus:outline-none focus:border-primary transition-all"
                   />
                 </div>

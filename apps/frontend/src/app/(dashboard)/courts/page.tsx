@@ -23,8 +23,8 @@ type CourtFormData = {
   isCovered: boolean;
   isActive: boolean;
   clubId: string;
-  pricePerHour: number;
-  capacity?: number;
+  pricePerHour: number | "";
+  capacity?: number | "";
 };
 
 const initialFormData: CourtFormData = {
@@ -34,7 +34,7 @@ const initialFormData: CourtFormData = {
   isActive: true,
   clubId: "",
   pricePerHour: 10000,
-  capacity: undefined,
+  capacity: "",
 };
 
 async function fetchJson<T>(url: string): Promise<T> {
@@ -151,7 +151,11 @@ export default function CourtsPage() {
       const response = await apiFetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          pricePerHour: formData.pricePerHour === "" ? 0 : Number(formData.pricePerHour),
+          capacity: formData.capacity === "" ? undefined : Number(formData.capacity),
+        }),
       });
 
       if (!response.ok) {
@@ -177,8 +181,8 @@ export default function CourtsPage() {
       isCovered: court.isCovered,
       isActive: court.isActive,
       clubId: court.clubId,
-      pricePerHour: court.pricePerHour || 0,
-      capacity: court.capacity || undefined,
+      pricePerHour: court.pricePerHour ?? "",
+      capacity: court.capacity ?? "",
     });
     setShowForm(true);
   };
@@ -333,7 +337,7 @@ export default function CourtsPage() {
                     onChange={(e) =>
                       setFormData({
                         ...formData,
-                        pricePerHour: Number(e.target.value) || 0,
+                        pricePerHour: e.target.value === "" ? "" : Number(e.target.value),
                       })
                     }
                   />
@@ -350,11 +354,11 @@ export default function CourtsPage() {
                     min="1"
                     placeholder="Ej. 20"
                     className="w-full bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-lg py-3 px-4 text-zinc-900 dark:text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
-                    value={formData.capacity || ""}
+                    value={formData.capacity}
                     onChange={(e) =>
                       setFormData({
                         ...formData,
-                        capacity: e.target.value ? Number(e.target.value) : undefined,
+                        capacity: e.target.value === "" ? "" : Number(e.target.value),
                       })
                     }
                   />
