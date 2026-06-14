@@ -16,6 +16,7 @@ import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';
 import { TournamentsModule } from './modules/tournaments/tournaments.module';
 import { ProductsModule } from './modules/products/products.module';
 import { TeachersModule } from './modules/teachers/teachers.module';
+import { SociosModule } from './modules/socios/socios.module';
  
 @Module({
   imports: [
@@ -55,6 +56,7 @@ import { TeachersModule } from './modules/teachers/teachers.module';
     TournamentsModule,
     ProductsModule,
     TeachersModule,
+    SociosModule,
   ],
   controllers: [AppController],
   providers: [AppService],

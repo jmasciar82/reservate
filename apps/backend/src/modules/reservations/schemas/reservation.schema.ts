@@ -37,6 +37,9 @@ export class ReservationStudent {
 
   @Prop({ required: false, default: false })
   paidAbono?: boolean;
+
+  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'Socio', required: false })
+  socioId?: Types.ObjectId;
 }
 
 const ReservationStudentSchema = SchemaFactory.createForClass(ReservationStudent);

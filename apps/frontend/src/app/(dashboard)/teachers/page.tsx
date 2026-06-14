@@ -50,10 +50,39 @@ export default function TeachersPage() {
   const [bookingPaymentStatus, setBookingPaymentStatus] = useState<"pending" | "paid">("pending");
   const [bookingActivityType, setBookingActivityType] = useState<"clase" | "escuelita">("clase");
   const [bookingStudents, setBookingStudents] = useState<
-    Array<{ firstName: string; lastName: string; phone?: string; email?: string; paidAbono?: boolean }>
+    Array<{ firstName: string; lastName: string; phone?: string; email?: string; paidAbono?: boolean; socioId?: string }>
   >([{ firstName: "", lastName: "", phone: "", email: "", paidAbono: false }]);
   const [bookingIsRecurring, setBookingIsRecurring] = useState(false);
   const [bookingRecurrenceWeeks, setBookingRecurrenceWeeks] = useState(12);
+
+  // Autocomplete search for socios
+  const [socioSearchResults, setSocioSearchResults] = useState<{ [key: number]: any[] }>({});
+  const [activeSearchIdx, setActiveSearchIdx] = useState<number | null>(null);
+
+  const getCurrentMonthString = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    return `${year}-${month}`;
+  };
+
+  const searchSociosForStudent = async (index: number, query: string) => {
+    if (!activeClubId) return;
+    if (!query || query.trim().length < 2) {
+      setSocioSearchResults(prev => ({ ...prev, [index]: [] }));
+      return;
+    }
+
+    try {
+      const res = await apiFetch(`/socios?clubId=${activeClubId}&search=${encodeURIComponent(query)}`);
+      if (res.ok) {
+        const data = await res.json();
+        setSocioSearchResults(prev => ({ ...prev, [index]: data }));
+      }
+    } catch (err) {
+      console.error("Error searching socios:", err);
+    }
+  };
 
   // Enforce escuelita rules
   useEffect(() => {
@@ -819,21 +848,63 @@ export default function TeachersPage() {
                     </div>
 
                     <div className="grid grid-cols-2 gap-2">
-                      <input
-                        type="text"
-                        placeholder="Nombre"
-                        required
-                        value={student.firstName}
-                        onChange={(e) => handleStudentChange(idx, "firstName", e.target.value)}
-                        className="bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-white/10 rounded-lg px-3 py-1.5 text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-none focus:border-primary font-semibold"
-                      />
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder="Nombre"
+                          required
+                          value={student.firstName}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            handleStudentChange(idx, "firstName", val);
+                            searchSociosForStudent(idx, val);
+                          }}
+                          onFocus={() => setActiveSearchIdx(idx)}
+                          onBlur={() => setTimeout(() => setActiveSearchIdx(null), 250)}
+                          className="w-full bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-white/10 rounded-lg px-3 py-1.5 text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-none focus:border-primary font-semibold"
+                        />
+                        {activeSearchIdx === idx && socioSearchResults[idx] && socioSearchResults[idx].length > 0 && (
+                          <div className="absolute left-0 right-0 top-full mt-1 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-white/5 rounded-lg shadow-xl max-h-48 overflow-y-auto z-50 text-left">
+                            {socioSearchResults[idx].map((socio) => (
+                              <button
+                                key={socio._id}
+                                type="button"
+                                onMouseDown={() => {
+                                  const currentMonthStr = getCurrentMonthString();
+                                  const isAbonoPaid = socio.payments.some((p: any) => p.month === currentMonthStr && p.status === "paid");
+                                  
+                                  setBookingStudents((prev) =>
+                                    prev.map((s, i) =>
+                                      i === idx
+                                        ? {
+                                            firstName: socio.firstName,
+                                            lastName: socio.lastName,
+                                            phone: socio.phone || "",
+                                            email: socio.email || "",
+                                            paidAbono: isAbonoPaid,
+                                            socioId: socio._id,
+                                          }
+                                        : s
+                                    )
+                                  );
+                                  setSocioSearchResults((prev) => ({ ...prev, [idx]: [] }));
+                                }}
+                                className="w-full text-left px-3 py-2 hover:bg-zinc-50 dark:hover:bg-white/5 text-xs font-semibold border-b border-zinc-100 dark:border-white/5 last:border-0 text-zinc-800 dark:text-zinc-200"
+                              >
+                                <div>{socio.lastName}, {socio.firstName}</div>
+                                {socio.dni && <div className="text-[10px] text-zinc-400">DNI: {socio.dni}</div>}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                       <input
                         type="text"
                         placeholder="Apellido"
                         required
                         value={student.lastName}
                         onChange={(e) => handleStudentChange(idx, "lastName", e.target.value)}
-                        className="bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-white/10 rounded-lg px-3 py-1.5 text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-none focus:border-primary font-semibold"
+                        className="w-full bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-white/10 rounded-lg px-3 py-1.5 text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-none focus:border-primary font-semibold"
                       />
                     </div>
 

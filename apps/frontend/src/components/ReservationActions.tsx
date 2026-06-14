@@ -67,13 +67,42 @@ export default function ReservationActions({
   const menuRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
+  // Autocomplete search for socios
+  const [socioSearchResults, setSocioSearchResults] = useState<{ [key: number]: any[] }>({});
+  const [activeSearchIdx, setActiveSearchIdx] = useState<number | null>(null);
+
+  const getCurrentMonthString = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    return `${year}-${month}`;
+  };
+
+  const { activeClubId } = useClub();
+
+  const searchSociosForStudent = async (index: number, query: string) => {
+    if (!activeClubId) return;
+    if (!query || query.trim().length < 2) {
+      setSocioSearchResults(prev => ({ ...prev, [index]: [] }));
+      return;
+    }
+
+    try {
+      const res = await apiFetch(`/socios?clubId=${activeClubId}&search=${encodeURIComponent(query)}`);
+      if (res.ok) {
+        const data = await res.json();
+        setSocioSearchResults(prev => ({ ...prev, [index]: data }));
+      }
+    } catch (err) {
+      console.error("Error searching socios:", err);
+    }
+  };
+
   useEffect(() => {
     if (showStudentsModal) {
       setModalStudents(students || []);
     }
   }, [showStudentsModal, students]);
-
-  const { activeClubId } = useClub();
   const [showAddProductsModal, setShowAddProductsModal] = useState(false);
   const [currentProducts, setCurrentProducts] = useState<Array<{ name: string; quantity: number; price: number }>>([]);
   const [customProduct, setCustomProduct] = useState({ name: "", price: "", quantity: "1" });
@@ -203,6 +232,10 @@ export default function ReservationActions({
     depositAmount?: number;
     cancelSeries?: boolean;
     userId?: string;
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    phone?: string;
     payBlock?: boolean;
     products?: Array<{ name: string; quantity: number; price: number }>;
     students?: ReservationStudent[];
@@ -224,6 +257,38 @@ export default function ReservationActions({
       });
 
       if (response.ok) {
+        if (payload.students) {
+          const currentMonthStr = getCurrentMonthString();
+          for (const s of payload.students) {
+            if (s.socioId) {
+              const originalStudent = students.find((os) => os.socioId === s.socioId);
+              // If status changed or it's a newly linked student marked as paid
+              if (!originalStudent || originalStudent.paidAbono !== s.paidAbono) {
+                try {
+                  if (s.paidAbono) {
+                    await apiFetch(`/socios/${s.socioId}/payments`, {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        month: currentMonthStr,
+                        amount: 35000,
+                        status: "paid",
+                        paymentMethod: "Efectivo",
+                        notes: "Registrado desde administración de alumnos",
+                      }),
+                    });
+                  } else {
+                    await apiFetch(`/socios/${s.socioId}/payments/${currentMonthStr}`, {
+                      method: "DELETE",
+                    });
+                  }
+                } catch (err) {
+                  console.error(`Error syncing socio abono for ${s.socioId}:`, err);
+                }
+              }
+            }
+          }
+        }
         router.refresh();
       } else {
         alert("Error al actualizar la reserva.");
@@ -890,72 +955,167 @@ export default function ReservationActions({
             className="absolute inset-0 bg-black/30 dark:bg-black/70 backdrop-blur-sm animate-in fade-in duration-200"
             onClick={() => setShowStudentsModal(false)}
           />
-          <div className="relative w-full max-w-md bg-white/95 dark:bg-zinc-950/85 backdrop-blur-xl border border-zinc-200 dark:border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          <div className="relative w-full max-w-lg bg-white/95 dark:bg-zinc-950/85 backdrop-blur-xl border border-zinc-200 dark:border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <div className="px-6 py-4 border-b border-zinc-200/80 dark:border-white/5 flex justify-between items-center bg-zinc-50 dark:bg-white/[0.02]">
               <h3 className="text-lg font-black text-zinc-900 dark:text-white flex items-center gap-2">
                 <span className="w-2 h-5 bg-primary rounded-full shadow-[0_0_8px_rgba(57,255,20,0.5)]" />
                 Administrar Alumnos (Abonos)
               </h3>
               <button
-                onClick={() => setShowStudentsModal(false)}
-                className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-all duration-300 p-1.5 bg-zinc-100/80 dark:bg-white/5 hover:bg-zinc-200 dark:hover:bg-white/10 rounded-lg border border-zinc-200/80 dark:border-white/5"
-                title="Cerrar"
+                type="button"
+                onClick={() => {
+                  setModalStudents(prev => [...prev, { firstName: "", lastName: "", phone: "", email: "", paidAbono: false }]);
+                }}
+                className="text-xs font-black text-primary hover:underline flex items-center gap-1 bg-zinc-100/80 dark:bg-white/5 hover:bg-zinc-200 dark:hover:bg-white/10 px-2.5 py-1.5 rounded-lg border border-zinc-200/80 dark:border-white/5 transition-all"
               >
-                <X className="w-4 h-4" />
+                + Agregar Alumno
               </button>
             </div>
             
-            <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
+            <div className="p-6 space-y-4 max-h-[55vh] overflow-y-auto">
               {modalStudents.length === 0 ? (
-                <p className="text-sm text-zinc-500 dark:text-zinc-400 text-center italic">
-                  No hay alumnos registrados en esta clase.
-                </p>
+                <div className="text-center py-8 text-zinc-500 dark:text-zinc-400">
+                  <p className="text-sm italic mb-3">No hay alumnos registrados en esta clase.</p>
+                </div>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {modalStudents.map((student, idx) => (
                     <div
                       key={idx}
-                      className="p-4 bg-zinc-50 dark:bg-white/[0.02] border border-zinc-200 dark:border-white/5 rounded-xl space-y-2.5"
+                      className="p-4 bg-zinc-50 dark:bg-white/[0.02] border border-zinc-200 dark:border-white/5 rounded-xl space-y-3 relative animate-in fade-in duration-200"
                     >
                       <div className="flex justify-between items-center">
-                        <span className="text-sm font-black text-zinc-800 dark:text-zinc-200">
-                          {student.firstName} {student.lastName}
+                        <span className="text-[10px] font-black uppercase text-primary tracking-wider">
+                          Alumno #{idx + 1} {idx === 0 ? "(Principal)" : ""}
                         </span>
-                        <div className="flex gap-1 bg-zinc-100 dark:bg-zinc-900/50 p-0.5 rounded-lg border border-zinc-200 dark:border-white/5">
+                        
+                        <div className="flex items-center gap-3">
+                          <div className="flex gap-1 bg-zinc-100 dark:bg-zinc-900/50 p-0.5 rounded-lg border border-zinc-200 dark:border-white/5">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setModalStudents(prev => prev.map((s, i) => i === idx ? { ...s, paidAbono: false } : s));
+                              }}
+                              className={`px-2 py-1 text-[9px] font-black uppercase rounded-md transition-all ${
+                                !student.paidAbono
+                                  ? "bg-amber-500/15 text-amber-500 border border-amber-500/20 shadow-sm"
+                                  : "text-zinc-500 hover:text-zinc-350"
+                              }`}
+                            >
+                              Debe
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setModalStudents(prev => prev.map((s, i) => i === idx ? { ...s, paidAbono: true } : s));
+                              }}
+                              className={`px-2 py-1 text-[9px] font-black uppercase rounded-md transition-all ${
+                                student.paidAbono
+                                  ? "bg-green-500/15 text-green-400 border border-green-500/20 shadow-sm"
+                                  : "text-zinc-500 hover:text-zinc-350"
+                              }`}
+                            >
+                              Pagado
+                            </button>
+                          </div>
+                          
                           <button
                             type="button"
                             onClick={() => {
-                              setModalStudents(prev => prev.map((s, i) => i === idx ? { ...s, paidAbono: false } : s));
+                              setModalStudents(prev => prev.filter((_, i) => i !== idx));
                             }}
-                            className={`px-3 py-1 text-[10px] font-black uppercase rounded-md transition-all ${
-                              !student.paidAbono
-                                ? "bg-amber-500/15 text-amber-500 border border-amber-500/20 shadow-sm"
-                                : "text-zinc-500 hover:text-zinc-350"
-                            }`}
+                            className="text-[10px] font-bold text-red-400 hover:text-red-350 hover:underline transition-all bg-red-500/5 hover:bg-red-500/10 px-2 py-1 rounded border border-red-500/10"
                           >
-                            Debe
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setModalStudents(prev => prev.map((s, i) => i === idx ? { ...s, paidAbono: true } : s));
-                            }}
-                            className={`px-3 py-1 text-[10px] font-black uppercase rounded-md transition-all ${
-                              student.paidAbono
-                                ? "bg-green-500/15 text-green-400 border border-green-500/20 shadow-sm"
-                                : "text-zinc-555 hover:text-zinc-350"
-                            }`}
-                          >
-                            Pagado
+                            Quitar
                           </button>
                         </div>
                       </div>
-                      {(student.phone || student.email) && (
-                        <div className="text-[10px] text-zinc-500 dark:text-zinc-400 space-y-0.5 pt-1.5 border-t border-zinc-200/50 dark:border-white/5">
-                          {student.phone && <div>📞 {student.phone}</div>}
-                          {student.email && <div>✉️ {student.email}</div>}
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="relative">
+                          <input
+                            type="text"
+                            placeholder="Nombre"
+                            required
+                            value={student.firstName}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setModalStudents((prev) =>
+                                prev.map((s, i) => (i === idx ? { ...s, firstName: val } : s))
+                              );
+                              searchSociosForStudent(idx, val);
+                            }}
+                            onFocus={() => setActiveSearchIdx(idx)}
+                            onBlur={() => setTimeout(() => setActiveSearchIdx(null), 250)}
+                            className="w-full bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-none focus:border-primary font-semibold"
+                          />
+                          {activeSearchIdx === idx && socioSearchResults[idx] && socioSearchResults[idx].length > 0 && (
+                            <div className="absolute left-0 right-0 top-full mt-1 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-white/5 rounded-lg shadow-xl max-h-48 overflow-y-auto z-50 text-left">
+                              {socioSearchResults[idx].map((socio) => (
+                                <button
+                                  key={socio._id}
+                                  type="button"
+                                  onMouseDown={() => {
+                                    const currentMonthStr = getCurrentMonthString();
+                                    const isAbonoPaid = socio.payments.some((p: any) => p.month === currentMonthStr && p.status === "paid");
+                                    
+                                    setModalStudents((prev) =>
+                                      prev.map((s, i) =>
+                                        i === idx
+                                          ? {
+                                              firstName: socio.firstName,
+                                              lastName: socio.lastName,
+                                              phone: socio.phone || "",
+                                              email: socio.email || "",
+                                              paidAbono: isAbonoPaid,
+                                              socioId: socio._id,
+                                            }
+                                          : s
+                                      )
+                                    );
+                                    setSocioSearchResults((prev) => ({ ...prev, [idx]: [] }));
+                                  }}
+                                  className="w-full text-left px-3 py-2 hover:bg-zinc-50 dark:hover:bg-white/5 text-xs font-semibold border-b border-zinc-100 dark:border-white/5 last:border-0 text-zinc-800 dark:text-zinc-200"
+                                >
+                                  <div>{socio.lastName}, {socio.firstName}</div>
+                                  {socio.dni && <div className="text-[10px] text-zinc-400">DNI: {socio.dni}</div>}
+                                </button>
+                              ))}
+                            </div>
+                          )}
                         </div>
-                      )}
+                        <input
+                          type="text"
+                          placeholder="Apellido"
+                          required
+                          value={student.lastName}
+                          onChange={(e) => {
+                            setModalStudents(prev => prev.map((s, i) => i === idx ? { ...s, lastName: e.target.value } : s));
+                          }}
+                          className="w-full bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-none focus:border-primary font-semibold"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <input
+                          type="tel"
+                          placeholder="Teléfono"
+                          value={student.phone || ""}
+                          onChange={(e) => {
+                            setModalStudents(prev => prev.map((s, i) => i === idx ? { ...s, phone: e.target.value } : s));
+                          }}
+                          className="w-full bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-none focus:border-primary font-medium"
+                        />
+                        <input
+                          type="email"
+                          placeholder="Email"
+                          value={student.email || ""}
+                          onChange={(e) => {
+                            setModalStudents(prev => prev.map((s, i) => i === idx ? { ...s, email: e.target.value } : s));
+                          }}
+                          className="w-full bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-none focus:border-primary font-medium"
+                        />
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -973,8 +1133,18 @@ export default function ReservationActions({
               <button
                 type="button"
                 onClick={() => {
+                  const valid = modalStudents.filter(s => s.firstName.trim() && s.lastName.trim());
+                  if (valid.length === 0) {
+                    alert("Debes ingresar al menos un alumno con nombre y apellido.");
+                    return;
+                  }
                   handleUpdate({
-                    students: modalStudents,
+                    students: valid,
+                    firstName: valid[0].firstName,
+                    lastName: valid[0].lastName,
+                    email: valid[0].email || undefined,
+                    phone: valid[0].phone || undefined,
+                    userId: `${valid[0].firstName} ${valid[0].lastName}`.trim(),
                   });
                 }}
                 className="flex-1 py-3 bg-primary text-primary-foreground font-black rounded-xl shadow-[0_4px_15px_rgba(57,255,20,0.25)] hover:shadow-[0_4px_20px_rgba(57,255,20,0.45)] transition-all text-sm"

@@ -31,6 +31,7 @@ export class CreateReservationDto {
     email?: string;
     phone?: string;
     paidAbono?: boolean;
+    socioId?: string;
   }>;
 }
 

@@ -39,6 +39,7 @@ export interface ReservationStudent {
   email?: string;
   phone?: string;
   paidAbono?: boolean;
+  socioId?: string;
 }
 
 export interface Reservation {

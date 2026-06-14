@@ -28,6 +28,7 @@ export class UpdateReservationDto {
     email?: string;
     phone?: string;
     paidAbono?: boolean;
+    socioId?: string;
   }>;
 }
 
