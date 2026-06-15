@@ -156,6 +156,15 @@ export default function SociosPage() {
       const key = cls.recurrenceGroupId || cls._id;
       const existing = activitiesMap.get(key);
 
+      const classDate = new Date(cls.startTime);
+      const classMonthStr = `${classDate.getFullYear()}-${String(classDate.getMonth() + 1).padStart(2, "0")}`;
+      const socioObj = socios.find((s) => s._id === socioId);
+      const hasSocioPaidForMonth = socioObj?.payments?.some(
+        (p) => p.month === classMonthStr && p.status === "paid"
+      );
+
+      const isPaid = !!student.paidAbono || !!hasSocioPaidForMonth;
+
       if (!existing) {
         activitiesMap.set(key, {
           classId: cls._id,
@@ -164,14 +173,14 @@ export default function SociosPage() {
           sport: cls.reservationType?.includes("padel") ? "Pádel" : "Fútbol",
           startTime: cls.startTime,
           endTime: cls.endTime,
-          paidAbono: !!student.paidAbono,
+          paidAbono: isPaid,
           reservationType: cls.reservationType || "standard",
         });
       } else {
         const d = new Date(cls.startTime);
         const now = new Date();
         if (d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()) {
-          existing.paidAbono = !!student.paidAbono;
+          existing.paidAbono = isPaid;
         }
       }
     }
@@ -494,7 +503,7 @@ export default function SociosPage() {
                                       title={`${act.reservationType.includes("escuelita") ? "Escuelita" : "Clase Particular"} - click para ver detalles`}
                                     />
                                     {/* Tooltip on hover */}
-                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover/tooltip:block bg-zinc-900 border border-white/10 text-[9px] text-white p-1.5 rounded-lg shadow-xl whitespace-nowrap z-[9999]">
+                                    <div className="absolute bottom-full left-0 mb-1.5 hidden group-hover/tooltip:block bg-zinc-900 border border-white/10 text-[9px] text-white p-1.5 rounded-lg shadow-xl whitespace-nowrap z-[9999]">
                                       <div className="font-extrabold">{act.reservationType.includes("escuelita") ? "🎓 Escuelita" : "👤 Clase Particular"}</div>
                                       <div className="text-zinc-400 mt-0.5">{act.name} - {act.teacherName}</div>
                                       <div className={`mt-1 font-black ${act.paidAbono ? "text-green-400" : "text-red-400"}`}>
