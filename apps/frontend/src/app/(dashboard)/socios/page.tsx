@@ -55,6 +55,23 @@ export default function SociosPage() {
 
   const [selectedSocio, setSelectedSocio] = useState<Socio | null>(null);
 
+  // Activity reservation state
+  const [scheduledClasses, setScheduledClasses] = useState<any[]>([]);
+  const [classesLoading, setClassesLoading] = useState(false);
+
+  // Selected activity detail for details modal
+  const [selectedActivityDetail, setSelectedActivityDetail] = useState<{
+    socioName: string;
+    activityName: string;
+    courtName: string;
+    teacherName: string;
+    sport: string;
+    time: string;
+    day: string;
+    paidAbono: boolean;
+    date: Date;
+  } | null>(null);
+
   // Socio Form fields
   const [socioForm, setSocioForm] = useState({
     firstName: "",
@@ -104,8 +121,67 @@ export default function SociosPage() {
     }
   };
 
+  const fetchScheduledClasses = async () => {
+    if (!activeClubId) return;
+    setClassesLoading(true);
+    try {
+      const res = await apiFetch(`/reservations?clubId=${activeClubId}&type=class`);
+      if (res.ok) {
+        const data = await res.json();
+        setScheduledClasses(data);
+      }
+    } catch (err) {
+      console.error("Error al obtener clases programadas:", err);
+    } finally {
+      setClassesLoading(false);
+    }
+  };
+
+  const getSocioActivities = (socioId: string) => {
+    const activitiesMap = new Map<string, {
+      classId: string;
+      name: string;
+      teacherName: string;
+      sport: string;
+      startTime: string;
+      endTime: string;
+      paidAbono: boolean;
+      reservationType: string;
+    }>();
+
+    for (const cls of scheduledClasses) {
+      const student = cls.students?.find((st: any) => st.socioId === socioId);
+      if (!student) continue;
+
+      const key = cls.recurrenceGroupId || cls._id;
+      const existing = activitiesMap.get(key);
+
+      if (!existing) {
+        activitiesMap.set(key, {
+          classId: cls._id,
+          name: cls.courtId?.name || "Cancha",
+          teacherName: cls.teacherId?.name || "Sin profesor",
+          sport: cls.reservationType?.includes("padel") ? "Pádel" : "Fútbol",
+          startTime: cls.startTime,
+          endTime: cls.endTime,
+          paidAbono: !!student.paidAbono,
+          reservationType: cls.reservationType || "standard",
+        });
+      } else {
+        const d = new Date(cls.startTime);
+        const now = new Date();
+        if (d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()) {
+          existing.paidAbono = !!student.paidAbono;
+        }
+      }
+    }
+
+    return Array.from(activitiesMap.values());
+  };
+
   useEffect(() => {
     fetchSocios();
+    fetchScheduledClasses();
   }, [activeClubId]);
 
   // Search filter
@@ -385,7 +461,54 @@ export default function SociosPage() {
                 return (
                   <tr key={socio._id} className="hover:bg-zinc-50/55 dark:hover:bg-white/[0.01] transition-colors">
                     <td className="px-6 py-4.5 font-bold text-sm">
-                      {socio.lastName}, {socio.firstName}
+                      <div className="flex flex-col gap-1">
+                        <span>{socio.lastName}, {socio.firstName}</span>
+                        {(() => {
+                          const socioActivities = getSocioActivities(socio._id);
+                          if (socioActivities.length > 0) {
+                            return (
+                              <div className="flex gap-1.5 items-center mt-0.5">
+                                {socioActivities.map((act, aIdx) => (
+                                  <div key={aIdx} className="relative group/tooltip flex items-center">
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSelectedActivityDetail({
+                                          socioName: `${socio.firstName} ${socio.lastName}`,
+                                          activityName: act.reservationType.includes("escuelita") ? "Escuelita" : "Clase Particular",
+                                          courtName: act.name,
+                                          teacherName: act.teacherName,
+                                          sport: act.sport,
+                                          time: `${new Date(act.startTime).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })} - ${new Date(act.endTime).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}`,
+                                          day: new Date(act.startTime).toLocaleDateString("es-AR", { weekday: "long" }),
+                                          paidAbono: act.paidAbono,
+                                          date: new Date(act.startTime),
+                                        });
+                                      }}
+                                      className={`w-2 h-2 rounded-full hover:scale-125 transition-all border border-black/25 cursor-pointer ${
+                                        act.paidAbono 
+                                          ? "bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.45)]" 
+                                          : "bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.45)]"
+                                      }`}
+                                      title={`${act.reservationType.includes("escuelita") ? "Escuelita" : "Clase Particular"} - click para ver detalles`}
+                                    />
+                                    {/* Tooltip on hover */}
+                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover/tooltip:block bg-zinc-900 border border-white/10 text-[9px] text-white p-1.5 rounded-lg shadow-xl whitespace-nowrap z-[9999]">
+                                      <div className="font-extrabold">{act.reservationType.includes("escuelita") ? "🎓 Escuelita" : "👤 Clase Particular"}</div>
+                                      <div className="text-zinc-400 mt-0.5">{act.name} - {act.teacherName}</div>
+                                      <div className={`mt-1 font-black ${act.paidAbono ? "text-green-400" : "text-red-400"}`}>
+                                        {act.paidAbono ? "✓ PAGADO" : "✗ DEBE"}
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            );
+                          }
+                          return null;
+                        })()}
+                      </div>
                     </td>
                     <td className="px-6 py-4.5 text-xs text-zinc-500 dark:text-zinc-400 font-semibold">
                       {socio.dni || "—"}
@@ -814,6 +937,83 @@ export default function SociosPage() {
               <button
                 onClick={() => setIsHistoryModalOpen(false)}
                 className="px-5 py-2.5 bg-zinc-200 dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-800 font-bold rounded-xl text-xs transition-all"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Activity Detail Modal */}
+      {selectedActivityDetail && (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="relative w-full max-w-sm bg-zinc-950/95 border border-white/10 rounded-2xl p-6 shadow-2xl animate-in zoom-in-95 duration-200 text-center">
+            <button
+              onClick={() => setSelectedActivityDetail(null)}
+              className="absolute top-4 right-4 text-zinc-400 hover:text-white p-1 hover:bg-white/5 rounded-lg border border-white/5 cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="space-y-4">
+              <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
+                <Sparkles className="w-6 h-6 text-primary" />
+              </div>
+
+              <div>
+                <h3 className="text-base font-black text-white">{selectedActivityDetail.socioName}</h3>
+                <p className="text-xs text-zinc-500 mt-0.5">Detalle de Actividad</p>
+              </div>
+
+              <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4 text-left space-y-2 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-zinc-400 font-medium">Disciplina:</span>
+                  <span className="font-bold text-white capitalize">{selectedActivityDetail.sport}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-zinc-400 font-medium">Tipo:</span>
+                  <span className="font-bold text-white">{selectedActivityDetail.activityName}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-zinc-400 font-medium">Cancha:</span>
+                  <span className="font-bold text-white">{selectedActivityDetail.courtName}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-zinc-400 font-medium">Profesor:</span>
+                  <span className="font-bold text-white">{selectedActivityDetail.teacherName}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-zinc-400 font-medium">Horario:</span>
+                  <span className="font-bold text-white capitalize">{selectedActivityDetail.day} {selectedActivityDetail.time} hs</span>
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <div className="flex items-center justify-between p-3 bg-zinc-900/60 rounded-xl border border-white/5">
+                  <div className="text-left">
+                    <span className="text-[10px] text-zinc-450 block">Estado del Abono</span>
+                    <span className={`text-xs font-black block mt-0.5 ${selectedActivityDetail.paidAbono ? "text-green-400" : "text-red-400"}`}>
+                      {selectedActivityDetail.paidAbono ? "✓ PAGADO (Al día)" : "✗ DEBE (Impago)"}
+                    </span>
+                  </div>
+                  
+                  <div className="text-right">
+                    <span className="text-[10px] text-zinc-450 block">Vencimiento</span>
+                    <span className="text-[10px] font-bold text-zinc-300 block mt-0.5">
+                      1 al 10 de {selectedActivityDetail.date.toLocaleDateString("es-AR", { month: "long" })}
+                    </span>
+                    {!selectedActivityDetail.paidAbono && new Date().getDate() > 10 && (
+                      <span className="text-[9px] font-black text-red-500 uppercase tracking-wider block mt-1 animate-pulse">Vencido</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setSelectedActivityDetail(null)}
+                className="w-full py-2.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white font-bold rounded-xl border border-white/5 text-xs transition-all cursor-pointer"
               >
                 Cerrar
               </button>
