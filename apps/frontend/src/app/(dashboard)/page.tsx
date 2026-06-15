@@ -95,6 +95,17 @@ async function getTournaments(clubId?: string) {
   return getJson<any[]>("/tournaments", [], { clubId });
 }
 
+async function getSocios(clubId?: string) {
+  if (!clubId) return [];
+  return getJson<any[]>("/socios", [], { clubId });
+}
+
+function getMonthLabel(monthStr: string) {
+  const [year, month] = monthStr.split("-");
+  const date = new Date(Number(year), Number(month) - 1, 15);
+  return date.toLocaleString("es-ES", { month: "long", year: "numeric" });
+}
+
 function statusLabel(status: Reservation["status"]) {
   const labels: Record<Reservation["status"], string> = {
     pending: "POR CONFIRMAR",
@@ -126,6 +137,7 @@ export default async function Dashboard({
   const reservations = await getReservations(date, activeClubId || undefined);
   const courts = await getCourts();
   const tournaments = await getTournaments(activeClubId || undefined);
+  const socios = await getSocios(activeClubId || undefined);
   const clubCourts = courts.filter((court) => court.clubId === activeClubId);
   const activeClubCourts = clubCourts.filter((court) => court.isActive !== false);
 
@@ -142,8 +154,37 @@ export default async function Dashboard({
     return rDateStr === date;
   });
 
+  // Dynamically resolve paymentStatus for class/escuelita reservations
+  const resolvedReservations = playingTodayReservations.map((r) => {
+    const isEscuelitaPadel = r.reservationType === "escuelita_padel";
+    const isEscuelitaFutbol = r.reservationType === "escuelita_futbol";
+    const isEscuelita = isEscuelitaPadel || isEscuelitaFutbol;
+    const isClass = r.reservationType?.includes("class") || isEscuelita;
+
+    if (isClass && r.students && r.students.length > 0) {
+      const classDate = new Date(r.startTime);
+      const classMonthStr = `${classDate.getFullYear()}-${String(classDate.getMonth() + 1).padStart(2, "0")}`;
+
+      const allStudentsPaid = r.students.every((st: any) => {
+        if (st.paidAbono) return true;
+        const socioObj = socios.find((s) => s._id === st.socioId);
+        return socioObj?.payments?.some(
+          (p: any) => p.month === classMonthStr && p.status === "paid"
+        );
+      });
+
+      if (allStudentsPaid) {
+        return {
+          ...r,
+          paymentStatus: "paid" as any,
+        };
+      }
+    }
+    return r;
+  });
+
   const occupiedCourtIds = new Set(
-    playingTodayReservations
+    resolvedReservations
       .map((reservation) => reservation.courtId?._id)
       .filter(Boolean),
   );
@@ -158,6 +199,15 @@ export default async function Dashboard({
   // 3. Detalle de cobros de reservas recibidos en la fecha seleccionada
   const reservationIncomes: any[] = [];
   clubReservations.forEach((reservation) => {
+    const isEscuelitaPadel = reservation.reservationType === "escuelita_padel";
+    const isEscuelitaFutbol = reservation.reservationType === "escuelita_futbol";
+    const isEscuelita = isEscuelitaPadel || isEscuelitaFutbol;
+    const isClass = reservation.reservationType?.includes("class") || isEscuelita;
+
+    // Skip class/escuelita reservations from normal reservation incomes to avoid double counting
+    // since their revenue is registered via the socio monthly abono payments.
+    if (isClass) return;
+
     const hasPayment = reservation.paymentStatus === "paid" || (reservation.depositAmount && reservation.depositAmount > 0);
     if (!hasPayment) return;
 
@@ -182,6 +232,26 @@ export default async function Dashboard({
         type: reservation.paymentStatus === "paid" ? "paid" : "deposit",
       });
     }
+  });
+
+  // 3c. Detalle de cobros de abonos de socios recibidos en la fecha seleccionada
+  socios.forEach((socio) => {
+    (socio.payments || []).forEach((payment: any) => {
+      if (payment.status === "paid" && payment.paymentDate) {
+        const { year, month, day } = getArtTime(payment.paymentDate);
+        const pDateStrFormatted = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+        if (pDateStrFormatted === date) {
+          reservationIncomes.push({
+            id: `${socio._id}-${payment.month}`,
+            courtName: `Abono ${getMonthLabel(payment.month)}`,
+            playerName: `${socio.firstName} ${socio.lastName}`,
+            timeRange: "Cobro Mensual",
+            amount: payment.amount || 0,
+            type: "paid",
+          });
+        }
+      }
+    });
   });
 
   // 3b. Detalle de cobros de torneos recibidos en la fecha seleccionada
@@ -228,7 +298,7 @@ export default async function Dashboard({
       <DashboardFilters currentDate={date} />
 
       <RevenueStats
-        reservationsCount={playingTodayReservations.length}
+        reservationsCount={resolvedReservations.length}
         occupiedCourtsText={`${occupiedCourtsCount}/${totalCourtsCount}`}
         occupancyPercent={occupancyPercent}
         reservationIncomes={reservationIncomes}
@@ -282,7 +352,7 @@ export default async function Dashboard({
           ) : (
             <SchedulerGrid
               activeClubCourts={activeClubCourts}
-              playingTodayReservations={playingTodayReservations}
+              playingTodayReservations={resolvedReservations}
               date={date}
               activeClubId={activeClubId}
             />
@@ -290,13 +360,13 @@ export default async function Dashboard({
         ) : (
           /* VISTA LISTA - STANDARD LIST VIEW */
           <div className="space-y-3 relative z-10">
-            {playingTodayReservations.length === 0 ? (
+            {resolvedReservations.length === 0 ? (
               <div className="text-center py-16 text-zinc-500 dark:text-zinc-400 border border-dashed border-zinc-300 dark:border-white/10 rounded-2xl bg-zinc-50/50 dark:bg-white/[0.01]">
                 <CalendarDays className="w-12 h-12 mx-auto mb-3 opacity-20" />
                 <p className="font-medium">No hay reservas programadas para esta selección.</p>
               </div>
             ) : (
-              playingTodayReservations.map((reservation) => (
+              resolvedReservations.map((reservation) => (
                 <div
                   key={reservation._id}
                   className="relative group flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between p-5 rounded-2xl bg-white/80 dark:bg-white/[0.02] border border-zinc-200/80 dark:border-white/5 hover:border-primary/30 transition-all duration-300 hover:shadow-[0_8px_30px_rgba(57,255,20,0.03)] hover:scale-[1.01] hover:z-20"
