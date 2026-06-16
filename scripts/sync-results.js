@@ -53,44 +53,67 @@ const fifaToProdeCode = {
   "ENG": "EN", "CRO": "HR", "GHA": "GH", "PAN": "PA"
 };
 
-// 3. Función auxiliar para realizar fetch robusto con fallback
-async function fetchWithFallback(directUrl, proxyUrl) {
+// 3. Función auxiliar para realizar fetch robusto con reintentos y fallback
+async function fetchWithRetry(url, retries = 3, delayMs = 1000) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const res = await fetch(url);
+      if (res.ok) return res;
+      if (res.status >= 500 || res.status === 408 || res.status === 429) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+      return res;
+    } catch (e) {
+      if (i === retries - 1) throw e;
+      console.warn(`[INTENTO ${i + 1}/${retries}] Fallido para ${url}: ${e.message}. Reintentando en ${delayMs}ms...`);
+      await new Promise(r => setTimeout(r, delayMs));
+    }
+  }
+}
+
+async function fetchWithFallback(url) {
+  // Intentar primero directo con reintentos
   try {
-    console.log(`Intentando consulta directa a: ${directUrl}`);
-    const res = await fetch(directUrl);
+    console.log(`Intentando consulta directa a: ${url}`);
+    const res = await fetchWithRetry(url, 3, 1000);
     if (res.ok) {
       return await res.json();
     }
-    console.warn(`Respuesta no exitosa de la API directa (${res.status}). Probando con proxy...`);
+    console.warn(`Respuesta no exitosa de la API directa (HTTP ${res.status}). Probando con proxy...`);
   } catch (e) {
-    console.warn(`Fallo al consultar la API directamente: ${e.message}. Probando con proxy...`);
+    console.warn(`Fallo al consultar la API directamente después de reintentos: ${e.message}. Probando con proxy...`);
   }
 
-  // Fallback con proxy
-  console.log(`Consultando a través del proxy: ${proxyUrl}`);
-  const res = await fetch(proxyUrl);
-  if (!res.ok) {
-    throw new Error(`Fallo de conexión en el proxy CORS (${res.status})`);
+  // Fallback con AllOrigins (JSON) con reintentos
+  const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+  console.log(`Consultando a través del proxy AllOrigins (JSON): ${proxyUrl}`);
+  try {
+    const res = await fetchWithRetry(proxyUrl, 3, 1000);
+    if (!res.ok) {
+      throw new Error(`Fallo de conexión en el proxy (HTTP ${res.status})`);
+    }
+    const data = await res.json();
+    // Desempaquetar respuesta encapsulada de AllOrigins
+    if (data && typeof data.contents === "string") {
+      return JSON.parse(data.contents);
+    }
+    return data;
+  } catch (e) {
+    console.error(`Error crítico en proxy fallback: ${e.message}`);
+    throw e;
   }
-  return await res.json();
 }
 
 async function run() {
   try {
     // 4. Obtener equipos
     console.log("Obteniendo equipos...");
-    const teamsData = await fetchWithFallback(
-      "https://worldcup26.ir/get/teams",
-      `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent("https://worldcup26.ir/get/teams")}`
-    );
+    const teamsData = await fetchWithFallback("https://worldcup26.ir/get/teams");
     const apiTeams = teamsData.teams || teamsData;
 
     // 5. Obtener partidos
     console.log("Obteniendo partidos...");
-    const gamesData = await fetchWithFallback(
-      "https://worldcup26.ir/get/games",
-      `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent("https://worldcup26.ir/get/games")}`
-    );
+    const gamesData = await fetchWithFallback("https://worldcup26.ir/get/games");
     const apiMatches = gamesData.games || gamesData;
 
     // Map de ID -> FIFA Code

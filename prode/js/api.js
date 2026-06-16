@@ -158,6 +158,24 @@ const ProdeAPI = {
   async syncWithWorldCup2026API() {
     try {
       console.log("Iniciando sincronización con API real...");
+
+      // Helper local para realizar fetch con reintentos y lidiar con la flakiness de la API/proxies
+      const fetchWithRetry = async (url, retries = 3, delayMs = 1000) => {
+        for (let i = 0; i < retries; i++) {
+          try {
+            const res = await fetch(url);
+            if (res.ok) return res;
+            if (res.status >= 500 || res.status === 408 || res.status === 429) {
+              throw new Error(`HTTP ${res.status}`);
+            }
+            return res; // No reintentamos en errores 4xx del cliente
+          } catch (e) {
+            if (i === retries - 1) throw e;
+            console.warn(`[INTENTO ${i + 1}/${retries}] Fallido para ${url}: ${e.message}. Reintentando en ${delayMs}ms...`);
+            await new Promise(r => setTimeout(r, delayMs));
+          }
+        }
+      };
       
       // Lista de proxies de respaldo para asegurar compatibilidad con diferentes orígenes (localhost y file://)
       const proxies = [
@@ -187,7 +205,7 @@ const ProdeAPI = {
           
           // 1. Obtener equipos
           const teamsUrl = getProxyUrl("https://worldcup26.ir/get/teams");
-          const teamsRes = await fetch(teamsUrl);
+          const teamsRes = await fetchWithRetry(teamsUrl, 3, 1000);
           if (!teamsRes.ok) throw new Error(`Fallo al obtener equipos (HTTP ${teamsRes.status})`);
           
           let teamsData = await teamsRes.json();
@@ -199,7 +217,7 @@ const ProdeAPI = {
 
           // 2. Obtener partidos
           const gamesUrl = getProxyUrl("https://worldcup26.ir/get/games");
-          const gamesRes = await fetch(gamesUrl);
+          const gamesRes = await fetchWithRetry(gamesUrl, 3, 1000);
           if (!gamesRes.ok) throw new Error(`Fallo al obtener partidos (HTTP ${gamesRes.status})`);
           
           let gamesData = await gamesRes.json();
