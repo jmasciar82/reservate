@@ -980,8 +980,16 @@ const ProdeApp = {
     const matches = await ProdeAPI.getMatches();
     const filteredMatches = matches.filter(m => m.stage === this.selectedStage);
     
-    // Ordenar cronológicamente por fecha y hora de juego
+    // Ordenar: partidos pendientes/en juego primero, partidos finalizados al final.
+    // Dentro de cada grupo, ordenar cronológicamente por fecha y hora de juego.
     filteredMatches.sort((a, b) => {
+      const isFinishedA = a.status === "FINALIZADO";
+      const isFinishedB = b.status === "FINALIZADO";
+
+      if (isFinishedA !== isFinishedB) {
+        return isFinishedA ? 1 : -1;
+      }
+
       const diff = new Date(a.date) - new Date(b.date);
       if (diff !== 0) return diff;
       return a.id.localeCompare(b.id);
