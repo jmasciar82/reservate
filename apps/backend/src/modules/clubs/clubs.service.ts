@@ -10,9 +10,11 @@ export class ClubsService {
   constructor(@InjectModel(Club.name) private clubModel: Model<ClubDocument>) {}
 
   async create(createClubDto: CreateClubDto): Promise<Club> {
-    const { tenantId, ...rest } = createClubDto;
+    const { tenantId, subdomain, customDomain, ...rest } = createClubDto;
     const created = new this.clubModel({
       ...rest,
+      subdomain: subdomain?.trim() || undefined,
+      customDomain: customDomain?.trim() || undefined,
       tenantId: tenantId ? new Types.ObjectId(tenantId) : undefined,
     });
     return created.save();
@@ -44,8 +46,35 @@ export class ClubsService {
       throw new BadRequestException('El club indicado no es válido.');
     }
 
+    const { tenantId, subdomain, customDomain, ...rest } = updateClubDto;
+    const updatePayload: any = {
+      ...rest,
+    };
+    if (tenantId) {
+      updatePayload.tenantId = new Types.ObjectId(tenantId);
+    }
+    
+    const unsetPayload: any = {};
+
+    if (subdomain?.trim()) {
+      updatePayload.subdomain = subdomain.trim();
+    } else {
+      unsetPayload.subdomain = 1;
+    }
+
+    if (customDomain?.trim()) {
+      updatePayload.customDomain = customDomain.trim();
+    } else {
+      unsetPayload.customDomain = 1;
+    }
+
+    const updateQuery: any = { $set: updatePayload };
+    if (Object.keys(unsetPayload).length > 0) {
+      updateQuery.$unset = unsetPayload;
+    }
+
     return this.clubModel
-      .findByIdAndUpdate(id, updateClubDto, { new: true })
+      .findByIdAndUpdate(id, updateQuery, { new: true })
       .exec();
   }
 

@@ -75,8 +75,8 @@ function toPayload(formData: ClubFormData) {
     depositValue: formData.depositValue === "" ? 0 : Number(formData.depositValue),
     mpAccessToken: formData.mpAccessToken.trim(),
     mpPublicKey: formData.mpPublicKey.trim(),
-    subdomain: formData.subdomain.trim(),
-    customDomain: formData.customDomain.trim(),
+    subdomain: formData.subdomain.trim() || undefined,
+    customDomain: formData.customDomain.trim() || undefined,
   };
 }
 
