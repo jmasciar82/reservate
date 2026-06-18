@@ -91,6 +91,11 @@ export default function PublicBookingPage() {
     async function loadClubs() {
       try {
         setLoading(true);
+        
+        // Detectar si hay un clubId en la URL
+        const searchParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+        const queryClubId = searchParams ? (searchParams.get("clubId") || searchParams.get("club")) : null;
+
         // Detectar si estamos en un subdominio/dominio del club
         const host = typeof window !== "undefined" ? window.location.host : "";
         const cleanHost = host.split(":")[0].toLowerCase();
@@ -125,6 +130,16 @@ export default function PublicBookingPage() {
         if (res.ok) {
           const data = await res.json();
           setClubs(data);
+
+          // Si hay clubId en la URL, seleccionarlo automáticamente y avanzar al paso 2
+          if (queryClubId) {
+            const matchedClub = data.find((c: Club) => c._id === queryClubId);
+            if (matchedClub) {
+              setSelectedClub(matchedClub);
+              setSelectedSport((matchedClub.sports && matchedClub.sports[0]) || "");
+              setStep(2); // Ir directo al paso de horarios
+            }
+          }
         } else {
           setError("No se pudieron cargar las sedes. Intentá más tarde.");
         }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Building2, Pencil, Plus, X } from "lucide-react";
+import { Building2, Pencil, Plus, X, Copy, Check } from "lucide-react";
 import { apiFetch, getClientUserRole } from "@/lib/api";
 import type { Club } from "@/lib/types";
 
@@ -90,6 +90,8 @@ export default function SettingsPage() {
   const [error, setError] = useState<string | null>(null);
   const [role, setRole] = useState<string | null>(null);
   const [checkingRole, setCheckingRole] = useState(true);
+  const [copiedLink, setCopiedLink] = useState<string | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
 
   // Solicitud de nueva sede
   const [showRequestModal, setShowRequestModal] = useState(false);
@@ -123,10 +125,47 @@ export default function SettingsPage() {
   };
 
   useEffect(() => {
+    setIsMounted(true);
     const userRole = getClientUserRole();
     setRole(userRole);
     setCheckingRole(false);
   }, []);
+
+  const getClubBookingLink = (club: Club) => {
+    if (!isMounted || typeof window === "undefined") return "";
+    return `${window.location.origin}/reservar?clubId=${club._id}`;
+  };
+
+  const getClubDomainLink = (club: Club) => {
+    if (!isMounted || typeof window === "undefined") return null;
+    if (club.customDomain) {
+      const domain = club.customDomain.startsWith("http")
+        ? club.customDomain
+        : `https://${club.customDomain}`;
+      return `${domain}/reservar`;
+    }
+    if (club.subdomain) {
+      const host = window.location.host;
+      const protocol = window.location.protocol;
+      const parts = host.split(".");
+      let baseDomain = host;
+      if (parts.length >= 4) {
+        baseDomain = parts.slice(1).join(".");
+      } else if (parts.length === 3 && parts[0] !== "reservate-frontend" && parts[0] !== "www") {
+        baseDomain = parts.slice(1).join(".");
+      }
+      return `${protocol}//${club.subdomain}.${baseDomain}/reservar`;
+    }
+    return null;
+  };
+
+  const handleCopyLink = (clubId: string, text: string, isDomain: boolean = false) => {
+    navigator.clipboard.writeText(text).then(() => {
+      const key = `${clubId}-${isDomain ? "domain" : "direct"}`;
+      setCopiedLink(key);
+      setTimeout(() => setCopiedLink(null), 2000);
+    });
+  };
 
   useEffect(() => {
     if (role === "admin") {
@@ -605,6 +644,80 @@ export default function SettingsPage() {
                     <span className="text-zinc-500 dark:text-zinc-400 font-mono">
                       {club.mpPublicKey ? "Configurado ✓" : "Solo Access Token"}
                     </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Link de Reserva Público */}
+              <div className="mt-4 p-3.5 bg-primary/5 dark:bg-primary/5 border border-primary/20 rounded-lg text-xs space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-primary font-bold tracking-wide uppercase text-[10px]">Link de Reserva Público</span>
+                  {club.bookingEnabled === false && (
+                    <span className="text-red-400 font-semibold text-[10px] uppercase">Público Deshabilitado</span>
+                  )}
+                </div>
+                
+                {/* Enlace Directo (clubId) */}
+                <div className="space-y-1">
+                  <span className="text-zinc-500 dark:text-zinc-400 font-medium block">Enlace directo de la sede:</span>
+                  <div className="flex gap-2">
+                    <input
+                      readOnly
+                      type="text"
+                      value={getClubBookingLink(club)}
+                      className="w-full bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800/80 rounded px-2.5 py-1.5 text-zinc-900 dark:text-zinc-100 font-mono text-[11px] select-all focus:outline-none"
+                    />
+                    <button
+                      onClick={() => handleCopyLink(club._id, getClubBookingLink(club))}
+                      className="flex items-center gap-1 px-3 py-1.5 bg-zinc-200 dark:bg-zinc-800 hover:bg-zinc-300 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 rounded font-semibold text-[11px] transition-all whitespace-nowrap active:scale-95 border border-zinc-300/50 dark:border-zinc-800"
+                      title="Copiar enlace directo"
+                    >
+                      {copiedLink === `${club._id}-direct` ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-primary" />
+                          <span className="text-primary">Copiado</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5" />
+                          <span>Copiar</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Enlace de Subdominio / Dominio Personalizado si está configurado */}
+                {(club.subdomain || club.customDomain) && (
+                  <div className="space-y-1 pt-2 border-t border-zinc-300/40 dark:border-zinc-800/40">
+                    <span className="text-zinc-500 dark:text-zinc-400 font-medium block">
+                      {club.customDomain ? "Dominio personalizado:" : "Enlace con subdominio:"}
+                    </span>
+                    <div className="flex gap-2">
+                      <input
+                        readOnly
+                        type="text"
+                        value={getClubDomainLink(club) || ""}
+                        className="w-full bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800/80 rounded px-2.5 py-1.5 text-zinc-900 dark:text-zinc-100 font-mono text-[11px] select-all focus:outline-none"
+                      />
+                      <button
+                        onClick={() => handleCopyLink(club._id, getClubDomainLink(club) || "", true)}
+                        className="flex items-center gap-1 px-3 py-1.5 bg-zinc-200 dark:bg-zinc-800 hover:bg-zinc-300 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 rounded font-semibold text-[11px] transition-all whitespace-nowrap active:scale-95 border border-zinc-300/50 dark:border-zinc-800"
+                        title="Copiar enlace con dominio"
+                      >
+                        {copiedLink === `${club._id}-domain` ? (
+                          <>
+                            <Check className="w-3.5 h-3.5 text-primary" />
+                            <span className="text-primary">Copiado</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-3.5 h-3.5" />
+                            <span>Copiar</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
