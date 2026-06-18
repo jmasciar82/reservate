@@ -133,7 +133,8 @@ export default function SettingsPage() {
 
   const getClubBookingLink = (club: Club) => {
     if (!isMounted || typeof window === "undefined") return "";
-    return `${window.location.origin}/reservar?clubId=${club._id}`;
+    const identifier = club.subdomain || club._id;
+    return `${window.location.origin}/reservar?clubId=${identifier}`;
   };
 
   const getClubDomainLink = (club: Club) => {

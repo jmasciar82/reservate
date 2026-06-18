@@ -133,7 +133,11 @@ export default function PublicBookingPage() {
 
           // Si hay clubId en la URL, seleccionarlo automáticamente y avanzar al paso 2
           if (queryClubId) {
-            const matchedClub = data.find((c: Club) => c._id === queryClubId);
+            const cleanQuery = queryClubId.toLowerCase().replace(/[^a-z0-9]/g, "");
+            const matchedClub = data.find((c: Club) => {
+              const cleanSubdomain = c.subdomain ? c.subdomain.toLowerCase().replace(/[^a-z0-9]/g, "") : "";
+              return c._id === queryClubId || (cleanSubdomain && cleanSubdomain === cleanQuery);
+            });
             if (matchedClub) {
               setSelectedClub(matchedClub);
               setSelectedSport((matchedClub.sports && matchedClub.sports[0]) || "");
