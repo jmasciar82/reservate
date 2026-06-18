@@ -77,6 +77,8 @@ export default function PublicBookingPage() {
   const [selectedDuration, setSelectedDuration] = useState<number>(1); // en horas
   const [selectedCourt, setSelectedCourt] = useState<Court | null>(null);
   const [isSubdomainActive, setIsSubdomainActive] = useState(false);
+  const [urlClubParam, setUrlClubParam] = useState<string | null>(null);
+  const [hasCheckedParam, setHasCheckedParam] = useState(false);
 
   // Datos personales
   const [formData, setFormData] = useState({
@@ -95,6 +97,8 @@ export default function PublicBookingPage() {
         // Detectar si hay un clubId en la URL
         const searchParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
         const queryClubId = searchParams ? (searchParams.get("clubId") || searchParams.get("club")) : null;
+        setUrlClubParam(queryClubId);
+        setHasCheckedParam(true);
 
         // Detectar si estamos en un subdominio/dominio del club
         const host = typeof window !== "undefined" ? window.location.host : "";
@@ -355,7 +359,20 @@ export default function PublicBookingPage() {
               </p>
             </div>
 
-            {loading && clubs.length === 0 ? (
+            {!loading && hasCheckedParam && !urlClubParam && !isSubdomainActive ? (
+              <div className="max-w-md mx-auto w-full bg-[#18181b]/50 border border-[#27272a] p-8 rounded-2xl text-center backdrop-blur-sm shadow-[0_0_50px_rgba(0,0,0,0.3)]">
+                <div className="h-16 w-16 mx-auto rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary mb-5 shadow-[0_0_15px_rgba(57,255,20,0.1)]">
+                  <Lock className="h-8 w-8" />
+                </div>
+                <h3 className="text-xl font-bold text-white mb-2">Acceso Reservado</h3>
+                <p className="text-sm text-[#a1a1aa] leading-relaxed mb-6">
+                  Para realizar una reserva, debés utilizar el enlace público directo de tu club.
+                </p>
+                <div className="text-xs text-primary bg-primary/5 border border-primary/10 py-3.5 px-4 rounded-xl font-medium">
+                  Solicitá el link de reserva al administrador de tu club.
+                </div>
+              </div>
+            ) : loading && clubs.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 gap-3">
                 <Loader2 className="h-8 w-8 text-primary animate-spin" />
                 <p className="text-xs text-[#a1a1aa]">Cargando sedes disponibles...</p>
