@@ -1021,6 +1021,75 @@ const ProdeApp = {
       return;
     }
 
+    // Pre-cargar pronósticos de todos los usuarios para partidos bloqueados (para el flip de la card)
+    let allPredsByMatch = {}; // { matchId: [ { name, goalsA, goalsB }, ... ] }
+    const hasLockedNotFinished = filteredMatches.some(m => m.status !== "FINALIZADO" && ProdeEngine.isMatchLocked(m));
+
+    if (hasLockedNotFinished) {
+      const sb = ProdeAPI.getSupabaseClient();
+      let allUserMap = {}; // email -> name
+      let allPredsMap = {}; // email -> { matchId: { goalsA, goalsB } }
+
+      if (sb) {
+        try {
+          const [usersRes, predsRes] = await Promise.all([
+            sb.from("prode_users").select("email, name, paid"),
+            sb.from("prode_predictions").select("*")
+          ]);
+          if (usersRes.error) throw usersRes.error;
+          if (predsRes.error) throw predsRes.error;
+
+          (usersRes.data || []).forEach(u => {
+            if (!ProdeEngine.isAdmin(u.email)) {
+              allUserMap[u.email] = u.name || u.email;
+            }
+          });
+          (predsRes.data || []).forEach(p => {
+            if (!allPredsMap[p.user_email]) allPredsMap[p.user_email] = {};
+            allPredsMap[p.user_email][p.match_id] = { goalsA: p.goals_a, goalsB: p.goals_b };
+          });
+        } catch (e) {
+          console.error("Error cargando pronósticos de todos para flip:", e);
+          const localUsers = ProdeEngine.getUsers();
+          Object.values(localUsers).forEach(u => {
+            if (!ProdeEngine.isAdmin(u.email)) {
+              allUserMap[u.email] = u.name || u.email;
+              allPredsMap[u.email] = u.predictions || {};
+            }
+          });
+        }
+      } else {
+        const localUsers = ProdeEngine.getUsers();
+        Object.values(localUsers).forEach(u => {
+          if (!ProdeEngine.isAdmin(u.email)) {
+            allUserMap[u.email] = u.name || u.email;
+            allPredsMap[u.email] = u.predictions || {};
+          }
+        });
+      }
+
+      // Construir mapa por partido: matchId -> [ { name, goalsA, goalsB } ]
+      filteredMatches.forEach(m => {
+        if (m.status !== "FINALIZADO" && ProdeEngine.isMatchLocked(m)) {
+          allPredsByMatch[m.id] = [];
+          Object.keys(allUserMap).forEach(email => {
+            const pred = (allPredsMap[email] || {})[m.id];
+            allPredsByMatch[m.id].push({
+              name: allUserMap[email],
+              goalsA: pred ? pred.goalsA : null,
+              goalsB: pred ? pred.goalsB : null
+            });
+          });
+          // Ordenar: los que tienen pronóstico primero, luego por nombre
+          allPredsByMatch[m.id].sort((a, b) => {
+            const hasA = a.goalsA !== null && a.goalsA !== undefined;
+            const hasB = b.goalsA !== null && b.goalsA !== undefined;
+            if (hasA !== hasB) return hasA ? -1 : 1;
+            return a.name.localeCompare(b.name);
+          });
+        }
+      });
+    }
     filteredMatches.forEach(match => {
       const teamA = WORLDCUP_TEAMS[match.teamA];
       const teamB = WORLDCUP_TEAMS[match.teamB];
@@ -1047,7 +1116,9 @@ const ProdeApp = {
 
       const matchCard = document.createElement("div");
       matchCard.className = "glass-panel match-card";
-      matchCard.innerHTML = `
+
+      // Contenido frontal de la card
+      const frontContent = `
         <div class="match-card-header">
           <span class="match-stage-badge">${match.group}</span>
           <span>${dateFormatted}</span>
@@ -1063,7 +1134,7 @@ const ProdeApp = {
           <!-- Marcadores interactivos -->
           <div class="prediction-inputs-block">
             <div class="goals-input-container">
-              ${canEdit ? `<button class="btn-number-step" onclick="ProdeApp.stepGoals('${match.id}', 'goalsA', 1)"><i class="fa-solid fa-plus"></i></button>` : ""}
+              ${canEdit ? `<button class="btn-number-step" onclick="event.stopPropagation(); ProdeApp.stepGoals('${match.id}', 'goalsA', 1)"><i class="fa-solid fa-plus"></i></button>` : ""}
               <input 
                 type="number" 
                 class="goals-field match-pred-a" 
@@ -1074,13 +1145,13 @@ const ProdeApp = {
                 ${!canEdit ? "disabled" : ""}
                 data-match-id="${match.id}"
               >
-              ${canEdit ? `<button class="btn-number-step" onclick="ProdeApp.stepGoals('${match.id}', 'goalsA', -1)"><i class="fa-solid fa-minus"></i></button>` : ""}
+              ${canEdit ? `<button class="btn-number-step" onclick="event.stopPropagation(); ProdeApp.stepGoals('${match.id}', 'goalsA', -1)"><i class="fa-solid fa-minus"></i></button>` : ""}
             </div>
 
             <span class="versus-label">VS</span>
 
             <div class="goals-input-container">
-              ${canEdit ? `<button class="btn-number-step" onclick="ProdeApp.stepGoals('${match.id}', 'goalsB', 1)"><i class="fa-solid fa-plus"></i></button>` : ""}
+              ${canEdit ? `<button class="btn-number-step" onclick="event.stopPropagation(); ProdeApp.stepGoals('${match.id}', 'goalsB', 1)"><i class="fa-solid fa-plus"></i></button>` : ""}
               <input 
                 type="number" 
                 class="goals-field match-pred-b" 
@@ -1090,7 +1161,7 @@ const ProdeApp = {
                 min="0"
                 ${!canEdit ? "disabled" : ""}
               >
-              ${canEdit ? `<button class="btn-number-step" onclick="ProdeApp.stepGoals('${match.id}', 'goalsB', -1)"><i class="fa-solid fa-minus"></i></button>` : ""}
+              ${canEdit ? `<button class="btn-number-step" onclick="event.stopPropagation(); ProdeApp.stepGoals('${match.id}', 'goalsB', -1)"><i class="fa-solid fa-minus"></i></button>` : ""}
             </div>
           </div>
 
@@ -1119,9 +1190,56 @@ const ProdeApp = {
             ${pointsEarnedBadge}
           </div>
         </div>
+        ${isLocked && !isFinished ? `<div class="flip-tap-hint"><i class="fa-solid fa-rotate"></i> Toca para ver pronósticos</div>` : ""}
       `;
 
-      container.appendChild(matchCard);
+      // Si el partido está cerrado (en juego) pero NO finalizado, agregar flip
+      if (isLocked && !isFinished && allPredsByMatch[match.id]) {
+        const predictions = allPredsByMatch[match.id];
+        let predRows = "";
+        predictions.forEach(p => {
+          if (p.goalsA !== null && p.goalsA !== undefined && p.goalsB !== null && p.goalsB !== undefined) {
+            predRows += `<div class="prediction-row">
+              <span class="prediction-row-name">${p.name}</span>
+              <span class="prediction-row-score">${p.goalsA} - ${p.goalsB}</span>
+            </div>`;
+          } else {
+            predRows += `<div class="prediction-row">
+              <span class="prediction-row-name">${p.name}</span>
+              <span class="prediction-row-no-pred">Sin pronóstico</span>
+            </div>`;
+          }
+        });
+
+        const backContent = `
+          <div class="match-card-back-header">
+            <h4><i class="fa-solid fa-users"></i> Pronósticos</h4>
+            <span class="flip-back-hint"><i class="fa-solid fa-rotate"></i> Volver</span>
+          </div>
+          <div class="match-card-back-teams">${teamA.name} vs ${teamB.name}</div>
+          <div class="match-card-back-list">
+            ${predRows || '<p style="color: var(--text-muted); text-align: center; padding: 20px;">No hay pronósticos cargados.</p>'}
+          </div>
+        `;
+
+        matchCard.innerHTML = `
+          <div class="match-card-front">${frontContent}</div>
+          <div class="match-card-back">${backContent}</div>
+        `;
+
+        const flipWrapper = document.createElement("div");
+        flipWrapper.className = "match-card-flip-wrapper";
+        flipWrapper.addEventListener("click", (e) => {
+          // No flipear si se está interactuando con inputs (para partidos abiertos no debería pasar, pero por seguridad)
+          if (e.target.tagName === "INPUT" || e.target.tagName === "BUTTON" || e.target.closest(".btn-number-step")) return;
+          flipWrapper.classList.toggle("flipped");
+        });
+        flipWrapper.appendChild(matchCard);
+        container.appendChild(flipWrapper);
+      } else {
+        matchCard.innerHTML = frontContent;
+        container.appendChild(matchCard);
+      }
     });
   },
 
