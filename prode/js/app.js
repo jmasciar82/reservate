@@ -1230,9 +1230,19 @@ const ProdeApp = {
         const flipWrapper = document.createElement("div");
         flipWrapper.className = "match-card-flip-wrapper";
         flipWrapper.addEventListener("click", (e) => {
-          // No flipear si se está interactuando con inputs (para partidos abiertos no debería pasar, pero por seguridad)
+          // No flipear si se está interactuando con inputs
           if (e.target.tagName === "INPUT" || e.target.tagName === "BUTTON" || e.target.closest(".btn-number-step")) return;
-          flipWrapper.classList.toggle("flipped");
+          if (flipWrapper.classList.contains("flipping")) return; // Evitar doble click
+          
+          // Paso 1: Encoger la card (scaleX -> 0)
+          flipWrapper.classList.add("flipping");
+          
+          // Paso 2: A la mitad de la animación, cambiar el contenido visible
+          setTimeout(() => {
+            flipWrapper.classList.toggle("flipped");
+            flipWrapper.classList.remove("flipping");
+            // La CSS transition se encarga de crecer de vuelta (scaleX 0 -> 1)
+          }, 250);
         });
         flipWrapper.appendChild(matchCard);
         container.appendChild(flipWrapper);
