@@ -1030,10 +1030,14 @@ const ProdeApp = {
       let allUserMap = {}; // email -> name
       let allPredsMap = {}; // email -> { matchId: { goalsA, goalsB } }
 
+      const isGroups = this.selectedStage === "Fase de Grupos";
+      const config = ProdeEngine.getOrganizerConfig();
+      const isFreeMode = !!config.freeMode;
+
       if (sb) {
         try {
           const [usersRes, predsRes] = await Promise.all([
-            sb.from("prode_users").select("email, name, paid"),
+            sb.from("prode_users").select("email, name, paid, paid_knockout"),
             sb.from("prode_predictions").select("*")
           ]);
           if (usersRes.error) throw usersRes.error;
@@ -1041,20 +1045,29 @@ const ProdeApp = {
 
           (usersRes.data || []).forEach(u => {
             if (!ProdeEngine.isAdmin(u.email)) {
-              allUserMap[u.email] = u.name || u.email;
+              const hasPaid = isFreeMode ? true : (isGroups ? !!u.paid : !!u.paid_knockout);
+              if (hasPaid) {
+                const emailClean = (u.email || "").trim().toLowerCase();
+                allUserMap[emailClean] = u.name || u.email;
+              }
             }
           });
           (predsRes.data || []).forEach(p => {
-            if (!allPredsMap[p.user_email]) allPredsMap[p.user_email] = {};
-            allPredsMap[p.user_email][p.match_id] = { goalsA: p.goals_a, goalsB: p.goals_b };
+            const emailClean = (p.user_email || "").trim().toLowerCase();
+            if (!allPredsMap[emailClean]) allPredsMap[emailClean] = {};
+            allPredsMap[emailClean][p.match_id] = { goalsA: p.goals_a, goalsB: p.goals_b };
           });
         } catch (e) {
           console.error("Error cargando pronósticos de todos para flip:", e);
           const localUsers = ProdeEngine.getUsers();
           Object.values(localUsers).forEach(u => {
             if (!ProdeEngine.isAdmin(u.email)) {
-              allUserMap[u.email] = u.name || u.email;
-              allPredsMap[u.email] = u.predictions || {};
+              const hasPaid = isFreeMode ? true : (isGroups ? !!u.paid : !!u.paid_knockout);
+              if (hasPaid) {
+                const emailClean = (u.email || "").trim().toLowerCase();
+                allUserMap[emailClean] = u.name || u.email;
+                allPredsMap[emailClean] = u.predictions || {};
+              }
             }
           });
         }
@@ -1062,8 +1075,12 @@ const ProdeApp = {
         const localUsers = ProdeEngine.getUsers();
         Object.values(localUsers).forEach(u => {
           if (!ProdeEngine.isAdmin(u.email)) {
-            allUserMap[u.email] = u.name || u.email;
-            allPredsMap[u.email] = u.predictions || {};
+            const hasPaid = isFreeMode ? true : (isGroups ? !!u.paid : !!u.paid_knockout);
+            if (hasPaid) {
+              const emailClean = (u.email || "").trim().toLowerCase();
+              allUserMap[emailClean] = u.name || u.email;
+              allPredsMap[emailClean] = u.predictions || {};
+            }
           }
         });
       }
@@ -1073,9 +1090,10 @@ const ProdeApp = {
         if (m.status !== "FINALIZADO" && ProdeEngine.isMatchLocked(m)) {
           allPredsByMatch[m.id] = [];
           Object.keys(allUserMap).forEach(email => {
-            const pred = (allPredsMap[email] || {})[m.id];
+            const emailClean = email.trim().toLowerCase();
+            const pred = (allPredsMap[emailClean] || {})[m.id];
             allPredsByMatch[m.id].push({
-              name: allUserMap[email],
+              name: allUserMap[emailClean],
               goalsA: pred ? pred.goalsA : null,
               goalsB: pred ? pred.goalsB : null
             });
@@ -1085,7 +1103,7 @@ const ProdeApp = {
             const hasA = a.goalsA !== null && a.goalsA !== undefined;
             const hasB = b.goalsA !== null && b.goalsA !== undefined;
             if (hasA !== hasB) return hasA ? -1 : 1;
-            return a.name.localeCompare(b.name);
+            return (a.name || "").localeCompare(b.name || "");
           });
         }
       });
