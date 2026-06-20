@@ -55,7 +55,34 @@ const ProdeAPI = {
       localStorage.setItem(API_STORAGE_KEY, JSON.stringify(WORLDCUP_MATCHES));
       return WORLDCUP_MATCHES;
     }
-    return JSON.parse(saved);
+
+    // Si hay discrepancia de fechas en la versión cacheada con WORLDCUP_MATCHES, actualizamos los campos estáticos
+    try {
+      const parsed = JSON.parse(saved);
+      let isUpdated = false;
+      const matchesMap = {};
+      WORLDCUP_MATCHES.forEach(m => {
+        matchesMap[m.id] = m;
+      });
+
+      const updatedParsed = parsed.map(m => {
+        const fresh = matchesMap[m.id];
+        if (fresh && fresh.date !== m.date) {
+          isUpdated = true;
+          return { ...m, date: fresh.date };
+        }
+        return m;
+      });
+
+      if (isUpdated) {
+        localStorage.setItem(API_STORAGE_KEY, JSON.stringify(updatedParsed));
+        return updatedParsed;
+      }
+      return parsed;
+    } catch (e) {
+      localStorage.setItem(API_STORAGE_KEY, JSON.stringify(WORLDCUP_MATCHES));
+      return WORLDCUP_MATCHES;
+    }
   },
 
   // Obtiene la lista actual de partidos (resultados reales oficiales).

@@ -166,8 +166,8 @@ const WORLDCUP_MATCHES = [
 
   // ==================== GRUPO D ====================
   { id: "d1", stage: "Fase de Grupos", group: "Grupo D", teamA: "US", teamB: "PY", date: "2026-06-12T22:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
-  { id: "d2", stage: "Fase de Grupos", group: "Grupo D", teamA: "AU", teamB: "TR", date: "2026-06-13T01:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
-  { id: "d3", stage: "Fase de Grupos", group: "Grupo D", teamA: "TR", teamB: "PY", date: "2026-06-19T01:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "d2", stage: "Fase de Grupos", group: "Grupo D", teamA: "AU", teamB: "TR", date: "2026-06-14T01:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "d3", stage: "Fase de Grupos", group: "Grupo D", teamA: "TR", teamB: "PY", date: "2026-06-20T01:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
   { id: "d4", stage: "Fase de Grupos", group: "Grupo D", teamA: "US", teamB: "AU", date: "2026-06-19T16:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
   { id: "d5", stage: "Fase de Grupos", group: "Grupo D", teamA: "TR", teamB: "US", date: "2026-06-25T23:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
   { id: "d6", stage: "Fase de Grupos", group: "Grupo D", teamA: "PY", teamB: "AU", date: "2026-06-25T23:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
@@ -183,7 +183,7 @@ const WORLDCUP_MATCHES = [
   // ==================== GRUPO F ====================
   { id: "f1", stage: "Fase de Grupos", group: "Grupo F", teamA: "NL", teamB: "JP", date: "2026-06-14T17:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
   { id: "f2", stage: "Fase de Grupos", group: "Grupo F", teamA: "SE", teamB: "TN", date: "2026-06-14T23:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
-  { id: "f3", stage: "Fase de Grupos", group: "Grupo F", teamA: "JP", teamB: "TN", date: "2026-06-20T01:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "f3", stage: "Fase de Grupos", group: "Grupo F", teamA: "JP", teamB: "TN", date: "2026-06-21T01:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
   { id: "f4", stage: "Fase de Grupos", group: "Grupo F", teamA: "NL", teamB: "SE", date: "2026-06-20T14:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
   { id: "f5", stage: "Fase de Grupos", group: "Grupo F", teamA: "TN", teamB: "NL", date: "2026-06-25T20:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
   { id: "f6", stage: "Fase de Grupos", group: "Grupo F", teamA: "JP", teamB: "SE", date: "2026-06-25T20:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
@@ -213,7 +213,7 @@ const WORLDCUP_MATCHES = [
   { id: "i6", stage: "Fase de Grupos", group: "Grupo I", teamA: "SN", teamB: "IQ", date: "2026-06-26T16:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
 
   // ==================== GRUPO J ====================
-  { id: "j1", stage: "Fase de Grupos", group: "Grupo J", teamA: "AT", teamB: "JO", date: "2026-06-16T01:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "j1", stage: "Fase de Grupos", group: "Grupo J", teamA: "AT", teamB: "JO", date: "2026-06-17T01:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
   { id: "j2", stage: "Fase de Grupos", group: "Grupo J", teamA: "AR", teamB: "DZ", date: "2026-06-16T22:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
   { id: "j3", stage: "Fase de Grupos", group: "Grupo J", teamA: "AR", teamB: "AT", date: "2026-06-22T14:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
   { id: "j4", stage: "Fase de Grupos", group: "Grupo J", teamA: "JO", teamB: "DZ", date: "2026-06-23T00:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
