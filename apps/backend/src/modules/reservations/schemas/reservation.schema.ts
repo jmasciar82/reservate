@@ -124,4 +124,5 @@ export class Reservation {
 
 export const ReservationSchema = SchemaFactory.createForClass(Reservation);
 
-
+ReservationSchema.index({ courtId: 1, startTime: 1, endTime: 1, status: 1 });
+ReservationSchema.index({ status: 1, isPublic: 1, createdAt: 1 });

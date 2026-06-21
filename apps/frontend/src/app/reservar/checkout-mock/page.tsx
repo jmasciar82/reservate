@@ -10,6 +10,7 @@ function MockCheckoutContent() {
   const searchParams = useSearchParams();
   const reservationId = searchParams.get("reservation_id");
   const preferenceId = searchParams.get("preference_id");
+  const confirmToken = searchParams.get("token");
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,7 +41,8 @@ function MockCheckoutContent() {
       const mockPaymentId = `mp-sim-${Math.floor(Math.random() * 100000000)}`;
 
       // Llamar al endpoint del backend para confirmar/cancelar
-      const res = await apiFetch(`/public/reservations/${reservationId}/confirm`, {
+      const tokenParam = confirmToken ? `?token=${encodeURIComponent(confirmToken)}` : '';
+      const res = await apiFetch(`/public/reservations/${reservationId}/confirm${tokenParam}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

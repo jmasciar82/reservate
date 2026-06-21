@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ReservationsModule } from './modules/reservations/reservations.module';
@@ -23,6 +24,15 @@ import { SociosModule } from './modules/socios/socios.module';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    ThrottlerModule.forRoot([{
+      name: 'short',
+      ttl: 60000,    // 1 minuto
+      limit: 10,     // max 10 requests por minuto
+    }, {
+      name: 'long',
+      ttl: 600000,   // 10 minutos
+      limit: 30,     // max 30 requests cada 10 minutos
+    }]),
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => {

@@ -2,10 +2,11 @@ import { Injectable, BadRequestException, ConflictException, NotFoundException }
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
 import { Club, ClubDocument } from '../clubs/schemas/club.schema';
 import { Court, CourtDocument } from '../courts/schemas/court.schema';
 import { Reservation, ReservationDocument } from '../reservations/schemas/reservation.schema';
-import { CreateReservationDto } from '../reservations/dto/create-reservation.dto';
+import { CreatePublicReservationDto } from './dto/create-public-reservation.dto';
 import { MercadoPagoConfig, Preference, Payment } from 'mercadopago';
 import { NotificationsService } from '../notifications/notifications.service';
 import { WhatsappService } from '../whatsapp/whatsapp.service';
@@ -22,6 +23,7 @@ export class PublicService {
     private configService: ConfigService,
     private notificationsService: NotificationsService,
     private whatsappService: WhatsappService,
+    private jwtService: JwtService,
   ) {
     const accessToken = this.configService.get<string>('MERCADO_PAGO_ACCESS_TOKEN');
     if (accessToken && accessToken !== 'placeholder' && accessToken.trim() !== '') {
@@ -129,7 +131,7 @@ export class PublicService {
     });
   }
 
-  async createPublicReservation(dto: CreateReservationDto) {
+  async createPublicReservation(dto: CreatePublicReservationDto) {
     await this.cleanAbandonedReservations();
     const { courtId, startTime, endTime, firstName, lastName, email, phone } = dto;
 
@@ -148,25 +150,28 @@ export class PublicService {
       throw new BadRequestException('El horario de la reserva no es válido.');
     }
 
+    // Validar reserva en el pasado
+    const now = new Date();
+    const threshold = new Date(now.getTime() - 5 * 60 * 1000); // 5 min de holgura
+    if (start < threshold) {
+      throw new BadRequestException('No se pueden crear reservas en el pasado.');
+    }
+
+    // Validar duración
+    const durationHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+    const MAX_DURATION_HOURS = 12;
+    if (durationHours > MAX_DURATION_HOURS || durationHours < 0.5) {
+      throw new BadRequestException(
+        `La duración de la reserva debe ser entre 30 minutos y ${MAX_DURATION_HOURS} horas.`
+      );
+    }
+
     const court = await this.courtModel.findById(courtId).populate('clubId').exec();
     if (!court) {
       throw new NotFoundException('La cancha especificada no existe.');
     }
 
-    // Verificar solapamiento
-    const overlapping = await this.reservationModel.findOne({
-      courtId: new Types.ObjectId(courtId),
-      status: { $ne: 'cancelled' },
-      startTime: { $lt: end },
-      endTime: { $gt: start },
-    }).exec();
-
-    if (overlapping) {
-      throw new ConflictException('La cancha ya está reservada en este horario.');
-    }
-
     // Calcular costos
-    const durationHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
     const totalPrice = Math.round(durationHours * court.pricePerHour);
     
     // Obtener club
@@ -185,23 +190,77 @@ export class PublicService {
       depositAmount = 0;
     }
 
-    // Crear la reserva en la DB con estado 'pending'
-    const newReservation = new this.reservationModel({
-      courtId: new Types.ObjectId(courtId),
-      startTime: start,
-      endTime: end,
-      totalPrice,
-      depositAmount,
-      firstName,
-      lastName,
-      email,
-      phone,
-      isPublic: true,
-      status: 'pending',
-      paymentStatus: 'pending',
-    });
+    let savedReservation: ReservationDocument;
 
-    const savedReservation = await newReservation.save();
+    // Intentar transacción
+    const session = await this.reservationModel.db.startSession().catch(() => null);
+    if (session) {
+      session.startTransaction();
+      try {
+        const overlapping = await this.reservationModel.findOne({
+          courtId: new Types.ObjectId(courtId),
+          status: { $ne: 'cancelled' },
+          startTime: { $lt: end },
+          endTime: { $gt: start },
+        }).session(session).exec();
+
+        if (overlapping) {
+          throw new ConflictException('La cancha ya está reservada en este horario.');
+        }
+
+        const newReservation = new this.reservationModel({
+          courtId: new Types.ObjectId(courtId),
+          startTime: start,
+          endTime: end,
+          totalPrice,
+          depositAmount,
+          firstName,
+          lastName,
+          email,
+          phone,
+          isPublic: true,
+          status: 'pending',
+          paymentStatus: 'pending',
+        });
+
+        savedReservation = await newReservation.save({ session });
+        await session.commitTransaction();
+      } catch (err) {
+        await session.abortTransaction();
+        throw err;
+      } finally {
+        session.endSession();
+      }
+    } else {
+      // Fallback sin transacción (por si no es replica set)
+      const overlapping = await this.reservationModel.findOne({
+        courtId: new Types.ObjectId(courtId),
+        status: { $ne: 'cancelled' },
+        startTime: { $lt: end },
+        endTime: { $gt: start },
+      }).exec();
+
+      if (overlapping) {
+        throw new ConflictException('La cancha ya está reservada en este horario.');
+      }
+
+      const newReservation = new this.reservationModel({
+        courtId: new Types.ObjectId(courtId),
+        startTime: start,
+        endTime: end,
+        totalPrice,
+        depositAmount,
+        firstName,
+        lastName,
+        email,
+        phone,
+        isPublic: true,
+        status: 'pending',
+        paymentStatus: 'pending',
+      });
+
+      savedReservation = await newReservation.save();
+    }
 
     const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
     const backendUrl = this.configService.get<string>('NEXT_PUBLIC_API_URL') || 'http://localhost:3001';
@@ -210,12 +269,14 @@ export class PublicService {
     let initPoint = '';
     let preferenceId = '';
     let isMock = this.isMockMode;
+    let confirmToken = '';
 
     if (depositAmount === 0) {
       // SIN SEÑA: Confirmación directa redireccionando al resultado de éxito
       preferenceId = `free_pref_${savedReservation._id}`;
+      confirmToken = this.jwtService.sign({ reservationId: savedReservation._id.toString() });
       // Usaremos checkout-mock pero indicando que es gratis para autoconfirmar
-      initPoint = `${frontendUrl}/reservar/checkout-mock?preference_id=${preferenceId}&reservation_id=${savedReservation._id}&free=true`;
+      initPoint = `${frontendUrl}/reservar/checkout-mock?preference_id=${preferenceId}&reservation_id=${savedReservation._id}&free=true&token=${encodeURIComponent(confirmToken)}`;
       isMock = true;
     } else {
       // Decide client & mode
@@ -239,7 +300,8 @@ export class PublicService {
       if (isMock || !clubMpClient) {
         // MOCK MODE: link al checkout simulado en el frontend
         preferenceId = `mock_pref_${savedReservation._id}`;
-        initPoint = `${frontendUrl}/reservar/checkout-mock?preference_id=${preferenceId}&reservation_id=${savedReservation._id}`;
+        confirmToken = this.jwtService.sign({ reservationId: savedReservation._id.toString() });
+        initPoint = `${frontendUrl}/reservar/checkout-mock?preference_id=${preferenceId}&reservation_id=${savedReservation._id}&token=${encodeURIComponent(confirmToken)}`;
         isMock = true;
       } else {
         // MODO REAL: Mercado Pago
@@ -273,7 +335,8 @@ export class PublicService {
         } catch (err) {
           console.error('Error al crear preferencia en Mercado Pago real. Fallback a MOCK.', err);
           preferenceId = `mock_pref_${savedReservation._id}`;
-          initPoint = `${frontendUrl}/reservar/checkout-mock?preference_id=${preferenceId}&reservation_id=${savedReservation._id}`;
+          confirmToken = this.jwtService.sign({ reservationId: savedReservation._id.toString() });
+          initPoint = `${frontendUrl}/reservar/checkout-mock?preference_id=${preferenceId}&reservation_id=${savedReservation._id}&token=${encodeURIComponent(confirmToken)}`;
           isMock = true;
         }
       }
@@ -329,9 +392,9 @@ export class PublicService {
               console.log(`Estado del pago ${paymentId} obtenido de Mercado Pago para la reserva ${reservationId}: ${mpStatus}`);
 
               if (mpStatus === 'approved') {
-                await this.confirmReservation(reservationId, String(paymentId), 'success');
+                await this.confirmReservation(reservationId, String(paymentId), 'success', undefined, true);
               } else if (mpStatus === 'rejected' || mpStatus === 'cancelled') {
-                await this.confirmReservation(reservationId, String(paymentId), 'failure');
+                await this.confirmReservation(reservationId, String(paymentId), 'failure', undefined, true);
               }
             }
           }
@@ -343,7 +406,13 @@ export class PublicService {
     return { received: true };
   }
 
-  async confirmReservation(reservationId: string, paymentId: string, status: string) {
+  async confirmReservation(
+    reservationId: string,
+    paymentId: string,
+    status: string,
+    token?: string,
+    isInternal = false,
+  ) {
     if (!Types.ObjectId.isValid(reservationId)) {
       throw new BadRequestException('ID de reserva no válido.');
     }
@@ -351,6 +420,21 @@ export class PublicService {
     const reservation = await this.reservationModel.findById(reservationId).exec();
     if (!reservation) {
       throw new NotFoundException('Reserva no encontrada.');
+    }
+
+    // Validar token si la llamada es externa (pública)
+    if (!isInternal) {
+      if (!token) {
+        throw new BadRequestException('Se requiere un token de confirmación.');
+      }
+      try {
+        const payload = this.jwtService.verify(token);
+        if (payload.reservationId !== reservationId) {
+          throw new BadRequestException('El token no corresponde a esta reserva.');
+        }
+      } catch (err) {
+        throw new BadRequestException('Token de confirmación inválido o expirado.');
+      }
     }
 
     if (status === 'success' || status === 'approved') {

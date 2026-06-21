@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Body, Query, Param } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { PublicService } from './public.service';
-import { CreateReservationDto } from '../reservations/dto/create-reservation.dto';
+import { CreatePublicReservationDto } from './dto/create-public-reservation.dto';
 
 @Controller('public')
 export class PublicController {
@@ -26,7 +27,8 @@ export class PublicController {
   }
 
   @Post('reservations')
-  async createPublicReservation(@Body() dto: CreateReservationDto) {
+  @Throttle({ short: { limit: 5, ttl: 60000 } })
+  async createPublicReservation(@Body() dto: CreatePublicReservationDto) {
     return this.publicService.createPublicReservation(dto);
   }
 
@@ -39,10 +41,12 @@ export class PublicController {
   }
 
   @Post('reservations/:id/confirm')
+  @Throttle({ short: { limit: 5, ttl: 60000 } })
   async confirmPayment(
     @Param('id') id: string,
     @Body() body: { paymentId: string; status: string },
+    @Query('token') token?: string,
   ) {
-    return this.publicService.confirmReservation(id, body.paymentId, body.status);
+    return this.publicService.confirmReservation(id, body.paymentId, body.status, token, false);
   }
 }
