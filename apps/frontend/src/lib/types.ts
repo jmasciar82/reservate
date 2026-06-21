@@ -93,6 +93,7 @@ export interface Product {
   price: number;
   icon?: string;
   isActive: boolean;
+  isPopular?: boolean;
   clubId: string;
   createdAt?: string;
   updatedAt?: string;

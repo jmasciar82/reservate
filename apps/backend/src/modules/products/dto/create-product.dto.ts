@@ -3,5 +3,6 @@ export class CreateProductDto {
   price: number;
   icon?: string;
   isActive?: boolean;
+  isPopular?: boolean;
   clubId: string;
 }

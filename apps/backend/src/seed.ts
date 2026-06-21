@@ -66,14 +66,14 @@ async function seed() {
 
   console.log('Creating products catalog...');
   await ProductModel.create([
-    { name: 'Alquiler de Pala', price: 1500, icon: '🎒', clubId: club1._id, isActive: true },
-    { name: 'Tubo de Pelotas', price: 3000, icon: '🥎', clubId: club1._id, isActive: true },
-    { name: 'Agua Mineral', price: 1200, icon: '🥤', clubId: club1._id, isActive: true },
-    { name: 'Gatorade', price: 2000, icon: '⚡', clubId: club1._id, isActive: true },
-    { name: 'Alquiler de Pala', price: 1600, icon: '🎒', clubId: club2._id, isActive: true },
-    { name: 'Tubo de Pelotas', price: 3200, icon: '🥎', clubId: club2._id, isActive: true },
-    { name: 'Agua Mineral', price: 1300, icon: '🥤', clubId: club2._id, isActive: true },
-    { name: 'Gatorade', price: 2100, icon: '⚡', clubId: club2._id, isActive: true },
+    { name: 'Alquiler de Pala', price: 1500, icon: '🎒', clubId: club1._id, isActive: true, isPopular: true },
+    { name: 'Tubo de Pelotas', price: 3000, icon: '🥎', clubId: club1._id, isActive: true, isPopular: true },
+    { name: 'Agua Mineral', price: 1200, icon: '🥤', clubId: club1._id, isActive: true, isPopular: true },
+    { name: 'Gatorade', price: 2000, icon: '⚡', clubId: club1._id, isActive: true, isPopular: true },
+    { name: 'Alquiler de Pala', price: 1600, icon: '🎒', clubId: club2._id, isActive: true, isPopular: true },
+    { name: 'Tubo de Pelotas', price: 3200, icon: '🥎', clubId: club2._id, isActive: true, isPopular: true },
+    { name: 'Agua Mineral', price: 1300, icon: '🥤', clubId: club2._id, isActive: true, isPopular: true },
+    { name: 'Gatorade', price: 2100, icon: '⚡', clubId: club2._id, isActive: true, isPopular: true },
   ]);
 
   console.log('Creating club owners...');

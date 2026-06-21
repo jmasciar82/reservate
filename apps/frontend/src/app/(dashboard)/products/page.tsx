@@ -21,6 +21,7 @@ type ProductFormData = {
   price: number | "";
   icon: string;
   isActive: boolean;
+  isPopular: boolean;
   clubId: string;
 };
 
@@ -29,6 +30,7 @@ const initialFormData: ProductFormData = {
   price: 0,
   icon: "🥤",
   isActive: true,
+  isPopular: false,
   clubId: "",
 };
 
@@ -147,6 +149,7 @@ export default function ProductsPage() {
       price: product.price,
       icon: product.icon || "🥤",
       isActive: product.isActive,
+      isPopular: product.isPopular || false,
       clubId: product.clubId,
     });
     setShowForm(true);
@@ -254,15 +257,22 @@ export default function ProductsPage() {
                       <p className="text-sm font-bold text-primary mt-0.5">
                         ${product.price.toLocaleString("es-AR")}
                       </p>
-                      <span
-                        className={`inline-block mt-2 px-2 py-0.5 text-[10px] font-black rounded-full uppercase tracking-wider ${
-                          product.isActive
-                            ? "bg-primary/10 text-primary border border-primary/20"
-                            : "bg-zinc-200 dark:bg-white/5 text-zinc-500 border border-zinc-300 dark:border-white/10"
-                        }`}
-                      >
-                        {product.isActive ? "Activo" : "Inactivo"}
-                      </span>
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        <span
+                          className={`inline-block px-2 py-0.5 text-[10px] font-black rounded-full uppercase tracking-wider ${
+                            product.isActive
+                              ? "bg-primary/10 text-primary border border-primary/20"
+                              : "bg-zinc-200 dark:bg-white/5 text-zinc-500 border border-zinc-300 dark:border-white/10"
+                          }`}
+                        >
+                          {product.isActive ? "Activo" : "Inactivo"}
+                        </span>
+                        {product.isPopular && (
+                          <span className="inline-block px-2 py-0.5 text-[10px] font-black rounded-full uppercase tracking-wider bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                            ⭐ Frecuente
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -371,6 +381,23 @@ export default function ProductsPage() {
                     type="checkbox"
                     checked={formData.isActive}
                     onChange={(e) => setFormData((prev) => ({ ...prev, isActive: e.target.checked }))}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-zinc-300 dark:bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary" />
+                </label>
+              </div>
+
+              {/* Popular Toggle */}
+              <div className="flex items-center justify-between p-3 bg-zinc-100/40 dark:bg-white/[0.02] border border-zinc-200/50 dark:border-white/5 rounded-xl">
+                <div className="flex flex-col">
+                  <span className="text-xs font-bold text-zinc-700 dark:text-zinc-300">Producto Frecuente</span>
+                  <span className="text-[10px] text-zinc-500">¿Mostrar en accesos rápidos de nueva reserva?</span>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.isPopular}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, isPopular: e.target.checked }))}
                     className="sr-only peer"
                   />
                   <div className="w-11 h-6 bg-zinc-300 dark:bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary" />

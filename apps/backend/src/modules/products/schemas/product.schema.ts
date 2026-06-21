@@ -18,6 +18,9 @@ export class Product {
   @Prop({ default: true })
   isActive: boolean;
 
+  @Prop({ default: false })
+  isPopular: boolean;
+
   @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'Club', required: true })
   clubId: Types.ObjectId;
 }

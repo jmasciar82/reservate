@@ -835,25 +835,58 @@ export default function NewReservationButton({
                   
                   {/* Preset Grid */}
                   <div className="grid grid-cols-2 gap-2">
-                    {(availableProducts.length > 0 ? availableProducts : PRESET_PRODUCTS).map((preset) => (
-                      <button
-                        key={preset.name}
-                        type="button"
-                        onClick={() => addPresetProduct(preset)}
-                        className="flex items-center justify-between p-2.5 text-xs font-semibold rounded-xl bg-white dark:bg-white/5 border border-zinc-200 dark:border-white/10 hover:border-primary/50 dark:hover:border-primary/50 hover:bg-zinc-50 dark:hover:bg-white/[0.08] active:scale-95 transition-all duration-200 text-left text-zinc-700 dark:text-zinc-300"
-                      >
-                        <span className="flex items-center gap-1.5 truncate">
-                          <span>{'icon' in preset ? preset.icon : '📦'}</span>
-                          <span className="truncate">{preset.name}</span>
-                        </span>
-                        <span className="font-bold text-primary shrink-0">${preset.price.toLocaleString("es-AR")}</span>
-                      </button>
-                    ))}
+                    {(() => {
+                      const popular = availableProducts.filter((p) => p.isPopular);
+                      const quickProducts = popular.length > 0 
+                        ? popular 
+                        : (availableProducts.length > 0 ? availableProducts : PRESET_PRODUCTS);
+                      
+                      return quickProducts.map((preset) => (
+                        <button
+                          key={preset.name}
+                          type="button"
+                          onClick={() => addPresetProduct(preset)}
+                          className="flex items-center justify-between p-2.5 text-xs font-semibold rounded-xl bg-white dark:bg-white/5 border border-zinc-200 dark:border-white/10 hover:border-primary/50 dark:hover:border-primary/50 hover:bg-zinc-50 dark:hover:bg-white/[0.08] active:scale-95 transition-all duration-200 text-left text-zinc-700 dark:text-zinc-300"
+                        >
+                          <span className="flex items-center gap-1.5 truncate">
+                            <span>{'icon' in preset ? preset.icon : '📦'}</span>
+                            <span className="truncate">{preset.name}</span>
+                          </span>
+                          <span className="font-bold text-primary shrink-0">${preset.price.toLocaleString("es-AR")}</span>
+                        </button>
+                      ));
+                    })()}
                   </div>
 
                   {/* Custom item input */}
                   <div className="space-y-1.5 pt-2 border-t border-zinc-200/80 dark:border-white/5">
-                    <span className="text-[10px] font-bold text-zinc-500">Ítem personalizado</span>
+                    <span className="text-[10px] font-bold text-zinc-500">
+                      {availableProducts.length > 0 ? "Cargar del catálogo o personalizado" : "Ítem personalizado"}
+                    </span>
+                    {availableProducts.length > 0 && (
+                      <select
+                        onChange={(e) => {
+                          const prodId = e.target.value;
+                          if (!prodId) return;
+                          if (prodId === "custom") {
+                            setCustomProduct({ name: "", price: "", quantity: "1" });
+                          } else {
+                            const p = availableProducts.find(x => x._id === prodId);
+                            if (p) {
+                              setCustomProduct({ name: p.name, price: String(p.price), quantity: "1" });
+                            }
+                          }
+                        }}
+                        className="w-full mb-2 bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-zinc-900 dark:text-white focus:outline-none focus:border-primary font-medium"
+                      >
+                        <option value="custom">-- Cargar producto del catálogo (opcional) --</option>
+                        {availableProducts.map(p => (
+                          <option key={p._id} value={p._id}>
+                            {p.icon || "📦"} {p.name} (${p.price.toLocaleString("es-AR")})
+                          </option>
+                        ))}
+                      </select>
+                    )}
                     <div className="flex gap-2 items-center">
                       <input
                         type="text"
