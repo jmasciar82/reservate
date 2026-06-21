@@ -132,10 +132,14 @@ export class UsersController {
   @Patch('profile/info')
   async updateProfileInfo(@Req() req: any, @Body() body: any) {
     const userId = req.user.userId;
-    const { name, email } = body;
+    const { name, email, initials } = body;
 
     if (!name || !email) {
       throw new BadRequestException('El nombre y el correo electrónico son obligatorios.');
+    }
+
+    if (initials && initials.length > 3) {
+      throw new BadRequestException('Las iniciales no pueden tener más de 3 caracteres.');
     }
 
     const existing = await this.usersService.findByEmail(email);
@@ -143,12 +147,12 @@ export class UsersController {
       throw new BadRequestException('El correo electrónico ya está registrado por otro usuario.');
     }
 
-    const updated = await this.usersService.updateProfileInfo(userId, name, email);
+    const updated = await this.usersService.updateProfileInfo(userId, name, email, initials);
     if (!updated) {
       throw new BadRequestException('Usuario no encontrado.');
     }
 
-    return { message: 'Perfil actualizado con éxito.', user: { name: updated.name, email: updated.email } };
+    return { message: 'Perfil actualizado con éxito.', user: { name: updated.name, email: updated.email, initials: updated.initials } };
   }
 
   @Delete(':id')

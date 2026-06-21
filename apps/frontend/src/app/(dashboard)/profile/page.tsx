@@ -7,6 +7,7 @@ export default function ProfilePage() {
   // Datos Personales
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [initials, setInitials] = useState("");
   const [loadingInfo, setLoadingInfo] = useState(false);
   const [successInfo, setSuccessInfo] = useState<string | null>(null);
   const [errorInfo, setErrorInfo] = useState<string | null>(null);
@@ -30,6 +31,7 @@ export default function ProfilePage() {
         const data = await response.json();
         setName(data.name || "");
         setEmail(data.email || "");
+        setInitials(data.initials || "");
       }
     } catch (err) {
       console.error("Error fetching profile:", err);
@@ -46,13 +48,18 @@ export default function ProfilePage() {
       return;
     }
 
+    if (initials.trim().length > 3) {
+      setErrorInfo("Las iniciales no pueden tener más de 3 caracteres.");
+      return;
+    }
+
     setLoadingInfo(true);
 
     try {
       const response = await apiFetch("/users/profile/info", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email }),
+        body: JSON.stringify({ name, email, initials: initials.trim() }),
       });
 
       if (!response.ok) {
@@ -61,6 +68,13 @@ export default function ProfilePage() {
       }
 
       setSuccessInfo("Información personal actualizada con éxito.");
+
+      // Dispatch custom event to notify other components (like Header)
+      window.dispatchEvent(
+        new CustomEvent("profile-updated", {
+          detail: { name, email, initials: initials.trim() },
+        })
+      );
     } catch (err: any) {
       setErrorInfo(err.message || "Ocurrió un error al guardar los cambios.");
     } finally {
@@ -173,6 +187,26 @@ export default function ProfilePage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="w-full bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-xl py-3 pl-10 pr-4 text-xs text-zinc-900 dark:text-white focus:outline-none focus:border-primary transition-all font-semibold"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-[11px] font-bold text-zinc-500 uppercase tracking-wider flex justify-between">
+                  <span>Iniciales</span>
+                  <span className="text-[9px] text-zinc-400 dark:text-zinc-500 lowercase normal-case">(opcional - máx. 3 carac.)</span>
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-zinc-450 dark:text-zinc-400 select-none">
+                    Aa
+                  </span>
+                  <input
+                    type="text"
+                    maxLength={3}
+                    placeholder="Ej. JP"
+                    value={initials}
+                    onChange={(e) => setInitials(e.target.value.toUpperCase())}
+                    className="w-full bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-xl py-3 pl-10 pr-4 text-xs text-zinc-900 dark:text-white focus:outline-none focus:border-primary transition-all font-semibold tracking-widest uppercase"
                   />
                 </div>
               </div>

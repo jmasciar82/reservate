@@ -13,6 +13,46 @@ export function Header() {
   const activeClub = clubs.find((c) => c._id === activeClubId);
 
   const [isSubdomainActive, setIsSubdomainActive] = useState(false);
+  const [initials, setInitials] = useState("JP");
+
+  useEffect(() => {
+    const fetchInitials = async () => {
+      try {
+        const { apiFetch } = await import("@/lib/api");
+        const res = await apiFetch("/users/profile");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.initials) {
+            setInitials(data.initials);
+          } else if (data.name) {
+            const names = data.name.trim().split(/\s+/);
+            const init = names.map((n: string) => n[0]).join("").substring(0, 3).toUpperCase();
+            setInitials(init || "US");
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching initials in header:", err);
+      }
+    };
+
+    fetchInitials();
+
+    const handleProfileUpdate = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (customEvent.detail?.initials) {
+        setInitials(customEvent.detail.initials);
+      } else if (customEvent.detail?.name) {
+        const names = customEvent.detail.name.trim().split(/\s+/);
+        const init = names.map((n: string) => n[0]).join("").substring(0, 3).toUpperCase();
+        setInitials(init || "US");
+      }
+    };
+
+    window.addEventListener("profile-updated", handleProfileUpdate);
+    return () => {
+      window.removeEventListener("profile-updated", handleProfileUpdate);
+    };
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -111,7 +151,7 @@ export function Header() {
       <div className="flex items-center gap-3.5 z-10">
         <ThemeToggle />
         <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/30 overflow-hidden flex items-center justify-center cursor-pointer shadow-[0_0_10px_rgba(57,255,20,0.1)] hover:scale-105 transition-all duration-300">
-          <span className="text-xs font-black text-primary drop-shadow-[0_0_4px_rgba(57,255,20,0.3)]">JP</span>
+          <span className="text-xs font-black text-primary drop-shadow-[0_0_4px_rgba(57,255,20,0.3)]">{initials}</span>
         </div>
       </div>
     </header>

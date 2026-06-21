@@ -59,9 +59,13 @@ export class UsersService {
       .exec();
   }
 
-  async updateProfileInfo(id: string, name: string, email: string): Promise<UserDocument | null> {
+  async updateProfileInfo(id: string, name: string, email: string, initials?: string): Promise<UserDocument | null> {
+    const updateFields: any = { name, email };
+    if (initials !== undefined) {
+      updateFields.initials = initials;
+    }
     return this.userModel
-      .findByIdAndUpdate(id, { $set: { name, email } }, { new: true })
+      .findByIdAndUpdate(id, { $set: updateFields }, { new: true })
       .exec();
   }
 

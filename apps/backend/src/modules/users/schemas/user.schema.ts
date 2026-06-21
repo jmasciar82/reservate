@@ -32,6 +32,9 @@ export class User {
 
   @Prop({ required: false })
   resetPasswordExpires?: Date;
+
+  @Prop({ required: false })
+  initials?: string;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
