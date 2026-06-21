@@ -10,6 +10,7 @@ import {
   Req,
   BadRequestException,
   Patch,
+  NotFoundException,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { ClubsService } from '../clubs/clubs.service';
@@ -115,6 +116,39 @@ export class UsersController {
     await this.usersService.updatePassword(userId, passwordHash);
 
     return { message: 'Contraseña actualizada con éxito.' };
+  }
+
+  @Get('profile')
+  async getProfile(@Req() req: any) {
+    const userId = req.user.userId;
+    const user = await this.usersService.findById(userId);
+    if (!user) {
+      throw new NotFoundException('Usuario no encontrado.');
+    }
+    const { passwordHash, ...result } = user.toObject();
+    return result;
+  }
+
+  @Patch('profile/info')
+  async updateProfileInfo(@Req() req: any, @Body() body: any) {
+    const userId = req.user.userId;
+    const { name, email } = body;
+
+    if (!name || !email) {
+      throw new BadRequestException('El nombre y el correo electrónico son obligatorios.');
+    }
+
+    const existing = await this.usersService.findByEmail(email);
+    if (existing && existing._id.toString() !== userId) {
+      throw new BadRequestException('El correo electrónico ya está registrado por otro usuario.');
+    }
+
+    const updated = await this.usersService.updateProfileInfo(userId, name, email);
+    if (!updated) {
+      throw new BadRequestException('Usuario no encontrado.');
+    }
+
+    return { message: 'Perfil actualizado con éxito.', user: { name: updated.name, email: updated.email } };
   }
 
   @Delete(':id')

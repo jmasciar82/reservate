@@ -59,6 +59,12 @@ export class UsersService {
       .exec();
   }
 
+  async updateProfileInfo(id: string, name: string, email: string): Promise<UserDocument | null> {
+    return this.userModel
+      .findByIdAndUpdate(id, { $set: { name, email } }, { new: true })
+      .exec();
+  }
+
   async clearResetToken(id: string): Promise<UserDocument | null> {
     return this.userModel
       .findByIdAndUpdate(
