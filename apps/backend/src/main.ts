@@ -37,8 +37,12 @@ async function bootstrap() {
       if (!origin) return callback(null, true);
       // Check exact match
       if (allowedOrigins.includes(origin)) return callback(null, true);
-      // Allow any *.vercel.app subdomain
-      if (/\.vercel\.app$/.test(origin)) return callback(null, true);
+      // Allow only subdomains of Vercel that legitimately belong to the official project (reservate-frontend)
+      if (/\.vercel\.app$/.test(origin)) {
+        if (origin.includes('reservate-frontend')) {
+          return callback(null, true);
+        }
+      }
       // Reject
       callback(new Error(`Origin ${origin} not allowed by CORS`));
     },

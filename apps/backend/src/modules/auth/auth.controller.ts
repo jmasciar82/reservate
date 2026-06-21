@@ -3,6 +3,7 @@ import { AuthService } from './auth.service';
 import { UsersService } from '../users/users.service';
 import * as crypto from 'crypto';
 import * as bcrypt from 'bcrypt';
+import { Throttle } from '@nestjs/throttler';
 
 @Controller('auth')
 export class AuthController {
@@ -21,6 +22,7 @@ export class AuthController {
   }
 
   @Post('forgot-password')
+  @Throttle({ short: { limit: 5, ttl: 60000 } })
   async forgotPassword(@Body() body: { email: string }) {
     const { email } = body;
     if (!email) {
@@ -51,6 +53,7 @@ export class AuthController {
   }
 
   @Post('reset-password')
+  @Throttle({ short: { limit: 5, ttl: 60000 } })
   async resetPassword(@Body() body: any) {
     const { token, password } = body;
     if (!token || !password) {

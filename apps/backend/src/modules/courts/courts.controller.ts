@@ -74,6 +74,9 @@ export class CourtsController {
     @Query('clubId') clubId?: string,
   ) {
     const user = req.user;
+    if (user.role !== 'admin' && user.role !== 'club_owner' && user.role !== 'staff') {
+      throw new ForbiddenException('No tienes permisos para realizar esta acción.');
+    }
     let targetClubId = clubId;
     if (user.role === 'club_owner') {
       if (clubId) {

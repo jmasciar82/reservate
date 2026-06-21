@@ -58,79 +58,160 @@ export class TournamentsService {
     return updated;
   }
 
+  private validateDuplicatePlayers(tournament: TournamentDocument, registerTeamDto: RegisterTeamDto) {
+    const p1Phone = registerTeamDto.player1.phone?.trim();
+    const p1Email = registerTeamDto.player1.email?.trim()?.toLowerCase();
+    const p2Phone = registerTeamDto.player2?.phone?.trim();
+    const p2Email = registerTeamDto.player2?.email?.trim()?.toLowerCase();
+
+    for (const team of tournament.teams) {
+      const registeredPhones = [
+        team.player1.phone?.trim(),
+        team.player2?.phone?.trim(),
+      ].filter(Boolean);
+      const registeredEmails = [
+        team.player1.email?.trim()?.toLowerCase(),
+        team.player2?.email?.trim()?.toLowerCase(),
+      ].filter(Boolean);
+
+      if (
+        (p1Phone && registeredPhones.includes(p1Phone)) ||
+        (p2Phone && registeredPhones.includes(p2Phone)) ||
+        (p1Email && registeredEmails.includes(p1Email)) ||
+        (p2Email && registeredEmails.includes(p2Email))
+      ) {
+        throw new BadRequestException('Uno de los jugadores ya se encuentra inscrito en este torneo.');
+      }
+    }
+  }
+
+  private generateBracketAndActivate(tournament: TournamentDocument) {
+    if (tournament.type === 'elimination') {
+      tournament.bracket = this.generateInitialBracket(tournament.teams, tournament.maxTeams);
+    } else if (tournament.type === 'round_robin') {
+      tournament.bracket = this.generateRoundRobinMatches(tournament.teams, 'round_robin');
+    } else if (tournament.type === 'americano') {
+      tournament.bracket = this.generateAmericanoMatches(tournament.teams);
+    } else if (tournament.type === 'groups_playoff') {
+      // Asignar parejas a grupos (A/B para 8, A/B/C/D para 16)
+      const groups: { [key: string]: TournamentTeam[] } = {};
+      if (tournament.maxTeams === 8) {
+        groups['A'] = [];
+        groups['B'] = [];
+        tournament.teams.forEach((t, i) => {
+          const groupName = i % 2 === 0 ? 'A' : 'B';
+          t.group = groupName;
+          groups[groupName].push(t);
+        });
+      } else {
+        groups['A'] = [];
+        groups['B'] = [];
+        groups['C'] = [];
+        groups['D'] = [];
+        tournament.teams.forEach((t, i) => {
+          const groupNames = ['A', 'B', 'C', 'D'];
+          const groupName = groupNames[i % 4];
+          t.group = groupName;
+          groups[groupName].push(t);
+        });
+      }
+
+      // Generar partidos todos contra todos para cada grupo
+      const allGroupMatches: TournamentMatch[] = [];
+      Object.entries(groups).forEach(([groupName, groupTeams]) => {
+        const groupMatches = this.generateRoundRobinMatches(groupTeams, 'groups');
+        allGroupMatches.push(...groupMatches);
+      });
+      tournament.bracket = allGroupMatches;
+    }
+    tournament.status = 'active';
+  }
+
   async registerTeam(id: string, registerTeamDto: RegisterTeamDto): Promise<TournamentDocument> {
-    const tournament = await this.findOne(id);
-
-    if (tournament.status !== 'registration') {
-      throw new BadRequestException('El torneo no está en período de inscripciones.');
-    }
-
-    if (tournament.teams.length >= tournament.maxTeams) {
-      throw new BadRequestException('El cupo de parejas para este torneo está completo.');
-    }
-
-    // Crear el nuevo equipo
-    const newTeam: TournamentTeam = {
-      _id: new Types.ObjectId() as any,
-      name: registerTeamDto.name,
-      player1: registerTeamDto.player1,
-      player2: registerTeamDto.player2 || registerTeamDto.player1,
-      registeredAt: new Date(),
-      paymentStatus: 'pending',
-    };
-
-    tournament.teams.push(newTeam);
-
-    // Si se completaron las parejas, generamos las llaves e iniciamos el torneo
-    if (tournament.teams.length === tournament.maxTeams) {
-      if (tournament.type === 'elimination') {
-        tournament.bracket = this.generateInitialBracket(tournament.teams, tournament.maxTeams);
-      } else if (tournament.type === 'round_robin') {
-        tournament.bracket = this.generateRoundRobinMatches(tournament.teams, 'round_robin');
-      } else if (tournament.type === 'americano') {
-        tournament.bracket = this.generateAmericanoMatches(tournament.teams);
-      } else if (tournament.type === 'groups_playoff') {
-        // Asignar parejas a grupos (A/B para 8, A/B/C/D para 16)
-        const groups: { [key: string]: TournamentTeam[] } = {};
-        if (tournament.maxTeams === 8) {
-          groups['A'] = [];
-          groups['B'] = [];
-          tournament.teams.forEach((t, i) => {
-            const groupName = i % 2 === 0 ? 'A' : 'B';
-            t.group = groupName;
-            groups[groupName].push(t);
-          });
-        } else {
-          groups['A'] = [];
-          groups['B'] = [];
-          groups['C'] = [];
-          groups['D'] = [];
-          tournament.teams.forEach((t, i) => {
-            const groupNames = ['A', 'B', 'C', 'D'];
-            const groupName = groupNames[i % 4];
-            t.group = groupName;
-            groups[groupName].push(t);
-          });
+    const session = await this.tournamentModel.db.startSession().catch(() => null);
+    if (session) {
+      session.startTransaction();
+      try {
+        const tournament = await this.tournamentModel.findById(id).session(session).exec();
+        if (!tournament) {
+          throw new NotFoundException('Torneo no encontrado');
         }
 
-        // Generar partidos todos contra todos para cada grupo
-        const allGroupMatches: TournamentMatch[] = [];
-        Object.entries(groups).forEach(([groupName, groupTeams]) => {
-          const groupMatches = this.generateRoundRobinMatches(groupTeams, 'groups');
-          allGroupMatches.push(...groupMatches);
-        });
-        tournament.bracket = allGroupMatches;
+        if (tournament.status !== 'registration') {
+          throw new BadRequestException('El torneo no está en período de inscripciones.');
+        }
+
+        if (tournament.teams.length >= tournament.maxTeams) {
+          throw new BadRequestException('El cupo de parejas para este torneo está completo.');
+        }
+
+        this.validateDuplicatePlayers(tournament, registerTeamDto);
+
+        const newTeam: TournamentTeam = {
+          _id: new Types.ObjectId() as any,
+          name: registerTeamDto.name,
+          player1: registerTeamDto.player1,
+          player2: registerTeamDto.player2 || registerTeamDto.player1,
+          registeredAt: new Date(),
+          paymentStatus: 'pending',
+        };
+
+        tournament.teams.push(newTeam);
+
+        if (tournament.teams.length === tournament.maxTeams) {
+          this.generateBracketAndActivate(tournament);
+        }
+
+        tournament.markModified('teams');
+        if (tournament.teams.length === tournament.maxTeams) {
+          tournament.markModified('bracket');
+        }
+
+        const saved = await tournament.save({ session });
+        await session.commitTransaction();
+        return saved;
+      } catch (err) {
+        await session.abortTransaction();
+        throw err;
+      } finally {
+        session.endSession();
       }
-      tournament.status = 'active';
-    }
+    } else {
+      // Fallback sin transacción
+      const tournament = await this.findOne(id);
 
-    // Marcar como modificado debido al array anidado de subdocumentos
-    tournament.markModified('teams');
-    if (tournament.teams.length === tournament.maxTeams) {
-      tournament.markModified('bracket');
-    }
+      if (tournament.status !== 'registration') {
+        throw new BadRequestException('El torneo no está en período de inscripciones.');
+      }
 
-    return tournament.save();
+      if (tournament.teams.length >= tournament.maxTeams) {
+        throw new BadRequestException('El cupo de parejas para este torneo está completo.');
+      }
+
+      this.validateDuplicatePlayers(tournament, registerTeamDto);
+
+      const newTeam: TournamentTeam = {
+        _id: new Types.ObjectId() as any,
+        name: registerTeamDto.name,
+        player1: registerTeamDto.player1,
+        player2: registerTeamDto.player2 || registerTeamDto.player1,
+        registeredAt: new Date(),
+        paymentStatus: 'pending',
+      };
+
+      tournament.teams.push(newTeam);
+
+      if (tournament.teams.length === tournament.maxTeams) {
+        this.generateBracketAndActivate(tournament);
+      }
+
+      tournament.markModified('teams');
+      if (tournament.teams.length === tournament.maxTeams) {
+        tournament.markModified('bracket');
+      }
+
+      return tournament.save();
+    }
   }
 
   async updateMatch(id: string, updateMatchDto: UpdateMatchDto): Promise<TournamentDocument> {

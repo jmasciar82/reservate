@@ -52,6 +52,10 @@ export class ProductsController {
   @Get()
   async findAll(@Request() req: any, @Query('clubId') clubId?: string) {
     const user = req.user;
+    if (user.role !== 'admin' && user.role !== 'club_owner' && user.role !== 'staff') {
+      throw new ForbiddenException('No tienes permisos para realizar esta acción.');
+    }
+
     if (user.role === 'club_owner') {
       if (clubId) {
         const club = await this.clubsService.findOne(clubId);
