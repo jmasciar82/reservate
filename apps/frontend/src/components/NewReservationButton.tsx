@@ -834,29 +834,29 @@ export default function NewReservationButton({
                   </p>
                   
                   {/* Preset Grid */}
-                  <div className="grid grid-cols-2 gap-2">
-                    {(() => {
-                      const popular = availableProducts.filter((p) => p.isPopular);
-                      const quickProducts = popular.length > 0 
-                        ? popular 
-                        : (availableProducts.length > 0 ? availableProducts : PRESET_PRODUCTS);
-                      
-                      return quickProducts.map((preset) => (
-                        <button
-                          key={preset.name}
-                          type="button"
-                          onClick={() => addPresetProduct(preset)}
-                          className="flex items-center justify-between p-2.5 text-xs font-semibold rounded-xl bg-white dark:bg-white/5 border border-zinc-200 dark:border-white/10 hover:border-primary/50 dark:hover:border-primary/50 hover:bg-zinc-50 dark:hover:bg-white/[0.08] active:scale-95 transition-all duration-200 text-left text-zinc-700 dark:text-zinc-300"
-                        >
-                          <span className="flex items-center gap-1.5 truncate">
-                            <span>{'icon' in preset ? preset.icon : '📦'}</span>
-                            <span className="truncate">{preset.name}</span>
-                          </span>
-                          <span className="font-bold text-primary shrink-0">${preset.price.toLocaleString("es-AR")}</span>
-                        </button>
-                      ));
-                    })()}
-                  </div>
+                  {availableProducts.length > 0 && (
+                    <div className="grid grid-cols-2 gap-2">
+                      {(() => {
+                        const popular = availableProducts.filter((p) => p.isPopular);
+                        const quickProducts = popular.length > 0 ? popular : availableProducts;
+                        
+                        return quickProducts.map((preset) => (
+                          <button
+                            key={preset.name}
+                            type="button"
+                            onClick={() => addPresetProduct(preset)}
+                            className="flex items-center justify-between p-2.5 text-xs font-semibold rounded-xl bg-white dark:bg-white/5 border border-zinc-200 dark:border-white/10 hover:border-primary/50 dark:hover:border-primary/50 hover:bg-zinc-50 dark:hover:bg-white/[0.08] active:scale-95 transition-all duration-200 text-left text-zinc-700 dark:text-zinc-300"
+                          >
+                            <span className="flex items-center gap-1.5 truncate">
+                              <span>{'icon' in preset ? preset.icon : '📦'}</span>
+                              <span className="truncate">{preset.name}</span>
+                            </span>
+                            <span className="font-bold text-primary shrink-0">${preset.price.toLocaleString("es-AR")}</span>
+                          </button>
+                        ));
+                      })()}
+                    </div>
+                  )}
 
                   {/* Custom item input */}
                   <div className="space-y-1.5 pt-2 border-t border-zinc-200/80 dark:border-white/5">
