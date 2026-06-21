@@ -12,13 +12,17 @@ import {
   Patch,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
+import { ClubsService } from '../clubs/clubs.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import * as bcrypt from 'bcrypt';
 
 @Controller('users')
 @UseGuards(JwtAuthGuard)
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly clubsService: ClubsService,
+  ) {}
 
   @Get()
   async findAll(@Req() req: any) {
@@ -60,6 +64,13 @@ export class UsersController {
         targetRole = 'staff';
       }
       targetTenantId = caller.tenantId;
+
+      if (targetClubId) {
+        const club = await this.clubsService.findOne(targetClubId);
+        if (!club || club.tenantId?.toString() !== caller.tenantId?.toString()) {
+          throw new ForbiddenException('El club indicado no pertenece a tu franquicia.');
+        }
+      }
     }
 
     return this.usersService.create({

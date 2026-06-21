@@ -52,6 +52,9 @@ export class CourtsController {
   @Get()
   async findAll(@Request() req: any) {
     const user = req.user;
+    if (user.role !== 'admin' && user.role !== 'club_owner' && user.role !== 'staff') {
+      throw new ForbiddenException('No tienes permisos para realizar esta acción.');
+    }
     if (user.role === 'club_owner') {
       if (!user.tenantId) return [];
       const clubs = await this.clubsService.findByTenant(user.tenantId);

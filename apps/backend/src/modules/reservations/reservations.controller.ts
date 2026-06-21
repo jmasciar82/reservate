@@ -31,6 +31,9 @@ export class ReservationsController {
   @Post()
   async create(@Body() createReservationDto: CreateReservationDto, @Request() req: any) {
     const user = req.user;
+    if (user.role !== 'admin' && user.role !== 'club_owner' && user.role !== 'staff') {
+      throw new ForbiddenException('No tienes permisos para realizar esta acción.');
+    }
     let result: any;
     if (user.role === 'club_owner') {
       const court = await this.courtsService.findOne(createReservationDto.courtId);
@@ -87,6 +90,9 @@ export class ReservationsController {
     @Query('type') type?: string,
   ) {
     const user = req.user;
+    if (user.role !== 'admin' && user.role !== 'club_owner' && user.role !== 'staff') {
+      throw new ForbiddenException('No tienes permisos para realizar esta acción.');
+    }
     if (user.role === 'club_owner') {
       if (clubId) {
         const club = await this.clubsService.findOne(clubId);
@@ -113,6 +119,9 @@ export class ReservationsController {
     @Request() req: any,
   ) {
     const user = req.user;
+    if (user.role !== 'admin' && user.role !== 'club_owner' && user.role !== 'staff') {
+      throw new ForbiddenException('No tienes permisos para realizar esta acción.');
+    }
     let result: any;
     if (user.role === 'club_owner') {
       const reservation = await this.reservationsService.findOne(id);
@@ -179,6 +188,9 @@ export class ReservationsController {
   @Post(':id/renew')
   async renew(@Param('id') id: string, @Request() req: any) {
     const user = req.user;
+    if (user.role !== 'admin' && user.role !== 'club_owner' && user.role !== 'staff') {
+      throw new ForbiddenException('No tienes permisos para realizar esta acción.');
+    }
     let result: any;
     if (user.role === 'club_owner') {
       const reservation = await this.reservationsService.findOne(id);
