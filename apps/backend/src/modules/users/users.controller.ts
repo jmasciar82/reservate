@@ -60,7 +60,7 @@ export class UsersController {
     let targetTenantId = body.tenantId && body.tenantId !== '' ? body.tenantId : undefined;
 
     if (caller.role === 'club_owner') {
-      if (role !== 'staff' && role !== 'player') {
+      if (role !== 'staff' && role !== 'player' && role !== 'club_owner') {
         targetRole = 'staff';
       }
       targetTenantId = caller.tenantId;
@@ -70,6 +70,13 @@ export class UsersController {
         if (!club || club.tenantId?.toString() !== caller.tenantId?.toString()) {
           throw new ForbiddenException('El club indicado no pertenece a tu franquicia.');
         }
+      }
+    }
+
+    if (caller.role === 'admin' && targetRole === 'club_owner' && targetClubId && !targetTenantId) {
+      const club = await this.clubsService.findOne(targetClubId);
+      if (club) {
+        targetTenantId = club.tenantId?.toString();
       }
     }
 

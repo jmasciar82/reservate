@@ -204,7 +204,7 @@ export default function UsersPage() {
                         {userItem.role === "admin"
                           ? "Administrador Global"
                           : userItem.role === "club_owner"
-                            ? "Usuario"
+                            ? "Dueño de Club"
                             : userItem.role === "staff"
                               ? userItem.clubId && clubMap[userItem.clubId]
                                 ? `Personal (${clubMap[userItem.clubId]})`
@@ -306,11 +306,14 @@ export default function UsersPage() {
                 </label>
                 <select
                   value={formData.role}
-                  onChange={(e) => setFormData({ ...formData, role: e.target.value, clubId: e.target.value !== "staff" ? "" : formData.clubId })}
+                  onChange={(e) => setFormData({ ...formData, role: e.target.value, clubId: (e.target.value !== "staff" && e.target.value !== "club_owner") ? "" : formData.clubId })}
                   className="w-full bg-zinc-50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-xl px-4 py-3 text-zinc-900 dark:text-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 hover:bg-zinc-100 dark:hover:bg-white/[0.08] transition-all duration-300 font-semibold"
                 >
                   <option value="staff" className="bg-zinc-950 text-white">
                     Personal / Recepción (Acceso a reservas de su sede)
+                  </option>
+                  <option value="club_owner" className="bg-zinc-950 text-white">
+                    Dueño de Club / Franquicia (Gestión de su sede y franquicia)
                   </option>
                   {role === "admin" && (
                     <option value="admin" className="bg-zinc-950 text-white">
@@ -320,7 +323,7 @@ export default function UsersPage() {
                 </select>
               </div>
 
-              {formData.role === "staff" && (
+              {(formData.role === "staff" || (role === "admin" && formData.role === "club_owner")) && (
                 <div className="space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-200">
                   <label className="text-sm font-medium text-zinc-500 dark:text-zinc-400 flex items-center gap-2">
                     <Building2 className="w-4 h-4 text-primary" />
