@@ -14,12 +14,17 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => {
+        const isProduction = configService.get<string>('NODE_ENV') === 'production';
         const secret = configService.get<string>('JWT_SECRET');
         if (!secret) {
-          throw new Error('FATAL: JWT_SECRET environment variable is required.');
+          if (isProduction) {
+            throw new Error('FATAL: JWT_SECRET environment variable is required in production.');
+          } else {
+            console.warn('⚠️ [WARNING]: JWT_SECRET is not configured. Using fallback in local development.');
+          }
         }
         return {
-          secret,
+          secret: secret || 'super-secret-key',
           signOptions: { expiresIn: '24h' },
         };
       },
