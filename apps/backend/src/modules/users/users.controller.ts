@@ -47,6 +47,9 @@ export class UsersController {
     if (!name || !email || !password) {
       throw new BadRequestException('Todos los campos (nombre, email, contraseña) son obligatorios.');
     }
+    if (password.length < 6) {
+      throw new BadRequestException('La contraseña debe tener al menos 6 caracteres.');
+    }
 
     const existing = await this.usersService.findByEmail(email);
     if (existing) {
@@ -61,7 +64,7 @@ export class UsersController {
     let targetTenantId = body.tenantId && body.tenantId !== '' ? body.tenantId : undefined;
 
     if (caller.role === 'club_owner') {
-      if (role !== 'staff' && role !== 'player' && role !== 'club_owner') {
+      if (role !== 'staff' && role !== 'player') {
         targetRole = 'staff';
       }
       targetTenantId = caller.tenantId;
@@ -98,6 +101,9 @@ export class UsersController {
 
     if (!currentPassword || !newPassword) {
       throw new BadRequestException('La contraseña actual y la nueva contraseña son obligatorias.');
+    }
+    if (newPassword.length < 6) {
+      throw new BadRequestException('La nueva contraseña debe tener al menos 6 caracteres.');
     }
 
     const user = await this.usersService.findById(userId);

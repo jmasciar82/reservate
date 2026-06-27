@@ -2,7 +2,18 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
 import * as fs from 'fs';
+import * as path from 'path';
 import * as dns from 'dns';
+
+function escapeHtml(text: string | number): string {
+  if (text === null || text === undefined) return '';
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
 
 @Injectable()
 export class NotificationsService {
@@ -121,6 +132,14 @@ export class NotificationsService {
       depositAmount: number;
     }
   ) {
+    const safeCustomerName = escapeHtml(customerName);
+    const safeId = escapeHtml(reservationDetails.id);
+    const safeClubName = escapeHtml(reservationDetails.clubName);
+    const safeCourtName = escapeHtml(reservationDetails.courtName);
+    const safeSport = escapeHtml(reservationDetails.sport);
+    const safeDate = escapeHtml(reservationDetails.date);
+    const safeTime = escapeHtml(reservationDetails.time);
+
     const from = this.configService.get<string>('SMTP_FROM') || '"Reservate" <noreply@reservate.com>';
     const subject = `¡Tu reserva en ${reservationDetails.clubName} está confirmada! 🎾`;
 
@@ -276,29 +295,29 @@ export class NotificationsService {
           <div class="logo-text">Reservate<span class="accent">.</span></div>
         </div>
 
-        <h1>¡Reserva Confirmada, ${customerName}!</h1>
+        <h1>¡Reserva Confirmada, ${safeCustomerName}!</h1>
         <p>Tu seña ha sido recibida con éxito y el turno ya está bloqueado en nuestro sistema. A continuación encontrás los detalles de tu reserva deportiva:</p>
 
         <div class="details-grid">
           <div class="details-row">
             <div class="details-label">ID de Reserva</div>
-            <div class="details-value" style="font-family: monospace; font-size: 13px;">#${reservationDetails.id}</div>
+            <div class="details-value" style="font-family: monospace; font-size: 13px;">#${safeId}</div>
           </div>
           <div class="details-row">
             <div class="details-label">Sede / Club</div>
-            <div class="details-value">${reservationDetails.clubName}</div>
+            <div class="details-value">${safeClubName}</div>
           </div>
           <div class="details-row">
             <div class="details-label">Cancha</div>
-            <div class="details-value">${reservationDetails.courtName} (${reservationDetails.sport})</div>
+            <div class="details-value">${safeCourtName} (${safeSport})</div>
           </div>
           <div class="details-row">
             <div class="details-label">Fecha</div>
-            <div class="details-value">${reservationDetails.date}</div>
+            <div class="details-value">${safeDate}</div>
           </div>
           <div class="details-row">
             <div class="details-label">Horario</div>
-            <div class="details-value">${reservationDetails.time} (${reservationDetails.duration} ${reservationDetails.duration === 1 ? 'hora' : 'horas'})</div>
+            <div class="details-value">${safeTime} (${reservationDetails.duration} ${reservationDetails.duration === 1 ? 'hora' : 'horas'})</div>
           </div>
           <div class="details-row">
             <div class="details-label">Estado de Reserva</div>
@@ -539,11 +558,11 @@ export class NotificationsService {
         console.log('========================================================================');
         
         // Guardar el link en una ruta para auditorías o fácil acceso
-        const logDir = 'C:/Users/juanp/.gemini/antigravity/brain/0404d1e4-10e2-458d-95cd-b130662bc2c8/scratch';
+        const logDir = this.configService.get<string>('LOG_DIR') || path.join(process.cwd(), 'logs');
         if (!fs.existsSync(logDir)) {
           fs.mkdirSync(logDir, { recursive: true });
         }
-        fs.writeFileSync(`${logDir}/last_email_preview.txt`, previewUrl || '');
+        fs.writeFileSync(path.join(logDir, 'last_email_preview.txt'), previewUrl || '');
       }
     } catch (error) {
       console.error('Error al enviar email de confirmación:', error);

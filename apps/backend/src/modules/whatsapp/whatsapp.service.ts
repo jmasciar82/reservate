@@ -23,8 +23,8 @@ export class WhatsappService {
     }
 
     // Ubicación del archivo de log del sandbox
-    const baseBrainDir = 'C:\\Users\\juanp\\.gemini\\antigravity\\brain\\0404d1e4-10e2-458d-95cd-b130662bc2c8';
-    this.logFilePath = path.join(baseBrainDir, 'scratch', 'whatsapp_notifications.log');
+    const logDir = this.configService.get<string>('LOG_DIR') || path.join(process.cwd(), 'logs');
+    this.logFilePath = path.join(logDir, 'whatsapp_notifications.log');
   }
 
   async sendConfirmation(phone: string, text: string): Promise<boolean> {

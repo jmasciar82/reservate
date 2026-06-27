@@ -59,6 +59,9 @@ export class AuthController {
     if (!token || !password) {
       throw new BadRequestException('El token y la nueva contraseña son obligatorios.');
     }
+    if (password.length < 6) {
+      throw new BadRequestException('La contraseña debe tener al menos 6 caracteres.');
+    }
 
     const user = await this.usersService.findByResetToken(token);
     if (!user) {
