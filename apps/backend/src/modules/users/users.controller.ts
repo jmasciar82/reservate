@@ -125,7 +125,7 @@ export class UsersController {
     if (!user) {
       throw new NotFoundException('Usuario no encontrado.');
     }
-    const { passwordHash, ...result } = user.toObject();
+    const { passwordHash, resetPasswordToken, resetPasswordExpires, ...result } = user.toObject();
     return result;
   }
 

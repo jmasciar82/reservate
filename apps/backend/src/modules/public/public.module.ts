@@ -19,10 +19,16 @@ import { NotificationsModule } from '../notifications/notifications.module';
     NotificationsModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET') || 'super-secret-key',
-        signOptions: { expiresIn: '15m' },
-      }),
+      useFactory: async (configService: ConfigService) => {
+        const secret = configService.get<string>('JWT_SECRET');
+        if (!secret) {
+          throw new Error('FATAL: JWT_SECRET environment variable is required.');
+        }
+        return {
+          secret,
+          signOptions: { expiresIn: '15m' },
+        };
+      },
       inject: [ConfigService],
     }),
   ],

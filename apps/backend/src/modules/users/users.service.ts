@@ -27,7 +27,7 @@ export class UsersService {
       filter.tenantId = tenantId;
       filter.role = { $ne: 'admin' }; // Excluir administradores globales del listado de la franquicia
     }
-    return this.userModel.find(filter, { passwordHash: 0 }).exec();
+    return this.userModel.find(filter, { passwordHash: 0, resetPasswordToken: 0, resetPasswordExpires: 0 }).exec();
   }
 
   async remove(id: string): Promise<UserDocument | null> {

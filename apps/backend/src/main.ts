@@ -3,6 +3,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import * as dns from 'dns';
 import * as https from 'https';
+import helmet from 'helmet';
 
 // Forzar la resolución de DNS a dar prioridad a IPv4 sobre IPv6. 
 // Esto es CRUCIAL en Render para evitar errores connect ENETUNREACH con servicios externos como Gmail (IPv6 no soportado de salida).
@@ -16,6 +17,9 @@ async function bootstrap() {
     forbidNonWhitelisted: false,
     transform: true,
   }));
+
+  // Security headers (clickjacking, XSS, MIME sniffing, etc.)
+  app.use(helmet());
 
   const frontendUrl = process.env.FRONTEND_URL || '';
   const allowedOrigins = [

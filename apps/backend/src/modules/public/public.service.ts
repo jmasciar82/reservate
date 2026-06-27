@@ -59,7 +59,7 @@ export class PublicService {
   }
 
   async getClubs(): Promise<Club[]> {
-    return this.clubModel.find().exec();
+    return this.clubModel.find().select('-mpAccessToken -mpPublicKey -tenantId').exec();
   }
 
   async findOneByDomain(hostname: string): Promise<Club> {
@@ -71,7 +71,7 @@ export class PublicService {
     const cleanHost = hostname.split(':')[0].toLowerCase();
 
     // 1. Intentar buscar por customDomain exacto
-    let club = await this.clubModel.findOne({ customDomain: cleanHost }).exec();
+    let club = await this.clubModel.findOne({ customDomain: cleanHost }).select('-mpAccessToken -mpPublicKey').exec();
     if (club) return club;
 
     // 2. Intentar extraer subdominio (ej: club.reservate.com o club.localhost)
@@ -85,7 +85,7 @@ export class PublicService {
     }
 
     if (subdomain && subdomain !== 'www') {
-      club = await this.clubModel.findOne({ subdomain }).exec();
+      club = await this.clubModel.findOne({ subdomain }).select('-mpAccessToken -mpPublicKey').exec();
       if (club) return club;
     }
 

@@ -1,5 +1,5 @@
 import { Controller, Get, Post, Body, Query, Param } from '@nestjs/common';
-import { Throttle } from '@nestjs/throttler';
+import { Throttle, SkipThrottle } from '@nestjs/throttler';
 import { PublicService } from './public.service';
 import { CreatePublicReservationDto } from './dto/create-public-reservation.dto';
 
@@ -8,6 +8,7 @@ export class PublicController {
   constructor(private readonly publicService: PublicService) {}
 
   @Get('clubs')
+  @Throttle({ short: { limit: 10, ttl: 60000 } })
   async getClubs() {
     return this.publicService.getClubs();
   }
@@ -18,6 +19,7 @@ export class PublicController {
   }
 
   @Get('courts/available')
+  @Throttle({ short: { limit: 15, ttl: 60000 } })
   async getAvailableCourts(
     @Query('startTime') startTime: string,
     @Query('endTime') endTime: string,
@@ -33,6 +35,7 @@ export class PublicController {
   }
 
   @Post('payments/webhook')
+  @SkipThrottle()
   async handleWebhook(
     @Body() body: any,
     @Query('reservation_id') reservationId?: string,
