@@ -19,7 +19,9 @@ async function bootstrap() {
   }));
 
   // Security headers (clickjacking, XSS, MIME sniffing, etc.)
-  app.use(helmet());
+  app.use(helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+  }));
 
   const frontendUrl = process.env.FRONTEND_URL || '';
   const allowedOrigins = [
