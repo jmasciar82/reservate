@@ -29,11 +29,11 @@ import { SociosModule } from './modules/socios/socios.module';
     ThrottlerModule.forRoot([{
       name: 'short',
       ttl: 60000,    // 1 minuto
-      limit: 10,     // max 10 requests por minuto
+      limit: 100,    // max 100 requests por minuto
     }, {
       name: 'long',
       ttl: 600000,   // 10 minutos
-      limit: 30,     // max 30 requests cada 10 minutos
+      limit: 500,    // max 500 requests cada 10 minutos
     }]),
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
