@@ -1099,6 +1099,17 @@ export default function TournamentsPage() {
                       m.stage === 'groups' && (m.teamA?.group === groupName || m.teamB?.group === groupName)
                     );
 
+                    // Agrupamos los partidos por ronda (Jornada)
+                    const groupMatchesByRound: { [key: string]: Match[] } = {};
+                    groupMatches.forEach(match => {
+                      const roundMatch = match.matchId.split('-').find(p => p.startsWith('R'));
+                      const roundNum = roundMatch ? roundMatch.replace('R', '') : '1';
+                      if (!groupMatchesByRound[roundNum]) {
+                        groupMatchesByRound[roundNum] = [];
+                      }
+                      groupMatchesByRound[roundNum].push(match);
+                    });
+
                     return (
                       <div key={groupName} className="bg-white/80 dark:bg-zinc-900/50 border border-zinc-200 dark:border-white/5 p-6 rounded-2xl shadow-lg space-y-6">
                         <div className="flex justify-between items-center border-b border-zinc-200/60 dark:border-white/5 pb-2">
@@ -1136,96 +1147,103 @@ export default function TournamentsPage() {
                           </table>
                         </div>
 
-                        {/* Partidos de este grupo */}
-                        <div className="space-y-3">
-                          <h5 className="text-[10px] font-black uppercase text-zinc-400 tracking-wider">Partidos de Grupo</h5>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            {groupMatches.map((match) => {
-                              const hasBothTeams = match.teamA && match.teamB;
-                              const isFinished = match.winnerId !== null;
+                        {/* Partidos de este grupo organizados por Jornada */}
+                        <div className="space-y-4">
+                          {Object.entries(groupMatchesByRound)
+                            .sort(([a], [b]) => Number(a) - Number(b))
+                            .map(([roundNum, roundMatches]) => (
+                              <div key={roundNum} className="space-y-2 border-t border-zinc-200/50 dark:border-white/5 pt-3 first:border-0 first:pt-0">
+                                <h5 className="text-[10px] font-black uppercase text-primary tracking-wider">Jornada {roundNum}</h5>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                  {roundMatches.map((match) => {
+                                    const hasBothTeams = match.teamA && match.teamB;
+                                    const isFinished = match.winnerId !== null;
+                                    const matchNum = match.matchId.split('-').find(p => p.startsWith('M'))?.replace('M', '') || '1';
 
-                              return (
-                                <div
-                                  key={match.matchId}
-                                  onClick={() => {
-                                    if (hasBothTeams) {
-                                      setSelectedMatch(match);
-                                      if (selectedTournament.type === 'americano') {
-                                        setMatchSets([{ scoreA: match.scoreA || 0, scoreB: match.scoreB || 0 }]);
-                                      } else {
-                                        setMatchSets(match.sets && match.sets.length > 0 ? match.sets : [{ scoreA: 0, scoreB: 0 }]);
-                                      }
-                                    }
-                                  }}
-                                  className={`bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-white/5 p-3 rounded-xl shadow-inner relative flex flex-col gap-1.5 transition-all ${
-                                    hasBothTeams
-                                      ? "hover:border-primary/50 cursor-pointer hover:shadow-lg active:scale-98"
-                                      : ""
-                                  }`}
-                                >
-                                  <span className="text-[9px] font-bold text-zinc-500">
-                                    Partido {match.matchId.split('-').find(p => p.startsWith('R'))?.replace('R', '')}
-                                  </span>
+                                    return (
+                                      <div
+                                        key={match.matchId}
+                                        onClick={() => {
+                                          if (hasBothTeams) {
+                                            setSelectedMatch(match);
+                                            if (selectedTournament.type === 'americano') {
+                                              setMatchSets([{ scoreA: match.scoreA || 0, scoreB: match.scoreB || 0 }]);
+                                            } else {
+                                              setMatchSets(match.sets && match.sets.length > 0 ? match.sets : [{ scoreA: 0, scoreB: 0 }]);
+                                            }
+                                          }
+                                        }}
+                                        className={`bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-white/5 p-3 rounded-xl shadow-inner relative flex flex-col gap-1.5 transition-all ${
+                                          hasBothTeams
+                                            ? "hover:border-primary/50 cursor-pointer hover:shadow-lg active:scale-98"
+                                            : ""
+                                        }`}
+                                      >
+                                        <span className="text-[9px] font-bold text-zinc-500">
+                                          Partido {matchNum}
+                                        </span>
 
-                                  <div className={`flex justify-between items-center text-xs p-1 rounded ${
-                                    isFinished && match.winnerId === match.teamA?._id?.toString()
-                                      ? "bg-primary/10 text-primary border border-primary/20 font-black"
-                                      : "text-zinc-700 dark:text-zinc-350"
-                                  }`}>
-                                    <span className="truncate max-w-[140px]">{match.teamA?.name}</span>
-                                    {match.sets && match.sets.length > 0 ? (
-                                      <div className="flex gap-1 font-extrabold text-xs">
-                                        {match.sets.map((set, idx) => (
-                                          <span 
-                                            key={idx} 
-                                            className={`px-1.5 py-0.5 rounded text-[11px] ${
-                                              set.scoreA > set.scoreB 
-                                                ? "bg-primary/20 text-primary border border-primary/30" 
-                                                : "bg-zinc-200/40 dark:bg-zinc-800/50 text-zinc-500"
-                                            }`}
-                                          >
-                                            {set.scoreA}
-                                          </span>
-                                        ))}
+                                        <div className={`flex justify-between items-center text-xs p-1 rounded ${
+                                          isFinished && match.winnerId === match.teamA?._id?.toString()
+                                            ? "bg-primary/10 text-primary border border-primary/20 font-black"
+                                            : "text-zinc-700 dark:text-zinc-350"
+                                        }`}>
+                                          <span className="truncate max-w-[140px]">{match.teamA?.name}</span>
+                                          {match.sets && match.sets.length > 0 ? (
+                                            <div className="flex gap-1 font-extrabold text-xs">
+                                              {match.sets.map((set, idx) => (
+                                                <span 
+                                                  key={idx} 
+                                                  className={`px-1.5 py-0.5 rounded text-[11px] ${
+                                                    set.scoreA > set.scoreB 
+                                                      ? "bg-primary/20 text-primary border border-primary/30" 
+                                                      : "bg-zinc-200/40 dark:bg-zinc-800/50 text-zinc-500"
+                                                  }`}
+                                                >
+                                                  {set.scoreA}
+                                                </span>
+                                              ))}
+                                            </div>
+                                          ) : (
+                                            match.scoreA !== null && (
+                                              <span className="font-extrabold text-sm px-1.5">{match.scoreA}</span>
+                                            )
+                                          )}
+                                        </div>
+
+                                        <div className={`flex justify-between items-center text-xs p-1 rounded ${
+                                          isFinished && match.winnerId === match.teamB?._id?.toString()
+                                            ? "bg-primary/10 text-primary border border-primary/20 font-black"
+                                            : "text-zinc-700 dark:text-zinc-350"
+                                        }`}>
+                                          <span className="truncate max-w-[140px]">{match.teamB?.name}</span>
+                                          {match.sets && match.sets.length > 0 ? (
+                                            <div className="flex gap-1 font-extrabold text-xs">
+                                              {match.sets.map((set, idx) => (
+                                                <span 
+                                                  key={idx} 
+                                                  className={`px-1.5 py-0.5 rounded text-[11px] ${
+                                                    set.scoreB > set.scoreA 
+                                                      ? "bg-primary/20 text-primary border border-primary/30" 
+                                                      : "bg-zinc-200/40 dark:bg-zinc-800/50 text-zinc-500"
+                                                  }`}
+                                                >
+                                                  {set.scoreB}
+                                                </span>
+                                              ))}
+                                            </div>
+                                          ) : (
+                                            match.scoreB !== null && (
+                                              <span className="font-extrabold text-sm px-1.5">{match.scoreB}</span>
+                                            )
+                                          )}
+                                        </div>
                                       </div>
-                                    ) : (
-                                      match.scoreA !== null && (
-                                        <span className="font-extrabold text-sm px-1.5">{match.scoreA}</span>
-                                      )
-                                    )}
-                                  </div>
-
-                                  <div className={`flex justify-between items-center text-xs p-1 rounded ${
-                                    isFinished && match.winnerId === match.teamB?._id?.toString()
-                                      ? "bg-primary/10 text-primary border border-primary/20 font-black"
-                                      : "text-zinc-700 dark:text-zinc-350"
-                                  }`}>
-                                    <span className="truncate max-w-[140px]">{match.teamB?.name}</span>
-                                    {match.sets && match.sets.length > 0 ? (
-                                      <div className="flex gap-1 font-extrabold text-xs">
-                                        {match.sets.map((set, idx) => (
-                                          <span 
-                                            key={idx} 
-                                            className={`px-1.5 py-0.5 rounded text-[11px] ${
-                                              set.scoreB > set.scoreA 
-                                                ? "bg-primary/20 text-primary border border-primary/30" 
-                                                : "bg-zinc-200/40 dark:bg-zinc-800/50 text-zinc-500"
-                                            }`}
-                                          >
-                                            {set.scoreB}
-                                          </span>
-                                        ))}
-                                      </div>
-                                    ) : (
-                                      match.scoreB !== null && (
-                                        <span className="font-extrabold text-sm px-1.5">{match.scoreB}</span>
-                                      )
-                                    )}
-                                  </div>
+                                    );
+                                  })}
                                 </div>
-                              );
-                            })}
-                          </div>
+                              </div>
+                            ))}
                         </div>
                       </div>
                     );
