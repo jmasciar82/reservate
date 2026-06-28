@@ -773,7 +773,7 @@ export default function TournamentsPage() {
                               <div
                                 key={match.matchId}
                                 onClick={() => {
-                                  if (hasBothTeams && !isFinished) {
+                                  if (hasBothTeams) {
                                     setSelectedMatch(match);
                                     if (selectedTournament.type === 'americano') {
                                       setMatchSets([{ scoreA: match.scoreA || 0, scoreB: match.scoreB || 0 }]);
@@ -783,7 +783,7 @@ export default function TournamentsPage() {
                                   }
                                 }}
                                 className={`bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-white/5 p-3 rounded-xl shadow-inner relative flex flex-col gap-2 transition-all ${
-                                  hasBothTeams && !isFinished
+                                  hasBothTeams
                                     ? "hover:border-primary/50 cursor-pointer hover:shadow-lg active:scale-98"
                                     : ""
                                 }`}
@@ -963,7 +963,7 @@ export default function TournamentsPage() {
                                 <div
                                   key={match.matchId}
                                   onClick={() => {
-                                    if (hasBothTeams && !isFinished) {
+                                    if (hasBothTeams) {
                                       setSelectedMatch(match);
                                       if (selectedTournament.type === 'americano') {
                                         setMatchSets([{ scoreA: match.scoreA || 0, scoreB: match.scoreB || 0 }]);
@@ -973,7 +973,7 @@ export default function TournamentsPage() {
                                     }
                                   }}
                                   className={`bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-white/5 p-3 rounded-xl shadow-inner relative flex flex-col gap-1.5 transition-all ${
-                                    hasBothTeams && !isFinished
+                                    hasBothTeams
                                       ? "hover:border-primary/50 cursor-pointer hover:shadow-lg active:scale-98"
                                       : ""
                                   }`}
@@ -1148,7 +1148,7 @@ export default function TournamentsPage() {
                                 <div
                                   key={match.matchId}
                                   onClick={() => {
-                                    if (hasBothTeams && !isFinished) {
+                                    if (hasBothTeams) {
                                       setSelectedMatch(match);
                                       if (selectedTournament.type === 'americano') {
                                         setMatchSets([{ scoreA: match.scoreA || 0, scoreB: match.scoreB || 0 }]);
@@ -1158,7 +1158,7 @@ export default function TournamentsPage() {
                                     }
                                   }}
                                   className={`bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-white/5 p-3 rounded-xl shadow-inner relative flex flex-col gap-1.5 transition-all ${
-                                    hasBothTeams && !isFinished
+                                    hasBothTeams
                                       ? "hover:border-primary/50 cursor-pointer hover:shadow-lg active:scale-98"
                                       : ""
                                   }`}
