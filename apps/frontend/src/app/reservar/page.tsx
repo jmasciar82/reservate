@@ -111,7 +111,7 @@ export default function PublicBookingPage() {
         
         if (parts.length > 2) {
           subdomainName = parts[0];
-          isSubdomain = subdomainName !== "www";
+          isSubdomain = subdomainName !== "www" && subdomainName !== "reservate-frontend";
         } else if (parts.length === 2 && parts[1] === "localhost") {
           subdomainName = parts[0];
           isSubdomain = subdomainName !== "www";

@@ -68,7 +68,7 @@ export function Header() {
       const parts = cleanHost.split(".");
       let isSub = false;
       if (parts.length > 2) {
-        isSub = parts[0] !== "www";
+        isSub = parts[0] !== "www" && parts[0] !== "reservate-frontend";
       } else if (parts.length === 2 && parts[1] === "localhost") {
         isSub = parts[0] !== "www";
       }
