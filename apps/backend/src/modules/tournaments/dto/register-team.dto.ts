@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional, IsEmail, ValidateNested } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsEmail, ValidateNested, ValidateIf } from 'class-validator';
 import { Type } from 'class-transformer';
 
 class PlayerDto {
@@ -11,6 +11,7 @@ class PlayerDto {
   phone: string;
 
   @IsOptional()
+  @ValidateIf((o) => o.email !== '')
   @IsEmail()
   email?: string;
 }
