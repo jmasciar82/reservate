@@ -1164,7 +1164,7 @@ export default function TournamentsPage() {
                                   }`}
                                 >
                                   <span className="text-[9px] font-bold text-zinc-500">
-                                    Jornada {match.matchId.split('-').find(p => p.startsWith('R'))?.replace('R', '')}
+                                    Partido {match.matchId.split('-').find(p => p.startsWith('R'))?.replace('R', '')}
                                   </span>
 
                                   <div className={`flex justify-between items-center text-xs p-1 rounded ${
