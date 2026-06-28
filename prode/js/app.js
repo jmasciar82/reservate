@@ -2623,6 +2623,38 @@ CREATE POLICY "Permitir gestion de partidos" ON prode_matches FOR ALL USING (tru
     const wrapper = document.createElement("div");
     wrapper.className = "bracket-wrapper staggered-fade-in";
 
+    const resolveTeamPlaceholder = (teamCode) => {
+      if (!teamCode) return null;
+      if (teamCode.startsWith("W_")) {
+        const parentId = teamCode.substring(2).toLowerCase();
+        const parentMatch = matches.find(m => m.id === parentId);
+        if (parentMatch) {
+          if (parentMatch.status === "FINALIZADO") {
+            const gA = parseInt(parentMatch.result.goalsA);
+            const gB = parseInt(parentMatch.result.goalsB);
+            if (!isNaN(gA) && !isNaN(gB)) {
+              if (gA > gB) return resolveTeamPlaceholder(parentMatch.teamA);
+              if (gA < gB) return resolveTeamPlaceholder(parentMatch.teamB);
+              return resolveTeamPlaceholder(parentMatch.teamA);
+            }
+          } else {
+            // Si el partido padre aún no finalizó, intentar usar el ganador predicho por el usuario
+            const pred = activeUser.predictions[parentMatch.id];
+            if (pred && pred.goalsA !== null && pred.goalsB !== null && pred.goalsA !== undefined && pred.goalsB !== undefined) {
+              const pA = parseInt(pred.goalsA);
+              const pB = parseInt(pred.goalsB);
+              if (!isNaN(pA) && !isNaN(pB)) {
+                if (pA > pB) return resolveTeamPlaceholder(parentMatch.teamA);
+                if (pA < pB) return resolveTeamPlaceholder(parentMatch.teamB);
+                return resolveTeamPlaceholder(parentMatch.teamA);
+              }
+            }
+          }
+        }
+      }
+      return teamCode;
+    };
+
     Object.entries(rounds).forEach(([roundName, matchIds]) => {
       const col = document.createElement("div");
       col.className = "bracket-round";
@@ -2636,8 +2668,11 @@ CREATE POLICY "Permitir gestion de partidos" ON prode_matches FOR ALL USING (tru
         const match = matches.find(m => m.id === matchId);
         if (!match) return;
 
-        const teamA = WORLDCUP_TEAMS[match.teamA] || { name: match.teamA, flag: "https://flagcdn.com/un.svg" };
-        const teamB = WORLDCUP_TEAMS[match.teamB] || { name: match.teamB, flag: "https://flagcdn.com/un.svg" };
+        const resolvedTeamA = resolveTeamPlaceholder(match.teamA);
+        const resolvedTeamB = resolveTeamPlaceholder(match.teamB);
+
+        const teamA = WORLDCUP_TEAMS[resolvedTeamA] || { name: resolvedTeamA, flag: "https://flagcdn.com/un.svg" };
+        const teamB = WORLDCUP_TEAMS[resolvedTeamB] || { name: resolvedTeamB, flag: "https://flagcdn.com/un.svg" };
 
         const userPred = activeUser.predictions[match.id] || { goalsA: null, goalsB: null };
         const isFinished = match.status === "FINALIZADO";
