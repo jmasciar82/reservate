@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { jwtVerify } from 'jose';
+import { decodeJwt } from 'jose';
 
 // Rutas que no requieren autenticación
 const PUBLIC_PATHS = ['/login', '/reservar'];
@@ -31,11 +31,13 @@ export async function middleware(request: NextRequest) {
   }
 
   try {
-    const secret = new TextEncoder().encode(
-      process.env.JWT_SECRET || 'super-secret-key'
-    );
-    // Verificamos que el JWT sea válido usando 'jose' porque edge runtime no soporta 'jsonwebtoken'
-    await jwtVerify(token, secret);
+    // Solo decodificamos el JWT para verificar expiración en el frontend.
+    // La firma se verifica en el backend en cada petición.
+    const claims = decodeJwt(token);
+    const now = Math.floor(Date.now() / 1000);
+    if (claims.exp && claims.exp < now) {
+      throw new Error('Token expirado');
+    }
     return NextResponse.next();
   } catch (error) {
     // Token inválido o expirado
