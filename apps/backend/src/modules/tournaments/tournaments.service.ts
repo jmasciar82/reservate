@@ -231,18 +231,46 @@ export class TournamentsService {
       throw new BadRequestException('No se pueden cargar resultados de un partido sin ambos equipos definidos.');
     }
 
-    match.scoreA = updateMatchDto.scoreA;
-    match.scoreB = updateMatchDto.scoreB;
-
     let winner: TournamentTeam;
-    if (updateMatchDto.scoreA > updateMatchDto.scoreB) {
-      winner = match.teamA;
-      match.winnerId = (match.teamA._id as any).toString();
-    } else if (updateMatchDto.scoreB > updateMatchDto.scoreA) {
-      winner = match.teamB;
-      match.winnerId = (match.teamB._id as any).toString();
+
+    if (updateMatchDto.sets && updateMatchDto.sets.length > 0) {
+      // Modo sets (pádel/tenis)
+      match.sets = updateMatchDto.sets as any;
+      let setsWonA = 0;
+      let setsWonB = 0;
+      for (const set of updateMatchDto.sets) {
+        if (set.scoreA > set.scoreB) setsWonA++;
+        else if (set.scoreB > set.scoreA) setsWonB++;
+      }
+      match.scoreA = setsWonA;
+      match.scoreB = setsWonB;
+
+      if (setsWonA > setsWonB) {
+        winner = match.teamA;
+        match.winnerId = (match.teamA._id as any).toString();
+      } else if (setsWonB > setsWonA) {
+        winner = match.teamB;
+        match.winnerId = (match.teamB._id as any).toString();
+      } else {
+        throw new BadRequestException('Los partidos no pueden terminar en empate de sets.');
+      }
+    } else if (updateMatchDto.scoreA !== undefined && updateMatchDto.scoreB !== undefined) {
+      // Modo puntos simples (americano)
+      match.sets = [] as any;
+      match.scoreA = updateMatchDto.scoreA;
+      match.scoreB = updateMatchDto.scoreB;
+
+      if (updateMatchDto.scoreA > updateMatchDto.scoreB) {
+        winner = match.teamA;
+        match.winnerId = (match.teamA._id as any).toString();
+      } else if (updateMatchDto.scoreB > updateMatchDto.scoreA) {
+        winner = match.teamB;
+        match.winnerId = (match.teamB._id as any).toString();
+      } else {
+        throw new BadRequestException('Los partidos no pueden terminar en empate.');
+      }
     } else {
-      throw new BadRequestException('Los partidos no pueden terminar en empate.');
+      throw new BadRequestException('Debe enviar los sets o los puntajes del partido.');
     }
 
     // Avanzar de ronda al ganador o completar torneo
@@ -260,7 +288,7 @@ export class TournamentsService {
       if (tournament.type === 'elimination') {
         tournament.status = 'completed';
       } else if (tournament.type === 'round_robin' || tournament.type === 'americano') {
-        const allPlayed = tournament.bracket.every(m => m.scoreA !== null && m.scoreB !== null);
+        const allPlayed = tournament.bracket.every(m => (m.sets && m.sets.length > 0) || (m.scoreA !== null && m.scoreB !== null));
         if (allPlayed) {
           tournament.status = 'completed';
         }
@@ -292,7 +320,7 @@ export class TournamentsService {
       throw new BadRequestException('No se encontraron partidos de fase de grupos.');
     }
 
-    const allGroupMatchesPlayed = groupMatches.every(m => m.scoreA !== null && m.scoreB !== null);
+    const allGroupMatchesPlayed = groupMatches.every(m => (m.sets && m.sets.length > 0) || (m.scoreA !== null && m.scoreB !== null));
     if (!allGroupMatchesPlayed) {
       throw new BadRequestException('Todos los partidos de la fase de grupos deben jugarse antes de avanzar.');
     }
@@ -423,6 +451,7 @@ export class TournamentsService {
       team: TournamentTeam;
       matchesWon: number;
       setsDiff: number;
+      gamesDiff: number;
     }
 
     const standingsMap = new Map<string, StandingEntry>();
@@ -434,6 +463,7 @@ export class TournamentsService {
         team,
         matchesWon: 0,
         setsDiff: 0,
+        gamesDiff: 0,
       });
     });
 
@@ -448,8 +478,25 @@ export class TournamentsService {
       const entryB = standingsMap.get(idB);
 
       if (entryA && entryB) {
+        // Diferencia de sets ganados
         entryA.setsDiff += (match.scoreA - match.scoreB);
         entryB.setsDiff += (match.scoreB - match.scoreA);
+
+        // Diferencia de games (sumando games de cada set)
+        if (match.sets && match.sets.length > 0) {
+          let gamesA = 0;
+          let gamesB = 0;
+          for (const set of match.sets) {
+            gamesA += set.scoreA;
+            gamesB += set.scoreB;
+          }
+          entryA.gamesDiff += (gamesA - gamesB);
+          entryB.gamesDiff += (gamesB - gamesA);
+        } else {
+          // Fallback para partidos viejos sin sets
+          entryA.gamesDiff += (match.scoreA - match.scoreB);
+          entryB.gamesDiff += (match.scoreB - match.scoreA);
+        }
 
         if (match.scoreA > match.scoreB) {
           entryA.matchesWon += 1;
@@ -473,6 +520,11 @@ export class TournamentsService {
       if (h2hMatch && h2hMatch.winnerId) {
         if (h2hMatch.winnerId === a.teamId) return -1;
         if (h2hMatch.winnerId === b.teamId) return 1;
+      }
+
+      // Desempate por diferencia de games (clave para mejores terceros)
+      if (b.gamesDiff !== a.gamesDiff) {
+        return b.gamesDiff - a.gamesDiff;
       }
 
       return b.setsDiff - a.setsDiff;
@@ -871,7 +923,7 @@ export class TournamentsService {
       throw new BadRequestException('No se pueden mezclar enfrentamientos si ya se avanzó a eliminatorias.');
     }
 
-    const hasResults = groupMatches.some((m) => m.scoreA !== null || m.scoreB !== null);
+    const hasResults = groupMatches.some((m) => (m.sets && m.sets.length > 0) || m.scoreA !== null || m.scoreB !== null);
     if (hasResults) {
       throw new BadRequestException(
         'No se pueden mezclar enfrentamientos si ya se cargaron resultados. Reiniciá los resultados primero.',

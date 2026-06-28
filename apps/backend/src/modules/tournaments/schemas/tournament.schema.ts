@@ -42,6 +42,17 @@ export class TournamentTeam {
 export const TournamentTeamSchema = SchemaFactory.createForClass(TournamentTeam);
 
 @Schema({ _id: false })
+export class SetScore {
+  @Prop({ type: Number, required: true })
+  scoreA: number;
+
+  @Prop({ type: Number, required: true })
+  scoreB: number;
+}
+
+const SetScoreSchema = SchemaFactory.createForClass(SetScore);
+
+@Schema({ _id: false })
 export class TournamentMatch {
   @Prop({ required: true })
   matchId: string; // Ej: "Q-1" (Quarter 1), "S-2" (Semi 2), "F-1" (Final), o "G-A-1", "RR-1"
@@ -53,10 +64,13 @@ export class TournamentMatch {
   teamB: TournamentTeam | null;
 
   @Prop({ type: Number, default: null })
-  scoreA: number | null;
+  scoreA: number | null; // Sets ganados por A (o puntos en americano)
 
   @Prop({ type: Number, default: null })
-  scoreB: number | null;
+  scoreB: number | null; // Sets ganados por B (o puntos en americano)
+
+  @Prop({ type: [SetScoreSchema], default: [] })
+  sets?: SetScore[]; // Detalle de cada set: [{scoreA: 6, scoreB: 4}, ...]
 
   @Prop({ type: String, default: null })
   winnerId: string | null; // ID del equipo ganador (como string)

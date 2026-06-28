@@ -1,15 +1,33 @@
-import { IsString, IsNotEmpty, IsNumber } from 'class-validator';
+import { IsString, IsNotEmpty, IsNumber, IsOptional, ValidateNested, ArrayMinSize, IsArray } from 'class-validator';
+import { Type } from 'class-transformer';
+
+export class SetScoreDto {
+  @IsNumber()
+  scoreA: number;
+
+  @IsNumber()
+  scoreB: number;
+}
 
 export class UpdateMatchDto {
   @IsString()
   @IsNotEmpty()
   matchId: string;
 
-  @IsNumber()
-  @IsNotEmpty()
-  scoreA: number;
+  // Para torneos con sets (pádel/tenis)
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => SetScoreDto)
+  @ArrayMinSize(1)
+  sets?: SetScoreDto[];
 
+  // Para torneos americano (puntos simples)
+  @IsOptional()
   @IsNumber()
-  @IsNotEmpty()
-  scoreB: number;
+  scoreA?: number;
+
+  @IsOptional()
+  @IsNumber()
+  scoreB?: number;
 }
