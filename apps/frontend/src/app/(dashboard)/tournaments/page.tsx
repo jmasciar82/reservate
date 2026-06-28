@@ -202,7 +202,10 @@ export default function TournamentsPage() {
         name: newTeam.player1.name,
         player1: newTeam.player1,
         player2: newTeam.player1,
-      } : newTeam;
+      } : {
+        ...newTeam,
+        name: `${newTeam.player1.name} / ${newTeam.player2.name}`,
+      };
 
       const response = await apiFetch(`/tournaments/${selectedTournament._id}/register-team`, {
         method: "POST",
@@ -343,10 +346,19 @@ export default function TournamentsPage() {
     e.preventDefault();
     if (!selectedTournament || !editingTeam) return;
     try {
+      const payload = selectedTournament.type === 'americano' ? {
+        name: editTeamForm.player1.name,
+        player1: editTeamForm.player1,
+        player2: editTeamForm.player1,
+      } : {
+        ...editTeamForm,
+        name: `${editTeamForm.player1.name} / ${editTeamForm.player2.name}`,
+      };
+
       const response = await apiFetch(`/tournaments/${selectedTournament._id}/teams/${editingTeam._id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(editTeamForm),
+        body: JSON.stringify(payload),
       });
       if (!response.ok) {
         const errorData = await response.json();
@@ -1381,22 +1393,8 @@ export default function TournamentsPage() {
             </div>
             
             <form onSubmit={handleRegisterTeam} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto pr-2">
-              {selectedTournament.type !== 'americano' && (
-                <div className="space-y-1">
-                  <label className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">Nombre del Equipo / Pareja</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="ej. Los Pibes del Vidrio"
-                    value={newTeam.name}
-                    onChange={(e) => setNewTeam({ ...newTeam, name: e.target.value })}
-                    className="w-full bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-300 dark:border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-zinc-900 dark:text-white focus:outline-none focus:border-primary"
-                  />
-                </div>
-              )}
-
               {/* Jugador 1 / Jugador */}
-              <div className="border-t border-zinc-200 dark:border-white/5 pt-3 space-y-3">
+              <div className="pt-1 space-y-3">
                 <h4 className="text-xs font-black text-primary">
                   {selectedTournament.type === 'americano' ? 'Datos del Jugador' : 'Jugador 1'}
                 </h4>
@@ -1419,7 +1417,6 @@ export default function TournamentsPage() {
                     <label className="text-[10px] font-bold text-zinc-500">Teléfono</label>
                     <input
                       type="text"
-                      required
                       placeholder="Celular de contacto"
                       value={newTeam.player1.phone}
                       onChange={(e) => setNewTeam({
@@ -1455,7 +1452,6 @@ export default function TournamentsPage() {
                       <label className="text-[10px] font-bold text-zinc-500">Teléfono</label>
                       <input
                         type="text"
-                        required
                         placeholder="Celular de contacto"
                         value={newTeam.player2.phone}
                         onChange={(e) => setNewTeam({
@@ -1579,20 +1575,7 @@ export default function TournamentsPage() {
             </div>
             
             <form onSubmit={handleUpdateTeam} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto pr-2">
-              {selectedTournament.type !== 'americano' && (
-                <div className="space-y-1">
-                  <label className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">Nombre del Equipo / Pareja</label>
-                  <input
-                    type="text"
-                    required
-                    value={editTeamForm.name}
-                    onChange={(e) => setEditTeamForm({ ...editTeamForm, name: e.target.value })}
-                    className="w-full bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-300 dark:border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-zinc-900 dark:text-white focus:outline-none focus:border-primary"
-                  />
-                </div>
-              )}
-
-              <div className="border-t border-zinc-200 dark:border-white/5 pt-3 space-y-3">
+              <div className="pt-1 space-y-3">
                 <h4 className="text-xs font-black text-primary">
                   {selectedTournament.type === 'americano' ? 'Datos del Jugador' : 'Jugador 1'}
                 </h4>
@@ -1614,7 +1597,6 @@ export default function TournamentsPage() {
                     <label className="text-[10px] font-bold text-zinc-500">Teléfono</label>
                     <input
                       type="text"
-                      required
                       value={editTeamForm.player1.phone}
                       onChange={(e) => setEditTeamForm({
                         ...editTeamForm,
@@ -1647,7 +1629,6 @@ export default function TournamentsPage() {
                       <label className="text-[10px] font-bold text-zinc-500">Teléfono</label>
                       <input
                         type="text"
-                        required
                         value={editTeamForm.player2.phone}
                         onChange={(e) => setEditTeamForm({
                           ...editTeamForm,

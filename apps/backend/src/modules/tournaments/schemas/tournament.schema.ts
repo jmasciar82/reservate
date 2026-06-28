@@ -6,8 +6,8 @@ export class TournamentPlayer {
   @Prop({ required: true })
   name: string;
 
-  @Prop({ required: true })
-  phone: string;
+  @Prop({ required: false })
+  phone?: string;
 
   @Prop()
   email?: string;

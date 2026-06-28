@@ -6,9 +6,10 @@ class PlayerDto {
   @IsOptional()
   name: string;
 
-  @IsString()
   @IsOptional()
-  phone: string;
+  @ValidateIf((o) => o.phone !== '')
+  @IsString()
+  phone?: string;
 
   @IsOptional()
   @ValidateIf((o) => o.email !== '')

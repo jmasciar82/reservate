@@ -670,7 +670,7 @@ export class TournamentsService {
       standingsMap.set(idStr, {
         playerId: idStr,
         name: p.player1.name,
-        phone: p.player1.phone,
+        phone: p.player1.phone || '',
         matchesPlayed: 0,
         matchesWon: 0,
         pointsWon: 0,
