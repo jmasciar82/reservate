@@ -95,12 +95,13 @@ const ProdeEngine = {
           const { data: preds, error: pErr } = await sb.from("prode_predictions").select("*").eq("user_email", cleanEmail);
           if (pErr) throw pErr;
 
-          const predictions = {};
+           const predictions = {};
           if (preds) {
             preds.forEach(p => {
               predictions[p.match_id] = {
                 goalsA: p.goals_a,
-                goalsB: p.goals_b
+                goalsB: p.goals_b,
+                penaltyWinner: p.penalty_winner || null
               };
             });
           }
@@ -390,6 +391,7 @@ const ProdeEngine = {
               match_id: matchId,
               goals_a: pred.goalsA,
               goals_b: pred.goalsB,
+              penalty_winner: pred.penaltyWinner || null,
               updated_at: new Date().toISOString()
             });
           });
@@ -416,21 +418,37 @@ const ProdeEngine = {
     const rA = parseInt(real.result.goalsA);
     const rB = parseInt(real.result.goalsB);
 
-    // 1. Acierto Exacto -> 3 puntos
+    let points = 0;
+
+    // 1. Puntos por marcador regular/extra time
     if (gA === rA && gB === rB) {
-      return 3;
+      points += 3;
+    } else {
+      const predictedWinner = gA > gB ? "A" : (gA < gB ? "B" : "DRAW");
+      const realWinner = rA > rB ? "A" : (rA < rB ? "B" : "DRAW");
+      if (predictedWinner === realWinner && predictedWinner !== "DRAW") {
+        points += 1;
+      }
     }
 
-    // 2. Acierto del ganador o empate (pero no goles exactos) -> 1 punto
-    const predictedWinner = gA > gB ? "A" : (gA < gB ? "B" : "DRAW");
-    const realWinner = rA > rB ? "A" : (rA < rB ? "B" : "DRAW");
+    // 2. 1 punto extra en eliminatorias por acertar quién clasifica/avanza (incluyendo definición por penales)
+    if (real.stage && real.stage !== "Fase de Grupos") {
+      let realQualifier = null;
+      if (rA > rB) realQualifier = "A";
+      else if (rA < rB) realQualifier = "B";
+      else realQualifier = real.penaltyWinner || "A";
 
-    if (predictedWinner === realWinner) {
-      return 1;
+      let predQualifier = null;
+      if (gA > gB) predQualifier = "A";
+      else if (gA < gB) predQualifier = "B";
+      else predQualifier = pred.penaltyWinner || "A";
+
+      if (predQualifier === realQualifier) {
+        points += 1;
+      }
     }
 
-    // 3. Ningún acierto -> 0 puntos
-    return 0;
+    return points;
   },
 
   // CALCULA Y ORDENA LA TABLA DE POSICIONES
@@ -467,7 +485,8 @@ const ProdeEngine = {
           if (users[p.user_email]) {
             users[p.user_email].predictions[p.match_id] = {
               goalsA: p.goals_a,
-              goalsB: p.goals_b
+              goalsB: p.goals_b,
+              penaltyWinner: p.penalty_winner || null
             };
           }
         });

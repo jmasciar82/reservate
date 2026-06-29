@@ -109,6 +109,7 @@ const ProdeAPI = {
                 status: dbMatch.status || m.status,
                 teamA: dbMatch.team_a || m.teamA,
                 teamB: dbMatch.team_b || m.teamB,
+                penaltyWinner: dbMatch.penalty_winner || m.penaltyWinner || null,
                 result: {
                   goalsA: dbMatch.goals_a !== null && dbMatch.goals_a !== undefined ? dbMatch.goals_a : m.result.goalsA,
                   goalsB: dbMatch.goals_b !== null && dbMatch.goals_b !== undefined ? dbMatch.goals_b : m.result.goalsB
@@ -136,7 +137,7 @@ const ProdeAPI = {
   },
 
   // Simula la finalización de un partido ingresando sus resultados oficiales
-  async updateMatchResult(matchId, goalsA, goalsB) {
+  async updateMatchResult(matchId, goalsA, goalsB, penaltyWinner = null) {
     let matches = await this.getMatches();
     let match = matches.find(m => m.id === matchId);
     if (!match) throw new Error("Partido no encontrado");
@@ -144,6 +145,7 @@ const ProdeAPI = {
     match.status = "FINALIZADO";
     match.result.goalsA = parseInt(goalsA);
     match.result.goalsB = parseInt(goalsB);
+    match.penaltyWinner = penaltyWinner;
     this.saveMatches(matches);
 
     const sb = this.getSupabaseClient();
@@ -156,6 +158,7 @@ const ProdeAPI = {
           goals_b: parseInt(goalsB),
           team_a: match.teamA,
           team_b: match.teamB,
+          penalty_winner: penaltyWinner,
           updated_at: new Date().toISOString()
         });
         if (error) throw error;

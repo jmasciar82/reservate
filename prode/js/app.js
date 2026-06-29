@@ -1134,6 +1134,9 @@ const ProdeApp = {
 
       const matchCard = document.createElement("div");
       matchCard.className = "glass-panel match-card";
+      if (match.stage !== "Fase de Grupos") {
+        matchCard.setAttribute("data-penalty-winner", userPred.penaltyWinner || "A");
+      }
 
       // Contenido frontal de la card
       const frontContent = `
@@ -1190,6 +1193,23 @@ const ProdeApp = {
           </div>
         </div>
 
+        ${match.stage !== "Fase de Grupos" && canEdit
+          ? `
+          <div class="penalty-selector-container" id="penalty-container-${match.id}" style="${userPred.goalsA !== null && userPred.goalsB !== null && parseInt(userPred.goalsA) === parseInt(userPred.goalsB) ? 'display: block;' : 'display: none;'}">
+            <span class="penalty-label">Clasifica en penales:</span>
+            <div class="penalty-buttons">
+              <button class="btn-penalty btn-penalty-a ${userPred.penaltyWinner === 'A' || !userPred.penaltyWinner ? 'active' : ''}" onclick="event.stopPropagation(); ProdeApp.selectPenaltyWinner('${match.id}', 'A')">
+                <img src="${teamA.flag}" class="penalty-btn-flag"> ${teamA.name}
+              </button>
+              <button class="btn-penalty btn-penalty-b ${userPred.penaltyWinner === 'B' ? 'active' : ''}" onclick="event.stopPropagation(); ProdeApp.selectPenaltyWinner('${match.id}', 'B')">
+                <img src="${teamB.flag}" class="penalty-btn-flag"> ${teamB.name}
+              </button>
+            </div>
+          </div>
+          `
+          : ""
+        }
+
         <div class="match-card-footer">
           <div style="display: flex; flex-direction: column; gap: 6px; align-items: flex-start;">
             ${isFinished 
@@ -1200,7 +1220,7 @@ const ProdeApp = {
                 )
             }
             ${isFinished 
-              ? `<div class="match-real-result-banner"><i class="fa-solid fa-square-poll-vertical"></i> Resultado Real: <span class="match-real-score">${match.result.goalsA} - ${match.result.goalsB}</span></div>` 
+              ? `<div class="match-real-result-banner"><i class="fa-solid fa-square-poll-vertical"></i> Resultado Real: <span class="match-real-score">${match.result.goalsA} - ${match.result.goalsB}${match.result.goalsA === match.result.goalsB ? ` (${match.penaltyWinner === 'B' ? teamB.name : teamA.name} p.)` : ''}</span></div>` 
               : `<div class="match-real-result-banner" style="background: rgba(255, 255, 255, 0.015); border-color: rgba(255, 255, 255, 0.03); color: var(--text-muted); opacity: 0.75;"><i class="fa-solid fa-square-poll-vertical"></i> Resultado Real: <span class="match-real-score" style="color: var(--text-muted); font-style: italic;">Pendiente</span></div>`
             }
           </div>
@@ -1217,9 +1237,12 @@ const ProdeApp = {
         let predRows = "";
         predictions.forEach(p => {
           if (p.goalsA !== null && p.goalsA !== undefined && p.goalsB !== null && p.goalsB !== undefined) {
+            const isDrawPred = parseInt(p.goalsA) === parseInt(p.goalsB);
+            const isKnockout = match.stage !== "Fase de Grupos";
+            const penaltyChoiceHtml = (isKnockout && isDrawPred) ? ` <span class="penalty-pred-sub">(${p.penaltyWinner === 'B' ? teamB.name : teamA.name} p.)</span>` : "";
             predRows += `<div class="prediction-row">
               <span class="prediction-row-name">${p.name}</span>
-              <span class="prediction-row-score">${p.goalsA} - ${p.goalsB}</span>
+              <span class="prediction-row-score">${p.goalsA} - ${p.goalsB}${penaltyChoiceHtml}</span>
             </div>`;
           } else {
             predRows += `<div class="prediction-row">
@@ -1249,7 +1272,7 @@ const ProdeApp = {
         flipWrapper.className = "match-card-flip-wrapper";
         flipWrapper.addEventListener("click", (e) => {
           // No flipear si se está interactuando con inputs
-          if (e.target.tagName === "INPUT" || e.target.tagName === "BUTTON" || e.target.closest(".btn-number-step")) return;
+          if (e.target.tagName === "INPUT" || e.target.tagName === "BUTTON" || e.target.closest(".btn-number-step") || e.target.closest(".btn-penalty")) return;
           if (flipWrapper.classList.contains("flipping")) return; // Evitar doble click
           
           // Paso 1: Encoger la card (scaleX -> 0)
@@ -1268,6 +1291,17 @@ const ProdeApp = {
         matchCard.innerHTML = frontContent;
         container.appendChild(matchCard);
       }
+
+      if (canEdit) {
+        setTimeout(() => {
+          const inpA = document.getElementById(`pred-a-${match.id}`);
+          const inpB = document.getElementById(`pred-b-${match.id}`);
+          if (inpA && inpB) {
+            const handler = () => this.checkMatchDrawState(match.id);
+            inpA.addEventListener("input", handler);
+            inpB.addEventListener("input", handler);
+          }
+        }, 0);
     });
   },
 
@@ -1282,6 +1316,7 @@ const ProdeApp = {
       if (newVal < 0) newVal = 0;
       
       input.value = newVal;
+      this.checkMatchDrawState(matchId);
     }
   },
 
@@ -1311,9 +1346,20 @@ const ProdeApp = {
           return;
         }
 
+        const goalsA = parseInt(inputA.value);
+        const goalsB = parseInt(inputB.value);
+        let penaltyWinner = null;
+        if (goalsA === goalsB && match && match.stage !== "Fase de Grupos") {
+          const card = inputA.closest(".match-card") || inputA.closest(".bracket-match-card");
+          if (card) {
+            penaltyWinner = card.getAttribute("data-penalty-winner") || "A";
+          }
+        }
+
         predictions[matchId] = {
-          goalsA: parseInt(inputA.value),
-          goalsB: parseInt(inputB.value)
+          goalsA: goalsA,
+          goalsB: goalsB,
+          penaltyWinner: penaltyWinner
         };
         itemsSaved++;
       }
@@ -2003,15 +2049,24 @@ const ProdeApp = {
           </div>
 
           <div style="display: flex; align-items: center; gap: 15px;">
-            <div class="admin-score-inputs">
+            <div class="admin-score-inputs" style="display:flex; align-items:center;">
               <input type="number" class="admin-score-field" id="admin-goals-a-${match.id}" value="${goalsA}" placeholder="-" min="0" ${isFinished ? "disabled" : ""}>
-              <span style="font-weight:800; color: var(--text-muted);">:</span>
+              <span style="font-weight:800; color: var(--text-muted); margin: 0 4px;">:</span>
               <input type="number" class="admin-score-field" id="admin-goals-b-${match.id}" value="${goalsB}" placeholder="-" min="0" ${isFinished ? "disabled" : ""}>
+              ${match.stage !== "Fase de Grupos" && !isFinished
+                ? `
+                <select class="form-input" id="admin-penalty-winner-${match.id}" style="display: none; width: auto; padding: 4px 8px; font-size: 0.8rem; height: auto; background:#000; border-color: rgba(255,255,255,0.15); margin-left: 10px;">
+                  <option value="A">Clasifica: ${teamA.name}</option>
+                  <option value="B">Clasifica: ${teamB.name}</option>
+                </select>
+                `
+                : ""
+              }
             </div>
 
             <div class="admin-actions">
               ${isFinished 
-                ? `<span style="color: var(--accent-green); font-size: 0.8rem; font-weight: 700; display: flex; align-items: center; gap: 5px;"><i class="fa-solid fa-circle-check"></i> Reportado</span>`
+                ? `<span style="color: var(--accent-green); font-size: 0.8rem; font-weight: 700; display: flex; align-items: center; gap: 5px;"><i class="fa-solid fa-circle-check"></i> Reportado ${match.result.goalsA === match.result.goalsB && match.stage !== "Fase de Grupos" ? `(${match.penaltyWinner === 'B' ? teamB.name : teamA.name} p)` : ''}</span>`
                 : `<button class="btn-sm-action btn-gold-action" onclick="ProdeApp.submitAdminScore('${match.id}')"><i class="fa-solid fa-circle-play"></i> Enviar</button>`
               }
             </div>
@@ -2019,6 +2074,28 @@ const ProdeApp = {
         </div>
         ${teamSelectorsHtml}
       `;
+
+      if (match.stage !== "Fase de Grupos" && !isFinished) {
+        setTimeout(() => {
+          const goalsAEl = document.getElementById(`admin-goals-a-${match.id}`);
+          const goalsBEl = document.getElementById(`admin-goals-b-${match.id}`);
+          const penaltyWinnerEl = document.getElementById(`admin-penalty-winner-${match.id}`);
+          if (goalsAEl && goalsBEl && penaltyWinnerEl) {
+            const handler = () => {
+              const valA = goalsAEl.value;
+              const valB = goalsBEl.value;
+              if (valA !== "" && valB !== "" && parseInt(valA) === parseInt(valB)) {
+                penaltyWinnerEl.style.display = "inline-block";
+              } else {
+                penaltyWinnerEl.style.display = "none";
+              }
+            };
+            goalsAEl.addEventListener("input", handler);
+            goalsBEl.addEventListener("input", handler);
+            handler();
+          }
+        }, 0);
+      }
 
       container.appendChild(adminItem);
     });
@@ -2033,8 +2110,14 @@ const ProdeApp = {
       return;
     }
 
+    let penaltyWinner = null;
+    const penaltyWinnerEl = document.getElementById(`admin-penalty-winner-${matchId}`);
+    if (penaltyWinnerEl && penaltyWinnerEl.style.display !== "none") {
+      penaltyWinner = penaltyWinnerEl.value;
+    }
+
     try {
-      await ProdeAPI.updateMatchResult(matchId, gAVal, gBVal);
+      await ProdeAPI.updateMatchResult(matchId, gAVal, gBVal, penaltyWinner);
       this.showMicroNotification("API actualizó el marcador del partido", "success");
       
       // Simular efecto de confeti si el usuario activo obtuvo un acierto exacto en este partido
@@ -2690,6 +2773,8 @@ CREATE POLICY "Permitir gestion de partidos" ON prode_matches FOR ALL USING (tru
 
         const matchCard = document.createElement("div");
         matchCard.className = "bracket-match-card";
+        matchCard.setAttribute("data-penalty-winner", userPred.penaltyWinner || "A");
+
         matchCard.innerHTML = `
           <div class="bracket-match-header">
             <span>${match.group || "Cruces"}</span>
@@ -2739,6 +2824,29 @@ CREATE POLICY "Permitir gestion de partidos" ON prode_matches FOR ALL USING (tru
             </div>
           </div>
 
+          ${canEdit
+            ? `
+            <div class="penalty-selector-container bracket-penalty-container" id="penalty-container-${match.id}" style="${userPred.goalsA !== null && userPred.goalsB !== null && parseInt(userPred.goalsA) === parseInt(userPred.goalsB) ? 'display: block;' : 'display: none;'}">
+              <div class="penalty-buttons" style="display:flex; justify-content:center; gap:4px; margin-top:4px; width:100%;">
+                <button class="btn-penalty btn-penalty-a ${userPred.penaltyWinner === 'A' || !userPred.penaltyWinner ? 'active' : ''}" style="padding: 2px 6px; font-size:0.68rem; max-width: 90px; height: 22px;" onclick="event.stopPropagation(); ProdeApp.selectPenaltyWinner('${match.id}', 'A')">
+                  ${teamA.name}
+                </button>
+                <button class="btn-penalty btn-penalty-b ${userPred.penaltyWinner === 'B' ? 'active' : ''}" style="padding: 2px 6px; font-size:0.68rem; max-width: 90px; height: 22px;" onclick="event.stopPropagation(); ProdeApp.selectPenaltyWinner('${match.id}', 'B')">
+                  ${teamB.name}
+                </button>
+              </div>
+            </div>
+            `
+            : ""
+          }
+
+          ${isFinished && match.result.goalsA === match.result.goalsB
+            ? `<div style="font-size:0.65rem; color:var(--primary-gold); text-align:center; margin-top:4px; font-weight:600;">
+                 Clasificó: ${match.penaltyWinner === 'B' ? teamB.name : teamA.name} (p)
+               </div>`
+            : ""
+          }
+
           ${isFinished 
             ? `<div style="text-align:right; margin-top:8px;">
                  <span class="pts-earned-badge ${ProdeEngine.calculateMatchPoints(userPred, match) === 0 ? "zero-pts" : ""}" style="font-size:0.7rem; padding: 3px 6px;">
@@ -2749,6 +2857,18 @@ CREATE POLICY "Permitir gestion de partidos" ON prode_matches FOR ALL USING (tru
           }
         `;
         col.appendChild(matchCard);
+
+        if (canEdit) {
+          setTimeout(() => {
+            const inpA = document.getElementById(`pred-a-${match.id}`);
+            const inpB = document.getElementById(`pred-b-${match.id}`);
+            if (inpA && inpB) {
+              const handler = () => this.checkMatchDrawState(match.id);
+              inpA.addEventListener("input", handler);
+              inpB.addEventListener("input", handler);
+            }
+          }, 0);
+        }
       });
       wrapper.appendChild(col);
     });
@@ -3183,6 +3303,54 @@ CREATE POLICY "Permitir gestion de partidos" ON prode_matches FOR ALL USING (tru
       }
     } catch (e) {
       console.error("Error procesando redirección OAuth:", e);
+    }
+  },
+
+  // Selecciona el ganador de penales para una predicción
+  selectPenaltyWinner(matchId, winner) {
+    const card = document.getElementById(`pred-a-${matchId}`).closest('.match-card') || document.getElementById(`pred-a-${matchId}`).closest('.bracket-match-card');
+    if (!card) return;
+    
+    card.setAttribute('data-penalty-winner', winner);
+    
+    const btnA = card.querySelector('.btn-penalty-a');
+    const btnB = card.querySelector('.btn-penalty-b');
+    if (btnA && btnB) {
+      if (winner === 'A') {
+        btnA.classList.add('active');
+        btnB.classList.remove('active');
+      } else {
+        btnB.classList.add('active');
+        btnA.classList.remove('active');
+      }
+    }
+  },
+
+  // Verifica si el partido es un empate para mostrar/ocultar el selector de penales
+  checkMatchDrawState(matchId) {
+    const inputA = document.getElementById(`pred-a-${matchId}`);
+    const inputB = document.getElementById(`pred-b-${matchId}`);
+    if (!inputA || !inputB) return;
+
+    const penaltyContainer = document.getElementById(`penalty-container-${matchId}`);
+    if (!penaltyContainer) return;
+
+    const valA = inputA.value;
+    const valB = inputB.value;
+
+    const isDraw = valA !== "" && valB !== "" && parseInt(valA) === parseInt(valB);
+    if (isDraw) {
+      penaltyContainer.style.display = "block";
+      const card = inputA.closest(".match-card") || inputA.closest(".bracket-match-card");
+      if (card && !card.getAttribute("data-penalty-winner")) {
+        this.selectPenaltyWinner(matchId, "A");
+      }
+    } else {
+      penaltyContainer.style.display = "none";
+      const card = inputA.closest(".match-card") || inputA.closest(".bracket-match-card");
+      if (card) {
+        card.removeAttribute("data-penalty-winner");
+      }
     }
   },
 
