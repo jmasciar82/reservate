@@ -504,7 +504,7 @@ const ProdeEngine = {
         if (match.status === "FINALIZADO") {
           // Filtro por fase
           if (stageType === "groups" && match.stage !== "Fase de Grupos") return;
-          if (stageType === "knockout" && match.stage === "Fase de Grupos") return;
+
 
           const pred = user.predictions[match.id];
           if (pred) {
