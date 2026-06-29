@@ -1302,6 +1302,7 @@ const ProdeApp = {
             inpB.addEventListener("input", handler);
           }
         }, 0);
+      }
     });
   },
 
