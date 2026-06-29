@@ -167,7 +167,7 @@ const WORLDCUP_MATCHES = [
   // ==================== GRUPO D ====================
   { id: "d1", stage: "Fase de Grupos", group: "Grupo D", teamA: "US", teamB: "PY", date: "2026-06-12T22:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
   { id: "d2", stage: "Fase de Grupos", group: "Grupo D", teamA: "AU", teamB: "TR", date: "2026-06-14T01:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
-  { id: "d3", stage: "Fase de Grupos", group: "Grupo D", teamA: "TR", teamB: "PY", date: "2026-06-20T01:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "d3", stage: "Fase de Grupos", group: "Grupo D", teamA: "TR", teamB: "PY", date: "2026-06-20T00:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
   { id: "d4", stage: "Fase de Grupos", group: "Grupo D", teamA: "US", teamB: "AU", date: "2026-06-19T16:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
   { id: "d5", stage: "Fase de Grupos", group: "Grupo D", teamA: "TR", teamB: "US", date: "2026-06-25T23:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
   { id: "d6", stage: "Fase de Grupos", group: "Grupo D", teamA: "PY", teamB: "AU", date: "2026-06-25T23:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
@@ -240,43 +240,43 @@ const WORLDCUP_MATCHES = [
   // ==================== FASES ELIMINATORIAS (FORMATO 48 EQUIPOS) ====================
 
   // DIECISEISAVOS DE FINAL (16avos) — 16 PARTIDOS — Jun 28 a Jul 3
-  { id: "ds1",  stage: "Dieciseisavos de Final", group: "Eliminatoria", teamA: "1E",   teamB: "3_P7", date: "2026-06-29T16:30:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
-  { id: "ds2",  stage: "Dieciseisavos de Final", group: "Eliminatoria", teamA: "1I",   teamB: "3_P2", date: "2026-06-30T17:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
-  { id: "ds3",  stage: "Dieciseisavos de Final", group: "Eliminatoria", teamA: "2A",   teamB: "2B",   date: "2026-06-28T12:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
-  { id: "ds4",  stage: "Dieciseisavos de Final", group: "Eliminatoria", teamA: "1F",   teamB: "2C",   date: "2026-06-29T19:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
-  { id: "ds5",  stage: "Dieciseisavos de Final", group: "Eliminatoria", teamA: "1C",   teamB: "2F",   date: "2026-06-29T12:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
-  { id: "ds6",  stage: "Dieciseisavos de Final", group: "Eliminatoria", teamA: "2E",   teamB: "2I",   date: "2026-06-30T12:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
-  { id: "ds7",  stage: "Dieciseisavos de Final", group: "Eliminatoria", teamA: "1A",   teamB: "3_P3", date: "2026-06-30T19:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
-  { id: "ds8",  stage: "Dieciseisavos de Final", group: "Eliminatoria", teamA: "1L",   teamB: "3_P1", date: "2026-07-01T12:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
-  { id: "ds9",  stage: "Dieciseisavos de Final", group: "Eliminatoria", teamA: "2K",   teamB: "2L",   date: "2026-07-02T19:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
-  { id: "ds10", stage: "Dieciseisavos de Final", group: "Eliminatoria", teamA: "1H",   teamB: "2J",   date: "2026-07-02T12:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
-  { id: "ds11", stage: "Dieciseisavos de Final", group: "Eliminatoria", teamA: "1D",   teamB: "3_P5", date: "2026-07-01T17:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
-  { id: "ds12", stage: "Dieciseisavos de Final", group: "Eliminatoria", teamA: "1G",   teamB: "3_P8", date: "2026-07-01T13:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
-  { id: "ds13", stage: "Dieciseisavos de Final", group: "Eliminatoria", teamA: "1J",   teamB: "2H",   date: "2026-07-03T18:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
-  { id: "ds14", stage: "Dieciseisavos de Final", group: "Eliminatoria", teamA: "2D",   teamB: "2G",   date: "2026-07-03T13:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
-  { id: "ds15", stage: "Dieciseisavos de Final", group: "Eliminatoria", teamA: "1B",   teamB: "3_P6", date: "2026-07-02T20:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
-  { id: "ds16", stage: "Dieciseisavos de Final", group: "Eliminatoria", teamA: "1K",   teamB: "3_P4", date: "2026-07-03T20:30:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "ds1",  stage: "Dieciseisavos de Final", group: "Eliminatoria", teamA: "1E",   teamB: "3_P7", date: "2026-06-29T17:30:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "ds2",  stage: "Dieciseisavos de Final", group: "Eliminatoria", teamA: "1I",   teamB: "3_P2", date: "2026-06-30T18:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "ds3",  stage: "Dieciseisavos de Final", group: "Eliminatoria", teamA: "2A",   teamB: "2B",   date: "2026-06-28T16:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "ds4",  stage: "Dieciseisavos de Final", group: "Eliminatoria", teamA: "1F",   teamB: "2C",   date: "2026-06-29T22:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "ds5",  stage: "Dieciseisavos de Final", group: "Eliminatoria", teamA: "1C",   teamB: "2F",   date: "2026-06-29T14:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "ds6",  stage: "Dieciseisavos de Final", group: "Eliminatoria", teamA: "2E",   teamB: "2I",   date: "2026-06-30T14:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "ds7",  stage: "Dieciseisavos de Final", group: "Eliminatoria", teamA: "1A",   teamB: "3_P3", date: "2026-06-30T22:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "ds8",  stage: "Dieciseisavos de Final", group: "Eliminatoria", teamA: "1L",   teamB: "3_P1", date: "2026-07-01T13:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "ds9",  stage: "Dieciseisavos de Final", group: "Eliminatoria", teamA: "2K",   teamB: "2L",   date: "2026-07-02T20:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "ds10", stage: "Dieciseisavos de Final", group: "Eliminatoria", teamA: "1H",   teamB: "2J",   date: "2026-07-02T16:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "ds11", stage: "Dieciseisavos de Final", group: "Eliminatoria", teamA: "1D",   teamB: "3_P5", date: "2026-07-01T21:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "ds12", stage: "Dieciseisavos de Final", group: "Eliminatoria", teamA: "1G",   teamB: "3_P8", date: "2026-07-01T17:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "ds13", stage: "Dieciseisavos de Final", group: "Eliminatoria", teamA: "1J",   teamB: "2H",   date: "2026-07-03T19:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "ds14", stage: "Dieciseisavos de Final", group: "Eliminatoria", teamA: "2D",   teamB: "2G",   date: "2026-07-03T15:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "ds15", stage: "Dieciseisavos de Final", group: "Eliminatoria", teamA: "1B",   teamB: "3_P6", date: "2026-07-03T00:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "ds16", stage: "Dieciseisavos de Final", group: "Eliminatoria", teamA: "1K",   teamB: "3_P4", date: "2026-07-03T22:30:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
 
   // OCTAVOS DE FINAL — 8 PARTIDOS — Jul 4 a Jul 7
-  { id: "o1", stage: "Octavos de Final", group: "Eliminatoria", teamA: "W_DS1",  teamB: "W_DS2",  date: "2026-07-04T17:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
-  { id: "o2", stage: "Octavos de Final", group: "Eliminatoria", teamA: "W_DS3",  teamB: "W_DS4",  date: "2026-07-04T12:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
-  { id: "o3", stage: "Octavos de Final", group: "Eliminatoria", teamA: "W_DS5",  teamB: "W_DS6",  date: "2026-07-05T16:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
-  { id: "o4", stage: "Octavos de Final", group: "Eliminatoria", teamA: "W_DS7",  teamB: "W_DS8",  date: "2026-07-05T18:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
-  { id: "o5", stage: "Octavos de Final", group: "Eliminatoria", teamA: "W_DS9",  teamB: "W_DS10", date: "2026-07-06T14:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
-  { id: "o6", stage: "Octavos de Final", group: "Eliminatoria", teamA: "W_DS11", teamB: "W_DS12", date: "2026-07-06T17:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
-  { id: "o7", stage: "Octavos de Final", group: "Eliminatoria", teamA: "W_DS13", teamB: "W_DS14", date: "2026-07-07T12:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
-  { id: "o8", stage: "Octavos de Final", group: "Eliminatoria", teamA: "W_DS15", teamB: "W_DS16", date: "2026-07-07T13:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "o1", stage: "Octavos de Final", group: "Eliminatoria", teamA: "W_DS1",  teamB: "W_DS2",  date: "2026-07-04T18:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "o2", stage: "Octavos de Final", group: "Eliminatoria", teamA: "W_DS3",  teamB: "W_DS4",  date: "2026-07-04T14:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "o3", stage: "Octavos de Final", group: "Eliminatoria", teamA: "W_DS5",  teamB: "W_DS6",  date: "2026-07-05T17:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "o4", stage: "Octavos de Final", group: "Eliminatoria", teamA: "W_DS7",  teamB: "W_DS8",  date: "2026-07-05T21:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "o5", stage: "Octavos de Final", group: "Eliminatoria", teamA: "W_DS9",  teamB: "W_DS10", date: "2026-07-06T16:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "o6", stage: "Octavos de Final", group: "Eliminatoria", teamA: "W_DS11", teamB: "W_DS12", date: "2026-07-06T21:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "o7", stage: "Octavos de Final", group: "Eliminatoria", teamA: "W_DS13", teamB: "W_DS14", date: "2026-07-07T13:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "o8", stage: "Octavos de Final", group: "Eliminatoria", teamA: "W_DS15", teamB: "W_DS16", date: "2026-07-07T17:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
 
   // CUARTOS DE FINAL — 4 PARTIDOS — Jul 9 a Jul 11
-  { id: "cf1", stage: "Cuartos de Final", group: "Eliminatoria", teamA: "W_O1", teamB: "W_O2", date: "2026-07-09T16:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
-  { id: "cf2", stage: "Cuartos de Final", group: "Eliminatoria", teamA: "W_O5", teamB: "W_O6", date: "2026-07-10T12:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
-  { id: "cf3", stage: "Cuartos de Final", group: "Eliminatoria", teamA: "W_O3", teamB: "W_O4", date: "2026-07-11T17:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
-  { id: "cf4", stage: "Cuartos de Final", group: "Eliminatoria", teamA: "W_O7", teamB: "W_O8", date: "2026-07-11T20:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "cf1", stage: "Cuartos de Final", group: "Eliminatoria", teamA: "W_O1", teamB: "W_O2", date: "2026-07-09T17:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "cf2", stage: "Cuartos de Final", group: "Eliminatoria", teamA: "W_O5", teamB: "W_O6", date: "2026-07-11T18:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "cf3", stage: "Cuartos de Final", group: "Eliminatoria", teamA: "W_O3", teamB: "W_O4", date: "2026-07-10T16:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "cf4", stage: "Cuartos de Final", group: "Eliminatoria", teamA: "W_O7", teamB: "W_O8", date: "2026-07-11T22:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
 
   // SEMIFINALES — 2 PARTIDOS — Jul 14 a Jul 15
-  { id: "s1", stage: "Semifinales", group: "Eliminatoria", teamA: "W_CF1", teamB: "W_CF2", date: "2026-07-14T14:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
-  { id: "s2", stage: "Semifinales", group: "Eliminatoria", teamA: "W_CF3", teamB: "W_CF4", date: "2026-07-15T15:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "s1", stage: "Semifinales", group: "Eliminatoria", teamA: "W_CF1", teamB: "W_CF2", date: "2026-07-14T16:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "s2", stage: "Semifinales", group: "Eliminatoria", teamA: "W_CF3", teamB: "W_CF4", date: "2026-07-15T16:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
 
   // GRAN FINAL — Jul 19
-  { id: "fn1", stage: "Gran Final", group: "Copa del Mundo", teamA: "W_S1", teamB: "W_S2", date: "2026-07-19T15:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } }
+  { id: "fn1", stage: "Gran Final", group: "Copa del Mundo", teamA: "W_S1", teamB: "W_S2", date: "2026-07-19T16:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } }
 ];
