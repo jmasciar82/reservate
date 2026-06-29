@@ -123,7 +123,7 @@ export function Header() {
             )}
 
             {!isSubdomainActive && isOpen && (
-              <div className="absolute top-full left-0 mt-2 w-56 bg-white dark:bg-zinc-950/80 backdrop-blur-xl border border-zinc-200 dark:border-white/10 rounded-2xl shadow-[0_15px_40px_rgba(0,0,0,0.1)] dark:shadow-[0_15px_40px_rgba(0,0,0,0.5)] overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="absolute top-full left-0 mt-2 w-56 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800/80 rounded-2xl shadow-xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
                 <div className="py-1.5 px-1 space-y-1">
                   {clubs.map((club) => (
                     <button
@@ -135,7 +135,7 @@ export function Header() {
                       className={`w-full text-left px-3.5 py-2 text-xs rounded-xl transition-all duration-300 flex items-center gap-2 ${
                         club._id === activeClubId
                           ? "bg-primary/10 text-emerald-700 dark:text-primary font-bold shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] border border-primary/20"
-                          : "text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-white/5 hover:text-zinc-900 dark:hover:text-white border border-transparent"
+                          : "text-zinc-650 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800/85 hover:text-zinc-900 dark:hover:text-white border border-transparent"
                       }`}
                     >
                       <span className="truncate">{club.name}</span>
