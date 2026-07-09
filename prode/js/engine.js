@@ -448,6 +448,12 @@ const ProdeEngine = {
       }
     }
 
+    // 3. Multiplicador x2 en Cuartos de Final, Semifinales y Gran Final
+    const doubleStages = ["Cuartos de Final", "Semifinales", "Gran Final"];
+    if (real.stage && doubleStages.includes(real.stage)) {
+      points *= 2;
+    }
+
     return points;
   },
 
