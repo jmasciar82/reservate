@@ -267,16 +267,16 @@ const WORLDCUP_MATCHES = [
   { id: "o7", stage: "Octavos de Final", group: "Eliminatoria", teamA: "W_DS13", teamB: "W_DS14", date: "2026-07-07T13:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
   { id: "o8", stage: "Octavos de Final", group: "Eliminatoria", teamA: "W_DS15", teamB: "W_DS16", date: "2026-07-07T17:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
 
-  // CUARTOS DE FINAL — 4 PARTIDOS — Jul 9 a Jul 12
-  { id: "cf1", stage: "Cuartos de Final", group: "Eliminatoria", teamA: "W_O1", teamB: "W_O2", date: "2026-07-09T18:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
-  { id: "cf2", stage: "Cuartos de Final", group: "Eliminatoria", teamA: "W_O5", teamB: "W_O6", date: "2026-07-10T13:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
-  { id: "cf3", stage: "Cuartos de Final", group: "Eliminatoria", teamA: "W_O3", teamB: "W_O4", date: "2026-07-11T21:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
-  { id: "cf4", stage: "Cuartos de Final", group: "Eliminatoria", teamA: "W_O7", teamB: "W_O8", date: "2026-07-12T00:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  // CUARTOS DE FINAL — 4 PARTIDOS — Jul 9 a Jul 11
+  { id: "cf1", stage: "Cuartos de Final", group: "Eliminatoria", teamA: "W_O1", teamB: "W_O2", date: "2026-07-09T17:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "cf2", stage: "Cuartos de Final", group: "Eliminatoria", teamA: "W_O5", teamB: "W_O6", date: "2026-07-10T16:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "cf3", stage: "Cuartos de Final", group: "Eliminatoria", teamA: "W_O3", teamB: "W_O4", date: "2026-07-11T22:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "cf4", stage: "Cuartos de Final", group: "Eliminatoria", teamA: "W_O7", teamB: "W_O8", date: "2026-07-11T22:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
 
   // SEMIFINALES — 2 PARTIDOS — Jul 14 a Jul 15
-  { id: "s1", stage: "Semifinales", group: "Eliminatoria", teamA: "W_CF1", teamB: "W_CF2", date: "2026-07-14T18:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
-  { id: "s2", stage: "Semifinales", group: "Eliminatoria", teamA: "W_CF3", teamB: "W_CF4", date: "2026-07-15T19:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "s1", stage: "Semifinales", group: "Eliminatoria", teamA: "W_CF1", teamB: "W_CF2", date: "2026-07-14T16:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "s2", stage: "Semifinales", group: "Eliminatoria", teamA: "W_CF3", teamB: "W_CF4", date: "2026-07-15T16:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
 
   // GRAN FINAL — Jul 19
-  { id: "fn1", stage: "Gran Final", group: "Copa del Mundo", teamA: "W_S1", teamB: "W_S2", date: "2026-07-19T17:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } }
+  { id: "fn1", stage: "Gran Final", group: "Copa del Mundo", teamA: "W_S1", teamB: "W_S2", date: "2026-07-19T16:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } }
 ];
