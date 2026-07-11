@@ -270,7 +270,7 @@ const WORLDCUP_MATCHES = [
   // CUARTOS DE FINAL — 4 PARTIDOS — Jul 9 a Jul 11
   { id: "cf1", stage: "Cuartos de Final", group: "Eliminatoria", teamA: "W_O1", teamB: "W_O2", date: "2026-07-09T17:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
   { id: "cf2", stage: "Cuartos de Final", group: "Eliminatoria", teamA: "W_O5", teamB: "W_O6", date: "2026-07-10T16:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
-  { id: "cf3", stage: "Cuartos de Final", group: "Eliminatoria", teamA: "W_O3", teamB: "W_O4", date: "2026-07-11T22:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
+  { id: "cf3", stage: "Cuartos de Final", group: "Eliminatoria", teamA: "W_O3", teamB: "W_O4", date: "2026-07-11T18:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
   { id: "cf4", stage: "Cuartos de Final", group: "Eliminatoria", teamA: "W_O7", teamB: "W_O8", date: "2026-07-11T22:00:00-03:00", status: "PENDIENTE", result: { goalsA: null, goalsB: null } },
 
   // SEMIFINALES — 2 PARTIDOS — Jul 14 a Jul 15
