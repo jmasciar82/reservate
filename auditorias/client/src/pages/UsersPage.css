@@ -1,0 +1,51 @@
+.users-container {
+  padding-top: 100px;
+  padding-bottom: var(--spacing-8);
+}
+
+.table-responsive {
+  overflow-x: auto;
+}
+
+.users-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.users-table th, .users-table td {
+  padding: var(--spacing-3);
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+.users-table th {
+  color: var(--text-secondary);
+  font-weight: 500;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+}
+
+.users-table td {
+  color: var(--text-primary);
+  vertical-align: middle;
+}
+
+.table-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--border);
+}
+
+.role-select {
+  width: auto;
+  min-width: 120px;
+  padding: var(--spacing-1) var(--spacing-2);
+}
+
+.text-center {
+  text-align: center;
+  color: var(--text-secondary);
+  padding: var(--spacing-4);
+}

@@ -1,0 +1,144 @@
+.new-audit-container {
+  padding-top: 100px;
+  padding-bottom: var(--spacing-8);
+  max-width: 800px;
+}
+
+.stepper {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-8);
+  position: relative;
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  z-index: 2;
+  flex: 1;
+}
+
+.step-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--bg-surface);
+  border: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  color: var(--text-secondary);
+  transition: all 0.3s ease;
+  margin-bottom: var(--spacing-2);
+}
+
+.step.active .step-circle {
+  background: var(--accent-red);
+  border-color: var(--accent-red);
+  color: white;
+  box-shadow: 0 0 15px rgba(230, 57, 70, 0.4);
+}
+
+.step-label {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  text-align: center;
+  transition: color 0.3s ease;
+}
+
+.step.active .step-label {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.step-line {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  width: 100%;
+  height: 2px;
+  background: var(--border);
+  z-index: -1;
+  transition: background 0.3s ease;
+}
+
+.step-line.active {
+  background: var(--accent-red);
+}
+
+.new-audit-card {
+  min-height: 400px;
+  display: flex;
+  flex-direction: column;
+}
+
+.step-content {
+  flex: 1;
+  padding: var(--spacing-4) 0;
+}
+
+.step-actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: var(--spacing-6);
+  padding-top: var(--spacing-4);
+  border-top: 1px solid var(--border);
+}
+
+.review-title {
+  margin-bottom: var(--spacing-4);
+  color: var(--text-primary);
+}
+
+.review-section {
+  background: var(--bg-secondary);
+  padding: var(--spacing-4);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--spacing-4);
+}
+
+.review-section p {
+  margin-bottom: var(--spacing-2);
+  color: var(--text-secondary);
+}
+
+.review-section strong {
+  color: var(--text-primary);
+}
+
+.review-images {
+  display: flex;
+  gap: var(--spacing-6);
+}
+
+.review-image-group h4 {
+  margin-bottom: var(--spacing-2);
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.review-image-grid {
+  display: flex;
+  gap: var(--spacing-2);
+  flex-wrap: wrap;
+}
+
+.mini-preview {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+@media (max-width: 600px) {
+  .step-label {
+    display: none;
+  }
+  .review-images {
+    flex-direction: column;
+  }
+}
