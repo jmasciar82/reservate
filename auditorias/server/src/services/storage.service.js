@@ -1,6 +1,4 @@
-import { PutObjectCommand, DeleteObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import r2Client from '../config/r2.js';
+import { v2 as cloudinary } from 'cloudinary';
 import dotenv from 'dotenv';
 import sharp from 'sharp';
 import fs from 'fs';
@@ -8,7 +6,14 @@ import path from 'path';
 
 dotenv.config();
 
-const BUCKET = process.env.R2_BUCKET_NAME;
+// Configure Cloudinary if environment variables exist
+if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_CLOUD_NAME !== 'placeholder') {
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+  });
+}
 
 export const generateAuditKey = (pdvCode, auditId, type, index, originalName) => {
   const date = new Date();
@@ -37,22 +42,35 @@ export const uploadImage = async (fileBuffer, key, mimeType) => {
     .jpeg({ quality: 80 })
     .toBuffer();
 
-  try {
-    if (process.env.R2_ACCESS_KEY_ID && process.env.R2_ACCESS_KEY_ID !== 'placeholder') {
-      const command = new PutObjectCommand({
-        Bucket: BUCKET,
-        Key: key,
-        Body: optimizedBuffer,
-        ContentType: mimeType,
+  // 1. Try Cloudinary if configured
+  if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_CLOUD_NAME !== 'placeholder') {
+    try {
+      const folder = path.dirname(key);
+      const publicId = path.basename(key, path.extname(key));
+
+      const result = await new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          {
+            folder: folder,
+            public_id: publicId,
+            resource_type: 'image',
+            overwrite: true,
+          },
+          (error, result) => {
+            if (error) reject(error);
+            else resolve(result);
+          }
+        );
+        stream.end(optimizedBuffer);
       });
-      await r2Client.send(command);
-      return key;
+
+      return result.secure_url || key;
+    } catch (error) {
+      console.warn("Cloudinary upload error, falling back to local:", error.message);
     }
-  } catch (error) {
-    console.warn("R2 Upload warning, falling back to local storage:", error.message);
   }
 
-  // Fallback local storage
+  // 2. Local Storage Fallback
   const localPath = path.join(process.cwd(), 'uploads', key);
   fs.mkdirSync(path.dirname(localPath), { recursive: true });
   fs.writeFileSync(localPath, optimizedBuffer);
@@ -60,16 +78,20 @@ export const uploadImage = async (fileBuffer, key, mimeType) => {
 };
 
 export const deleteObject = async (key) => {
-  try {
-    if (process.env.R2_ACCESS_KEY_ID && process.env.R2_ACCESS_KEY_ID !== 'placeholder') {
-      const command = new DeleteObjectCommand({
-        Bucket: BUCKET,
-        Key: key,
-      });
-      await r2Client.send(command);
+  if (!key) return true;
+
+  if (key.startsWith('http') && key.includes('cloudinary')) {
+    try {
+      // Extract public_id from Cloudinary URL
+      const parts = key.split('/upload/')[1];
+      if (parts) {
+        const publicIdWithExt = parts.substring(parts.indexOf('/') + 1);
+        const publicId = publicIdWithExt.substring(0, publicIdWithExt.lastIndexOf('.'));
+        await cloudinary.uploader.destroy(publicId);
+      }
+    } catch (error) {
+      console.warn("Cloudinary delete warning:", error.message);
     }
-  } catch (error) {
-    console.warn("R2 Delete warning:", error.message);
   }
 
   const localPath = path.join(process.cwd(), 'uploads', key);
@@ -79,40 +101,45 @@ export const deleteObject = async (key) => {
   return true;
 };
 
-export const getPresignedUrl = async (key, expiresIn = 3600) => {
+export const getPresignedUrl = async (key) => {
   if (!key) return null;
 
-  try {
-    if (process.env.R2_ACCESS_KEY_ID && process.env.R2_ACCESS_KEY_ID !== 'placeholder') {
-      const command = new GetObjectCommand({
-        Bucket: BUCKET,
-        Key: key,
-      });
-      return await getSignedUrl(r2Client, command, { expiresIn });
-    }
-  } catch (error) {
-    console.warn("R2 PresignedUrl warning:", error.message);
+  // If already a full Cloudinary or HTTP URL, return as is
+  if (key.startsWith('http://') || key.startsWith('https://')) {
+    return key;
   }
 
-  // Fallback to local endpoint
+  // Local fallback endpoint
   const host = process.env.PORT || 5000;
   return `http://localhost:${host}/uploads/${key}`;
 };
 
 export const uploadPdf = async (fileBuffer, key) => {
-  try {
-    if (process.env.R2_ACCESS_KEY_ID && process.env.R2_ACCESS_KEY_ID !== 'placeholder') {
-      const command = new PutObjectCommand({
-        Bucket: BUCKET,
-        Key: key,
-        Body: fileBuffer,
-        ContentType: 'application/pdf',
+  if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_CLOUD_NAME !== 'placeholder') {
+    try {
+      const folder = path.dirname(key);
+      const publicId = path.basename(key, path.extname(key));
+
+      const result = await new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          {
+            folder: folder,
+            public_id: publicId,
+            resource_type: 'raw',
+            overwrite: true,
+          },
+          (error, result) => {
+            if (error) reject(error);
+            else resolve(result);
+          }
+        );
+        stream.end(fileBuffer);
       });
-      await r2Client.send(command);
-      return key;
+
+      return result.secure_url || key;
+    } catch (error) {
+      console.warn("Cloudinary PDF upload error, falling back to local:", error.message);
     }
-  } catch (error) {
-    console.warn("R2 PDF Upload warning:", error.message);
   }
 
   const localPath = path.join(process.cwd(), 'uploads', key);

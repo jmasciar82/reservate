@@ -11,21 +11,22 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Helper to fetch image buffer from R2
-const fetchImageBuffer = async (key) => {
+// Helper to fetch image buffer from Cloudinary URL or local file
+const fetchImageBuffer = async (keyOrUrl) => {
+  if (!keyOrUrl) return null;
   try {
-    const command = new GetObjectCommand({
-      Bucket: process.env.R2_BUCKET_NAME,
-      Key: key,
-    });
-    const response = await r2Client.send(command);
-    const chunks = [];
-    for await (const chunk of response.Body) {
-      chunks.push(chunk);
+    if (keyOrUrl.startsWith('http://') || keyOrUrl.startsWith('https://')) {
+      const res = await fetch(keyOrUrl);
+      const arrayBuffer = await res.arrayBuffer();
+      return Buffer.from(arrayBuffer);
     }
-    return Buffer.concat(chunks);
+    const localPath = path.join(process.cwd(), 'uploads', keyOrUrl);
+    if (fs.existsSync(localPath)) {
+      return fs.readFileSync(localPath);
+    }
+    return null;
   } catch (error) {
-    console.error(`Error fetching image ${key}:`, error);
+    console.error(`Error fetching image buffer for ${keyOrUrl}:`, error);
     return null;
   }
 };
