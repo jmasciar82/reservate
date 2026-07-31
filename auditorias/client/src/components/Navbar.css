@@ -62,6 +62,25 @@
   border-radius: 2px 2px 0 0;
 }
 
+.nav-link.btn-new-nav {
+  background: linear-gradient(135deg, var(--accent-red), var(--accent-orange));
+  color: #ffffff !important;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.nav-link.btn-new-nav:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(230, 57, 70, 0.4);
+}
+
+.nav-link.btn-new-nav.active::after {
+  display: none;
+}
+
 .navbar-user {
   display: flex;
   align-items: center;

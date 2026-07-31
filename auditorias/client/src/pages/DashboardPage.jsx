@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import api from '../services/api';
 import StatCard from '../components/StatCard';
 import AuditCard from '../components/AuditCard';
@@ -30,8 +30,11 @@ const DashboardPage = () => {
 
   return (
     <div className="container dashboard-container animate-fade-in">
-      <div className="page-header">
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h1 className="page-title">Dashboard</h1>
+        <Link to="/auditorias/nueva" className="btn btn-primary">
+          + Nueva Auditoría
+        </Link>
       </div>
 
       <div className="grid-4">
