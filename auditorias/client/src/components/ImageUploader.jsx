@@ -62,7 +62,7 @@ const ImageUploader = ({ images, onAdd, onRemove, maxImages, label }) => {
               type="file" 
               ref={fileInputRef}
               onChange={handleFileChange}
-              accept="image/jpeg, image/png, image/webp"
+              accept="image/*"
               multiple
               hidden 
             />
