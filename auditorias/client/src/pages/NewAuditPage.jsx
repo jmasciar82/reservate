@@ -5,7 +5,7 @@ import { useToast } from '../components/Toast';
 import ImageUploader from '../components/ImageUploader';
 import './NewAuditPage.css';
 
-const STEPS = ['Información', 'Fotos Antes', 'Fotos Después', 'Revisión'];
+const STEPS = ['Punto de Venta', 'Fotos Antes', 'Fotos Después', 'Observaciones', 'Revisión'];
 
 const NewAuditPage = () => {
   const navigate = useNavigate();
@@ -13,17 +13,20 @@ const NewAuditPage = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   
-  const [formData, setFormData] = useState({
-    pdvCode: '',
-    observations: ''
-  });
+  const [pdvNumber, setPdvNumber] = useState('');
+  const [observations, setObservations] = useState('');
   
   const [beforeImages, setBeforeImages] = useState([]);
   const [afterImages, setAfterImages] = useState([]);
 
+  const getFullPdvCode = () => {
+    const clean = pdvNumber.replace(/^PDV-/i, '').trim();
+    return clean ? `PDV-${clean}` : '';
+  };
+
   const handleNext = () => {
-    if (currentStep === 0 && !formData.pdvCode.trim()) {
-      error('El código PDV es obligatorio');
+    if (currentStep === 0 && !pdvNumber.trim()) {
+      error('Ingresá el número del Punto de Venta');
       return;
     }
     setCurrentStep(prev => Math.min(prev + 1, STEPS.length - 1));
@@ -36,13 +39,13 @@ const NewAuditPage = () => {
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
-      const code = formData.pdvCode.trim();
+      const fullCode = getFullPdvCode();
 
       // 1. Create audit record
       const auditRes = await api.post('/api/audits', {
-        pdvCode: code,
-        povCode: code,
-        observations: formData.observations
+        pdvCode: fullCode,
+        povCode: fullCode,
+        observations: observations
       });
       
       const auditId = auditRes.data ? (auditRes.data._id || auditRes.data.auditId) : (auditRes._id || auditRes.auditId);
@@ -90,32 +93,38 @@ const NewAuditPage = () => {
       </div>
 
       <div className="card new-audit-card">
+        {/* Paso 0: Punto de Venta */}
         {currentStep === 0 && (
           <div className="step-content animate-slide-up">
             <div className="form-group">
-              <label className="form-label">Código de Punto de Venta (PDV) *</label>
-              <input 
-                type="text" 
-                className="form-input" 
-                value={formData.pdvCode} 
-                onChange={(e) => setFormData({...formData, pdvCode: e.target.value})} 
-                placeholder="Ej. PDV-1323" 
-                autoFocus
-              />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Observaciones (Opcional)</label>
-              <textarea 
-                className="form-textarea" 
-                rows="4" 
-                value={formData.observations} 
-                onChange={(e) => setFormData({...formData, observations: e.target.value})} 
-                placeholder="Detalles adicionales del trabajo realizado..."
-              ></textarea>
+              <label className="form-label">Número del Punto de Venta (PDV) *</label>
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '12px' }}>
+                El prefijo <strong>PDV-</strong> ya está cargado. Ingresá solo el número (ej: 1323).
+              </p>
+              <div className="pdv-input-container">
+                <span className="pdv-prefix">PDV-</span>
+                <input 
+                  type="text" 
+                  className="form-input pdv-input" 
+                  value={pdvNumber} 
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/^PDV-/i, '');
+                    setPdvNumber(val);
+                  }} 
+                  placeholder="1323" 
+                  autoFocus
+                />
+              </div>
+              {pdvNumber && (
+                <div style={{ marginTop: '12px', fontSize: '0.95rem', color: 'var(--accent-green)', fontWeight: 600 }}>
+                  ✓ Código completo: <span>{getFullPdvCode()}</span>
+                </div>
+              )}
             </div>
           </div>
         )}
 
+        {/* Paso 1: Fotos del Antes */}
         {currentStep === 1 && (
           <div className="step-content animate-slide-up">
             <ImageUploader 
@@ -128,6 +137,7 @@ const NewAuditPage = () => {
           </div>
         )}
 
+        {/* Paso 2: Fotos del Después */}
         {currentStep === 2 && (
           <div className="step-content animate-slide-up">
             <ImageUploader 
@@ -140,28 +150,46 @@ const NewAuditPage = () => {
           </div>
         )}
 
+        {/* Paso 3: Observaciones */}
         {currentStep === 3 && (
+          <div className="step-content animate-slide-up">
+            <div className="form-group">
+              <label className="form-label">Observaciones del Trabajo Realizado (Opcional)</label>
+              <textarea 
+                className="form-textarea" 
+                rows="6" 
+                value={observations} 
+                onChange={(e) => setObservations(e.target.value)} 
+                placeholder="Escribí aquí cualquier detalle u observación relevante sobre la visita al punto de venta..."
+                autoFocus
+              ></textarea>
+            </div>
+          </div>
+        )}
+
+        {/* Paso 4: Revisión Final */}
+        {currentStep === 4 && (
           <div className="step-content animate-slide-up">
             <h3 className="review-title">Resumen de la Auditoría</h3>
             <div className="review-section">
-              <p><strong>POV:</strong> {formData.povCode}</p>
-              <p><strong>Observaciones:</strong> {formData.observations || 'N/A'}</p>
+              <p><strong>Punto de Venta:</strong> {getFullPdvCode()}</p>
+              <p><strong>Observaciones:</strong> {observations || 'Sin observaciones registradas'}</p>
             </div>
             
             <div className="review-images">
               <div className="review-image-group">
-                <h4>Antes ({beforeImages.length}/2)</h4>
+                <h4>Fotos del Antes ({beforeImages.length}/2)</h4>
                 <div className="review-image-grid">
                   {beforeImages.map((img, i) => (
-                    <img key={i} src={img.previewUrl} alt={`Antes ${i}`} className="mini-preview" />
+                    <img key={i} src={img.previewUrl} alt={`Antes ${i + 1}`} className="mini-preview" />
                   ))}
                 </div>
               </div>
               <div className="review-image-group">
-                <h4>Después ({afterImages.length}/3)</h4>
+                <h4>Fotos del Después ({afterImages.length}/3)</h4>
                 <div className="review-image-grid">
                   {afterImages.map((img, i) => (
-                    <img key={i} src={img.previewUrl} alt={`Después ${i}`} className="mini-preview" />
+                    <img key={i} src={img.previewUrl} alt={`Después ${i + 1}`} className="mini-preview" />
                   ))}
                 </div>
               </div>
@@ -180,15 +208,15 @@ const NewAuditPage = () => {
           
           {currentStep < STEPS.length - 1 ? (
             <button className="btn btn-primary" onClick={handleNext}>
-              Siguiente
+              Siguiente →
             </button>
           ) : (
             <button 
               className="btn btn-primary" 
-              onClick={handleSubmit} 
+              onClick={handleSubmit}
               disabled={submitting}
             >
-              {submitting ? 'Creando...' : 'Crear Auditoría'}
+              {submitting ? 'Guardando...' : '💾 Guardar Auditoría'}
             </button>
           )}
         </div>
