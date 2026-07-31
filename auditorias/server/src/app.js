@@ -23,6 +23,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/audits', auditRoutes);
+app.use('/uploads', express.static('uploads'));
 
 // Health Check
 app.get('/api/health', (req, res) => {

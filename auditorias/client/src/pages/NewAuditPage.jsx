@@ -55,7 +55,7 @@ const NewAuditPage = () => {
         const formDataPayload = new FormData();
         formDataPayload.append('image', beforeImages[i].file);
         formDataPayload.append('type', 'before');
-        await api.upload(`/api/audits/${auditId}/images`, formDataPayload);
+        await api.upload(`/api/audits/${auditId}/images/before`, formDataPayload);
       }
       
       // 3. Upload After images
@@ -63,7 +63,7 @@ const NewAuditPage = () => {
         const formDataPayload = new FormData();
         formDataPayload.append('image', afterImages[i].file);
         formDataPayload.append('type', 'after');
-        await api.upload(`/api/audits/${auditId}/images`, formDataPayload);
+        await api.upload(`/api/audits/${auditId}/images/after`, formDataPayload);
       }
       
       success('Auditoría guardada correctamente');

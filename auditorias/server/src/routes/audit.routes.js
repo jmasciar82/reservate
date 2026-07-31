@@ -24,6 +24,7 @@ router.get('/:id', getAuditById);
 router.patch('/:id', updateAudit);
 
 router.post('/:id/images/:type', upload.single('image'), uploadAuditImage);
+router.post('/:id/images', upload.single('image'), uploadAuditImage);
 router.delete('/:id/images/:type/:index', deleteAuditImage);
 
 router.post('/:id/finalize', finalizeAudit);

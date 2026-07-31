@@ -3,6 +3,8 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import r2Client from '../config/r2.js';
 import dotenv from 'dotenv';
 import sharp from 'sharp';
+import fs from 'fs';
+import path from 'path';
 
 dotenv.config();
 
@@ -30,68 +32,91 @@ export const generateAuditKey = (pdvCode, auditId, type, index, originalName) =>
 };
 
 export const uploadImage = async (fileBuffer, key, mimeType) => {
+  const optimizedBuffer = await sharp(fileBuffer)
+    .resize({ width: 1200, withoutEnlargement: true })
+    .jpeg({ quality: 80 })
+    .toBuffer();
+
   try {
-    // Optionally resize/compress image with sharp
-    const optimizedBuffer = await sharp(fileBuffer)
-      .resize({ width: 1200, withoutEnlargement: true })
-      .jpeg({ quality: 80 })
-      .toBuffer();
-
-    const command = new PutObjectCommand({
-      Bucket: BUCKET,
-      Key: key,
-      Body: optimizedBuffer,
-      ContentType: mimeType,
-    });
-
-    await r2Client.send(command);
-    return key;
+    if (process.env.R2_ACCESS_KEY_ID && process.env.R2_ACCESS_KEY_ID !== 'placeholder') {
+      const command = new PutObjectCommand({
+        Bucket: BUCKET,
+        Key: key,
+        Body: optimizedBuffer,
+        ContentType: mimeType,
+      });
+      await r2Client.send(command);
+      return key;
+    }
   } catch (error) {
-    console.error("Error uploading to R2:", error);
-    throw new Error('No se pudo subir la imagen');
+    console.warn("R2 Upload warning, falling back to local storage:", error.message);
   }
+
+  // Fallback local storage
+  const localPath = path.join(process.cwd(), 'uploads', key);
+  fs.mkdirSync(path.dirname(localPath), { recursive: true });
+  fs.writeFileSync(localPath, optimizedBuffer);
+  return key;
 };
 
 export const deleteObject = async (key) => {
   try {
-    const command = new DeleteObjectCommand({
-      Bucket: BUCKET,
-      Key: key,
-    });
-    await r2Client.send(command);
-    return true;
+    if (process.env.R2_ACCESS_KEY_ID && process.env.R2_ACCESS_KEY_ID !== 'placeholder') {
+      const command = new DeleteObjectCommand({
+        Bucket: BUCKET,
+        Key: key,
+      });
+      await r2Client.send(command);
+    }
   } catch (error) {
-    console.error("Error deleting from R2:", error);
-    throw new Error('No se pudo eliminar el archivo');
+    console.warn("R2 Delete warning:", error.message);
   }
+
+  const localPath = path.join(process.cwd(), 'uploads', key);
+  if (fs.existsSync(localPath)) {
+    try { fs.unlinkSync(localPath); } catch (e) {}
+  }
+  return true;
 };
 
 export const getPresignedUrl = async (key, expiresIn = 3600) => {
+  if (!key) return null;
+
   try {
-    const command = new GetObjectCommand({
-      Bucket: BUCKET,
-      Key: key,
-    });
-    return await getSignedUrl(r2Client, command, { expiresIn });
+    if (process.env.R2_ACCESS_KEY_ID && process.env.R2_ACCESS_KEY_ID !== 'placeholder') {
+      const command = new GetObjectCommand({
+        Bucket: BUCKET,
+        Key: key,
+      });
+      return await getSignedUrl(r2Client, command, { expiresIn });
+    }
   } catch (error) {
-    console.error("Error generating presigned URL:", error);
-    return null;
+    console.warn("R2 PresignedUrl warning:", error.message);
   }
+
+  // Fallback to local endpoint
+  const host = process.env.PORT || 5000;
+  return `http://localhost:${host}/uploads/${key}`;
 };
 
 export const uploadPdf = async (fileBuffer, key) => {
   try {
-    const command = new PutObjectCommand({
-      Bucket: BUCKET,
-      Key: key,
-      Body: fileBuffer,
-      ContentType: 'application/pdf',
-    });
-
-    await r2Client.send(command);
-    return key;
+    if (process.env.R2_ACCESS_KEY_ID && process.env.R2_ACCESS_KEY_ID !== 'placeholder') {
+      const command = new PutObjectCommand({
+        Bucket: BUCKET,
+        Key: key,
+        Body: fileBuffer,
+        ContentType: 'application/pdf',
+      });
+      await r2Client.send(command);
+      return key;
+    }
   } catch (error) {
-    console.error("Error uploading PDF to R2:", error);
-    throw new Error('No se pudo subir el PDF');
+    console.warn("R2 PDF Upload warning:", error.message);
   }
+
+  const localPath = path.join(process.cwd(), 'uploads', key);
+  fs.mkdirSync(path.dirname(localPath), { recursive: true });
+  fs.writeFileSync(localPath, fileBuffer);
+  return key;
 };

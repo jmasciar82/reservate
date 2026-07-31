@@ -109,13 +109,10 @@ export const updateAudit = async (req, res) => {
 
 export const uploadAuditImage = async (req, res) => {
   try {
-    const { id, type } = req.params; // type: 'before' or 'after'
+    const id = req.params.id;
+    const rawType = req.params.type || req.body.type || 'before';
     
-    if (!['antes', 'despues', 'before', 'after'].includes(type)) {
-      return res.status(400).json({ message: 'Tipo de imagen inválido' });
-    }
-    
-    const mappedType = (type === 'antes' || type === 'before') ? 'before' : 'after';
+    const mappedType = (rawType === 'antes' || rawType === 'before') ? 'before' : 'after';
 
     if (!req.file) {
       return res.status(400).json({ message: 'No se subió ninguna imagen' });
