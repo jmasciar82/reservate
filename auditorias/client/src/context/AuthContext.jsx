@@ -8,44 +8,26 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem('token'));
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState({
+    _id: 'demo-user-id',
+    name: 'Usuario Admin (Demo)',
+    email: 'demo@auditorias.com',
+    picture: 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png',
+    role: 'Admin'
+  });
+  const [token, setToken] = useState('demo-token');
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const initAuth = async () => {
-      if (token) {
-        try {
-          const res = await api.get('/api/auth/me');
-          setUser(res.data.user);
-        } catch (error) {
-          console.error("Session restore error", error);
-          logout();
-        }
-      }
-      setLoading(false);
-    };
-    initAuth();
-  }, [token]);
+    localStorage.setItem('token', 'demo-token');
+  }, []);
 
-  const login = async (googleCredential) => {
-    try {
-      const res = await api.post('/api/auth/google', { token: googleCredential });
-      const { token: newToken, user: newUser } = res.data;
-      localStorage.setItem('token', newToken);
-      setToken(newToken);
-      setUser(newUser);
-      return { success: true };
-    } catch (error) {
-      console.error("Login error", error);
-      return { success: false, error: error.message };
-    }
+  const login = async () => {
+    return { success: true };
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
-    setToken(null);
-    setUser(null);
+    console.log("Logout llamado");
   };
 
   const value = {
@@ -58,7 +40,7 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider value={value}>
-      {!loading && children}
+      {children}
     </AuthContext.Provider>
   );
 };
