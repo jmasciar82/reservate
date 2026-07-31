@@ -14,7 +14,7 @@ const NewAuditPage = () => {
   const [submitting, setSubmitting] = useState(false);
   
   const [formData, setFormData] = useState({
-    povCode: '',
+    pdvCode: '',
     observations: ''
   });
   
@@ -22,8 +22,8 @@ const NewAuditPage = () => {
   const [afterImages, setAfterImages] = useState([]);
 
   const handleNext = () => {
-    if (currentStep === 0 && !formData.povCode.trim()) {
-      error('El código POV es obligatorio');
+    if (currentStep === 0 && !formData.pdvCode.trim()) {
+      error('El código PDV es obligatorio');
       return;
     }
     setCurrentStep(prev => Math.min(prev + 1, STEPS.length - 1));
@@ -36,9 +36,12 @@ const NewAuditPage = () => {
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
+      const code = formData.pdvCode.trim();
+
       // 1. Create audit record
       const auditRes = await api.post('/api/audits', {
-        povCode: formData.povCode,
+        pdvCode: code,
+        povCode: code,
         observations: formData.observations
       });
       
@@ -60,11 +63,11 @@ const NewAuditPage = () => {
         await api.upload(`/api/audits/${auditId}/images`, formDataPayload);
       }
       
-      success('Auditoría creada correctamente');
+      success('Auditoría guardada correctamente');
       navigate(`/auditorias/${auditId}`);
     } catch (err) {
       console.error(err);
-      error(err.message || 'Error al crear la auditoría');
+      error(err.message || 'Error al guardar la auditoría');
     } finally {
       setSubmitting(false);
     }
@@ -90,13 +93,13 @@ const NewAuditPage = () => {
         {currentStep === 0 && (
           <div className="step-content animate-slide-up">
             <div className="form-group">
-              <label className="form-label">Código de Punto de Venta (POV) *</label>
+              <label className="form-label">Código de Punto de Venta (PDV) *</label>
               <input 
                 type="text" 
                 className="form-input" 
-                value={formData.povCode} 
-                onChange={(e) => setFormData({...formData, povCode: e.target.value})} 
-                placeholder="Ej. POV-12345" 
+                value={formData.pdvCode} 
+                onChange={(e) => setFormData({...formData, pdvCode: e.target.value})} 
+                placeholder="Ej. PDV-1323" 
                 autoFocus
               />
             </div>
@@ -107,7 +110,7 @@ const NewAuditPage = () => {
                 rows="4" 
                 value={formData.observations} 
                 onChange={(e) => setFormData({...formData, observations: e.target.value})} 
-                placeholder="Detalles adicionales..."
+                placeholder="Detalles adicionales del trabajo realizado..."
               ></textarea>
             </div>
           </div>

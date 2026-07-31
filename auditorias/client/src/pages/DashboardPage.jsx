@@ -37,20 +37,16 @@ const DashboardPage = () => {
         </Link>
       </div>
 
-      <div className="grid-4">
+      <div className="grid-2">
         {loading ? (
           <>
-            <LoadingSkeleton type="stat" />
-            <LoadingSkeleton type="stat" />
             <LoadingSkeleton type="stat" />
             <LoadingSkeleton type="stat" />
           </>
         ) : (
           <>
             <StatCard icon="📋" label="Total Auditorías" value={stats?.total || 0} color="var(--accent-red)" />
-            <StatCard icon="⏳" label="En Proceso" value={stats?.pending || 0} color="var(--accent-yellow)" />
-            <StatCard icon="✅" label="Finalizadas" value={stats?.completed || 0} color="var(--accent-green)" />
-            <StatCard icon="📅" label="Hoy" value={stats?.today || 0} color="var(--accent-orange)" />
+            <StatCard icon="📅" label="Auditorías de Hoy" value={stats?.today || 0} color="var(--accent-orange)" />
           </>
         )}
       </div>

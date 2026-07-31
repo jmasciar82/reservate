@@ -49,17 +49,16 @@ export const generatePdf = async (audit) => {
         doc.fontSize(20).text('LOGO', 50, 45);
       }
 
-      doc.fontSize(20).text('Reporte de Auditoría POV', 200, 50, { align: 'right' });
+      doc.fontSize(20).text('Reporte de Auditoría PDV', 200, 50, { align: 'right' });
       doc.moveDown(2);
 
       // Audit Info
       doc.fontSize(12).font('Helvetica-Bold').text('Información General:');
       doc.font('Helvetica').moveDown(0.5);
       doc.text(`ID de Auditoría: ${audit.auditId}`);
-      doc.text(`Punto de Venta (POV): ${audit.povCode}`);
+      doc.text(`Punto de Venta (PDV): ${audit.pdvCode || audit.povCode}`);
       doc.text(`Auditor: ${audit.userName} (${audit.userEmail})`);
       doc.text(`Fecha: ${new Date(audit.date).toLocaleDateString()}`);
-      doc.text(`Estado: ${audit.status}`);
       doc.moveDown(1);
 
       // Observations

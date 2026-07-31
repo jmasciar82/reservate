@@ -4,14 +4,17 @@ import { generatePdf } from '../services/pdf.service.js';
 
 export const createAudit = async (req, res) => {
   try {
-    const { povCode } = req.body;
+    const code = req.body.pdvCode || req.body.povCode;
+    const { observations } = req.body;
     
-    if (!povCode) {
-      return res.status(400).json({ message: 'Código POV es requerido' });
+    if (!code) {
+      return res.status(400).json({ message: 'Código PDV es requerido' });
     }
 
     const audit = new Audit({
-      povCode,
+      pdvCode: code,
+      povCode: code,
+      observations: observations || '',
       user: req.user._id,
       userName: req.user.name,
       userEmail: req.user.email,
@@ -27,7 +30,7 @@ export const createAudit = async (req, res) => {
 
 export const getAudits = async (req, res) => {
   try {
-    const { date, status, povCode, user } = req.query;
+    const { date, pdvCode, povCode, user } = req.query;
     let query = {};
 
     if (date) {
@@ -38,8 +41,13 @@ export const getAudits = async (req, res) => {
       query.date = { $gte: startDate, $lte: endDate };
     }
     
-    if (status) query.status = status;
-    if (povCode) query.povCode = { $regex: povCode, $options: 'i' };
+    const searchCode = pdvCode || povCode;
+    if (searchCode) {
+      query.$or = [
+        { pdvCode: { $regex: searchCode, $options: 'i' } },
+        { povCode: { $regex: searchCode, $options: 'i' } }
+      ];
+    }
     if (user) query.user = user;
 
     const audits = await Audit.find(query).sort({ createdAt: -1 });
@@ -128,8 +136,9 @@ export const uploadAuditImage = async (req, res) => {
 
     const index = audit.images[mappedType].length + 1;
     const s3TypeStr = mappedType === 'before' ? 'antes' : 'despues';
+    const code = audit.pdvCode || audit.povCode;
     
-    const key = generateAuditKey(audit.povCode, audit.auditId, s3TypeStr, index, req.file.originalname);
+    const key = generateAuditKey(code, audit.auditId, s3TypeStr, index, req.file.originalname);
     
     await uploadImage(req.file.buffer, key, req.file.mimetype);
     
@@ -181,8 +190,6 @@ export const finalizeAudit = async (req, res) => {
       return res.status(404).json({ message: 'Auditoría no encontrada' });
     }
 
-    audit.status = 'Finalizada';
-    
     // Generate PDF
     const pdfBuffer = await generatePdf(audit);
     
@@ -190,30 +197,47 @@ export const finalizeAudit = async (req, res) => {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
-    const pdfKey = `auditorias/${year}/${month}/${day}/${audit.povCode}/${audit.auditId}/reporte.pdf`;
+    const code = audit.pdvCode || audit.povCode;
+    const pdfKey = `auditorias/${year}/${month}/${day}/${code}/${audit.auditId}/${audit.auditId}.pdf`;
     
     await uploadPdf(pdfBuffer, pdfKey);
     
     audit.pdfKey = pdfKey;
     await audit.save();
 
-    res.json({ message: 'Auditoría finalizada exitosamente', audit });
+    res.json({ message: 'PDF generado exitosamente', audit });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Error al finalizar la auditoría' });
+    res.status(500).json({ message: 'Error al generar el PDF' });
   }
 };
 
 export const downloadPdf = async (req, res) => {
   try {
     const audit = await Audit.findById(req.params.id);
-    if (!audit || !audit.pdfKey) {
-      return res.status(404).json({ message: 'PDF no encontrado' });
+    if (!audit) {
+      return res.status(404).json({ message: 'Auditoría no encontrada' });
+    }
+
+    if (!audit.pdfKey) {
+      // Auto-generate PDF if not generated yet
+      const pdfBuffer = await generatePdf(audit);
+      const date = new Date();
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const code = audit.pdvCode || audit.povCode;
+      const pdfKey = `auditorias/${year}/${month}/${day}/${code}/${audit.auditId}/${audit.auditId}.pdf`;
+      
+      await uploadPdf(pdfBuffer, pdfKey);
+      audit.pdfKey = pdfKey;
+      await audit.save();
     }
 
     const url = await getPresignedUrl(audit.pdfKey);
     res.json({ url });
   } catch (error) {
+    console.error("Download PDF error:", error);
     res.status(500).json({ message: 'Error al obtener URL del PDF' });
   }
 };
@@ -221,10 +245,11 @@ export const downloadPdf = async (req, res) => {
 export const getStats = async (req, res) => {
   try {
     const total = await Audit.countDocuments();
-    const finalizadas = await Audit.countDocuments({ status: 'Finalizada' });
-    const enProceso = await Audit.countDocuments({ status: 'En proceso' });
+    const todayStart = new Date();
+    todayStart.setHours(0,0,0,0);
+    const today = await Audit.countDocuments({ createdAt: { $gte: todayStart } });
     
-    res.json({ total, finalizadas, enProceso });
+    res.json({ total, today });
   } catch (error) {
     res.status(500).json({ message: 'Error al obtener estadísticas' });
   }

@@ -8,7 +8,7 @@ import './AuditListPage.css';
 const AuditListPage = () => {
   const [audits, setAudits] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState({ date: '', status: '', povCode: '' });
+  const [filters, setFilters] = useState({ date: '', pdvCode: '' });
 
   useEffect(() => {
     fetchAudits();
@@ -19,11 +19,10 @@ const AuditListPage = () => {
     try {
       const query = new URLSearchParams();
       if (filters.date) query.append('date', filters.date);
-      if (filters.status) query.append('status', filters.status);
-      if (filters.povCode) query.append('povCode', filters.povCode);
+      if (filters.pdvCode) query.append('pdvCode', filters.pdvCode);
       
       const res = await api.get(`/api/audits?${query.toString()}`);
-      setAudits(res.data ? res.data.audits : res.audits || []);
+      setAudits(Array.isArray(res.data) ? res.data : (res.data?.audits || (Array.isArray(res) ? res : [])));
     } catch (error) {
       console.error("Error fetching audits", error);
     } finally {
@@ -44,18 +43,18 @@ const AuditListPage = () => {
         </Link>
       </div>
 
-      <div className="filter-bar card">
-        <div className="form-group">
+      <div className="filter-bar card" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px' }}>
+        <div className="form-group" style={{ marginBottom: 0 }}>
           <input 
             type="text" 
-            name="povCode" 
-            placeholder="Buscar POV..." 
+            name="pdvCode" 
+            placeholder="Buscar por Punto de Venta (ej. PDV-1323)..." 
             className="form-input" 
-            value={filters.povCode} 
+            value={filters.pdvCode} 
             onChange={handleFilterChange} 
           />
         </div>
-        <div className="form-group">
+        <div className="form-group" style={{ marginBottom: 0 }}>
           <input 
             type="date" 
             name="date" 
@@ -63,18 +62,6 @@ const AuditListPage = () => {
             value={filters.date} 
             onChange={handleFilterChange} 
           />
-        </div>
-        <div className="form-group">
-          <select 
-            name="status" 
-            className="form-select" 
-            value={filters.status} 
-            onChange={handleFilterChange}
-          >
-            <option value="">Todos los estados</option>
-            <option value="En proceso">En proceso</option>
-            <option value="Finalizada">Finalizada</option>
-          </select>
         </div>
       </div>
 

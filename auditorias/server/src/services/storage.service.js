@@ -8,7 +8,7 @@ dotenv.config();
 
 const BUCKET = process.env.R2_BUCKET_NAME;
 
-export const generateAuditKey = (povCode, auditId, type, index, originalName) => {
+export const generateAuditKey = (pdvCode, auditId, type, index, originalName) => {
   const date = new Date();
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -19,13 +19,14 @@ export const generateAuditKey = (povCode, auditId, type, index, originalName) =>
                  String(date.getMinutes()).padStart(2, '0') + 
                  String(date.getSeconds()).padStart(2, '0');
   
-  const ext = originalName.split('.').pop() || 'jpg';
+  const ext = originalName ? originalName.split('.').pop() : 'jpg';
+  const cleanCode = (pdvCode || 'PDV-0000').toUpperCase();
   
-  // Format: POV-CODE-YYYYMMDD-HHMMSS-tipo-fotoN.jpg
-  const filename = `${povCode}-${yyyymmdd}-${hhmmss}-${type}-foto${index}.${ext}`;
+  // Format: PDV-1323-YYYYMMDD-HHMMSS-tipo-fotoN.jpg
+  const filename = `${cleanCode}-${yyyymmdd}-${hhmmss}-${type}-foto${index}.${ext}`;
   
-  // Format: auditorias/{YYYY}/{MM}/{DD}/{POV-CODE}/{AUD-ID}/{filename}
-  return `auditorias/${year}/${month}/${day}/${povCode}/${auditId}/${filename}`;
+  // Format: auditorias/{YYYY}/{MM}/{DD}/{PDV-CODE}/{AUD-ID}/{filename}
+  return `auditorias/${year}/${month}/${day}/${cleanCode}/${auditId}/${filename}`;
 };
 
 export const uploadImage = async (fileBuffer, key, mimeType) => {

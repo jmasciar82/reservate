@@ -27,33 +27,17 @@ const AuditDetailPage = () => {
     fetchAudit();
   }, [id, error]);
 
-  const handleFinish = async () => {
-    try {
-      await api.patch(`/api/audits/${id}/status`, { status: 'Finalizada' });
-      setAudit({ ...audit, status: 'Finalizada' });
-      success('Auditoría finalizada');
-    } catch (err) {
-      error('Error al actualizar estado');
-    }
-  };
-
   const downloadPDF = async () => {
     try {
-      // Assuming GET /api/audits/:id/pdf returns a blob or triggers download.
-      // Fetch does not automatically download files. Using window.open or handling blob.
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/audits/${id}/pdf`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      if (!res.ok) throw new Error('Error al generar PDF');
-      
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Auditoria_${audit.povCode}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
+      const code = audit.pdvCode || audit.povCode || 'PDV';
+      const res = await api.get(`/api/audits/${id}/pdf`);
+      if (res.data && res.data.url) {
+        window.open(res.data.url, '_blank');
+      } else if (res.url) {
+        window.open(res.url, '_blank');
+      } else {
+        success('Generando reporte PDF...');
+      }
     } catch (err) {
       error('Error al descargar el PDF');
     }
@@ -70,31 +54,30 @@ const AuditDetailPage = () => {
 
   if (!audit) return <div className="container detail-container">Auditoría no encontrada.</div>;
 
-  const beforeImages = audit.images?.filter(img => img.type === 'before') || [];
-  const afterImages = audit.images?.filter(img => img.type === 'after') || [];
+  const code = audit.pdvCode || audit.povCode || 'PDV-0000';
+  const beforeImages = audit.images?.beforeUrls || audit.images?.before || [];
+  const afterImages = audit.images?.afterUrls || audit.images?.after || [];
 
   return (
     <div className="container detail-container animate-fade-in">
-      <div className="detail-header card">
+      <div className="detail-header card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div className="detail-title-group">
-          <h1 className="detail-pov">{audit.povCode}</h1>
-          <StatusBadge status={audit.status} />
+          <h1 className="detail-pov">{code}</h1>
+          <span className="audit-id-tag">{audit.auditId}</span>
         </div>
         <div className="detail-actions">
-          {audit.status === 'En proceso' && (
-            <button className="btn btn-primary" onClick={handleFinish}>Finalizar Auditoría</button>
-          )}
-          <button className="btn btn-secondary" onClick={downloadPDF}>Descargar PDF</button>
+          <button className="btn btn-primary" onClick={downloadPDF}>📄 Descargar Informe PDF</button>
         </div>
       </div>
 
       <div className="grid-2">
         <div className="card info-card">
           <h3>Información General</h3>
-          <p><strong>ID:</strong> {audit._id || audit.auditId}</p>
-          <p><strong>Fecha:</strong> {new Date(audit.date || audit.createdAt).toLocaleDateString('es-ES')}</p>
-          <p><strong>Usuario:</strong> {audit.userName || (audit.user && audit.user.name)}</p>
-          <div className="obs-section">
+          <p><strong>ID Auditoría:</strong> {audit.auditId || audit._id}</p>
+          <p><strong>Punto de Venta (PDV):</strong> {code}</p>
+          <p><strong>Fecha:</strong> {new Date(audit.date || audit.createdAt).toLocaleString('es-ES')}</p>
+          <p><strong>Auditor:</strong> {audit.userName || (audit.user && audit.user.name)}</p>
+          <div className="obs-section" style={{ marginTop: '16px' }}>
             <strong>Observaciones:</strong>
             <p className="obs-text">{audit.observations || 'Sin observaciones'}</p>
           </div>
@@ -102,37 +85,39 @@ const AuditDetailPage = () => {
 
         <div className="photos-container">
           <div className="card photo-card">
-            <h3>Fotos Antes</h3>
+            <h3>Fotos Antes (2)</h3>
             {beforeImages.length > 0 ? (
-              <div className="photo-grid">
+              <div className="photo-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '12px' }}>
                 {beforeImages.map((img, i) => (
                   <img 
                     key={i} 
-                    src={img.url} 
-                    alt={`Antes ${i}`} 
+                    src={typeof img === 'string' ? img : img.url} 
+                    alt={`Antes ${i + 1}`} 
                     className="audit-photo" 
-                    onClick={() => setLightboxImg(img.url)} 
+                    style={{ width: '100%', height: '120px', objectFit: 'cover', borderRadius: '8px', cursor: 'pointer' }}
+                    onClick={() => setLightboxImg(typeof img === 'string' ? img : img.url)} 
                   />
                 ))}
               </div>
-            ) : <p className="text-muted">No hay fotos</p>}
+            ) : <p className="text-muted">No hay fotos registradas</p>}
           </div>
 
-          <div className="card photo-card mt-4">
-            <h3>Fotos Después</h3>
+          <div className="card photo-card mt-4" style={{ marginTop: '16px' }}>
+            <h3>Fotos Después (3)</h3>
             {afterImages.length > 0 ? (
-              <div className="photo-grid">
+              <div className="photo-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '12px' }}>
                 {afterImages.map((img, i) => (
                   <img 
                     key={i} 
-                    src={img.url} 
-                    alt={`Después ${i}`} 
+                    src={typeof img === 'string' ? img : img.url} 
+                    alt={`Después ${i + 1}`} 
                     className="audit-photo" 
-                    onClick={() => setLightboxImg(img.url)} 
+                    style={{ width: '100%', height: '120px', objectFit: 'cover', borderRadius: '8px', cursor: 'pointer' }}
+                    onClick={() => setLightboxImg(typeof img === 'string' ? img : img.url)} 
                   />
                 ))}
               </div>
-            ) : <p className="text-muted">No hay fotos</p>}
+            ) : <p className="text-muted">No hay fotos registradas</p>}
           </div>
         </div>
       </div>

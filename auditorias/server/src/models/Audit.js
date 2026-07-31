@@ -5,9 +5,12 @@ const auditSchema = new mongoose.Schema({
     type: String,
     unique: true,
   },
-  povCode: {
+  pdvCode: {
     type: String,
     required: true,
+  },
+  povCode: {
+    type: String
   },
   user: {
     type: mongoose.Schema.Types.ObjectId,
@@ -21,11 +24,6 @@ const auditSchema = new mongoose.Schema({
     default: Date.now,
   },
   observations: String,
-  status: {
-    type: String,
-    enum: ["En proceso", "Finalizada"],
-    default: "En proceso"
-  },
   images: {
     before: [{ type: String }],
     after: [{ type: String }]
