@@ -3,12 +3,17 @@ import { Link } from 'react-router-dom';
 import api from '../services/api';
 import AuditCard from '../components/AuditCard';
 import LoadingSkeleton from '../components/LoadingSkeleton';
+import { useToast } from '../components/Toast';
 import './AuditListPage.css';
 
 const AuditListPage = () => {
   const [audits, setAudits] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({ date: '', pdvCode: '' });
+  const [auditToDelete, setAuditToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const { success, error } = useToast();
 
   useEffect(() => {
     fetchAudits();
@@ -23,10 +28,26 @@ const AuditListPage = () => {
       
       const res = await api.get(`/api/audits?${query.toString()}`);
       setAudits(Array.isArray(res.data) ? res.data : (res.data?.audits || (Array.isArray(res) ? res : [])));
-    } catch (error) {
-      console.error("Error fetching audits", error);
+    } catch (err) {
+      console.error("Error fetching audits", err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!auditToDelete) return;
+    setDeleting(true);
+    try {
+      const targetId = auditToDelete.auditId || auditToDelete._id;
+      await api.delete(`/api/audits/${targetId}`);
+      setAudits(prev => prev.filter(a => (a._id !== auditToDelete._id && a.auditId !== auditToDelete.auditId)));
+      success(`Auditoría ${auditToDelete.pdvCode || auditToDelete.povCode} eliminada`);
+      setAuditToDelete(null);
+    } catch (err) {
+      error('Error al eliminar la auditoría');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -74,7 +95,13 @@ const AuditListPage = () => {
             <LoadingSkeleton type="card" />
           </>
         ) : audits.length > 0 ? (
-          audits.map(audit => <AuditCard key={audit._id || audit.auditId} audit={audit} />)
+          audits.map(audit => (
+            <AuditCard 
+              key={audit._id || audit.auditId} 
+              audit={audit} 
+              onDelete={item => setAuditToDelete(item)}
+            />
+          ))
         ) : (
           <div className="empty-state">
             <div className="empty-icon">📭</div>
@@ -82,6 +109,25 @@ const AuditListPage = () => {
           </div>
         )}
       </div>
+
+      {auditToDelete && (
+        <div className="modal-backdrop" onClick={() => setAuditToDelete(null)}>
+          <div className="modal-content card animate-scale-in" onClick={e => e.stopPropagation()} style={{ maxWidth: '420px' }}>
+            <h2 style={{ color: '#e63946' }}>⚠️ Eliminar Auditoría</h2>
+            <p style={{ marginTop: '12px', color: 'var(--text-secondary)' }}>
+              ¿Estás seguro de que deseas eliminar la auditoría <strong>{auditToDelete.pdvCode || auditToDelete.povCode}</strong> ({auditToDelete.auditId})?
+            </p>
+            <div className="modal-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '24px' }}>
+              <button className="btn btn-outline" onClick={() => setAuditToDelete(null)} disabled={deleting}>
+                Cancelar
+              </button>
+              <button className="btn btn-danger" onClick={handleConfirmDelete} disabled={deleting} style={{ background: '#e63946', color: '#fff', border: 'none' }}>
+                {deleting ? 'Eliminando...' : 'Sí, Eliminar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -8,6 +8,7 @@ import {
   deleteAuditImage,
   finalizeAudit,
   downloadPdf,
+  deleteAudit,
   getStats
 } from '../controllers/audit.controller.js';
 import { protect } from '../middleware/auth.middleware.js';
@@ -22,6 +23,7 @@ router.get('/', getAudits);
 router.post('/', createAudit);
 router.get('/:id', getAuditById);
 router.patch('/:id', updateAudit);
+router.delete('/:id', deleteAudit);
 
 router.post('/:id/images/:type', upload.single('image'), uploadAuditImage);
 router.post('/:id/images', upload.single('image'), uploadAuditImage);

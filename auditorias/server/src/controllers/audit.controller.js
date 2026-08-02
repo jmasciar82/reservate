@@ -102,7 +102,7 @@ export const getAuditById = async (req, res) => {
 
 export const updateAudit = async (req, res) => {
   try {
-    const { observations, status } = req.body;
+    const { observations, pdvCode, povCode, status } = req.body;
     const audit = await findAuditByIdOrCode(req.params.id);
 
     if (!audit) {
@@ -110,12 +110,53 @@ export const updateAudit = async (req, res) => {
     }
 
     if (observations !== undefined) audit.observations = observations;
+    const newCode = pdvCode || povCode;
+    if (newCode) {
+      audit.pdvCode = newCode;
+      audit.povCode = newCode;
+    }
     if (status !== undefined) audit.status = status;
 
     const updatedAudit = await audit.save();
     res.json(updatedAudit);
   } catch (error) {
     res.status(500).json({ message: 'Error al actualizar la auditoría' });
+  }
+};
+
+export const deleteAudit = async (req, res) => {
+  try {
+    const audit = await findAuditByIdOrCode(req.params.id);
+
+    if (!audit) {
+      return res.status(404).json({ message: 'Auditoría no encontrada' });
+    }
+
+    // Delete associated before images
+    if (audit.images && audit.images.before) {
+      for (const key of audit.images.before) {
+        await deleteObject(key);
+      }
+    }
+
+    // Delete associated after images
+    if (audit.images && audit.images.after) {
+      for (const key of audit.images.after) {
+        await deleteObject(key);
+      }
+    }
+
+    // Delete PDF if exists
+    if (audit.pdfKey) {
+      await deleteObject(audit.pdfKey);
+    }
+
+    await Audit.findByIdAndDelete(audit._id);
+
+    res.json({ message: 'Auditoría eliminada exitosamente' });
+  } catch (error) {
+    console.error("deleteAudit error:", error);
+    res.status(500).json({ message: 'Error al eliminar la auditoría' });
   }
 };
 
