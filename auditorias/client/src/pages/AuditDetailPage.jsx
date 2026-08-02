@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useToast } from '../components/Toast';
-import LoadingSkeleton from '../components/LoadingSkeleton';
+import { compressImage } from '../utils/imageCompressor';
 import './AuditDetailPage.css';
 
 const AuditDetailPage = () => {
@@ -81,6 +81,37 @@ const AuditDetailPage = () => {
     }
   };
 
+  const handleDeleteImage = async (type, index, e) => {
+    e.stopPropagation();
+    if (!window.confirm('¿Eliminar esta foto de la auditoría?')) return;
+    try {
+      await api.delete(`/api/audits/${id}/images/${type}/${index}`);
+      success('Foto eliminada');
+      fetchAudit();
+    } catch (err) {
+      error('Error al eliminar la foto');
+    }
+  };
+
+  const handleUploadImage = async (type, e) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    const file = files[0];
+    try {
+      const compressed = await compressImage(file);
+      const formData = new FormData();
+      formData.append('image', compressed);
+      formData.append('type', type);
+      await api.upload(`/api/audits/${id}/images/${type}`, formData);
+      success('Foto agregada correctamente');
+      fetchAudit();
+    } catch (err) {
+      error('Error al subir la foto');
+    } finally {
+      e.target.value = '';
+    }
+  };
+
   const handleDeleteAudit = async () => {
     setDeleting(true);
     try {
@@ -143,38 +174,98 @@ const AuditDetailPage = () => {
         </div>
 
         <div className="photos-container">
+          {/* Fotos del Antes */}
           <div className="card photo-card">
-            <h3>Fotos Antes ({beforeImages.length})</h3>
-            {beforeImages.length > 0 ? (
-              <div className="thumbnail-grid">
-                {beforeImages.map((img, i) => {
-                  const url = typeof img === 'string' ? img : img.url;
-                  return (
-                    <div key={i} className="thumbnail-wrapper" onClick={() => setLightboxImg(url)}>
-                      <img src={url} alt={`Antes ${i + 1}`} className="thumbnail-img" />
-                      <span className="thumbnail-label">Antes #{i + 1}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : <p className="text-muted">No hay fotos registradas</p>}
+            <h3>Fotos Antes ({beforeImages.length}/2)</h3>
+            <div className="thumbnail-grid">
+              {beforeImages.map((img, i) => {
+                const url = typeof img === 'string' ? img : img.url;
+                return (
+                  <div key={i} className="thumbnail-wrapper" onClick={() => setLightboxImg(url)}>
+                    <img src={url} alt={`Antes ${i + 1}`} className="thumbnail-img" />
+                    <span className="thumbnail-label">Antes #{i + 1}</span>
+                    <button 
+                      className="delete-photo-btn" 
+                      onClick={(e) => handleDeleteImage('before', i, e)}
+                      title="Eliminar esta foto"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                );
+              })}
+
+              {beforeImages.length < 2 && (
+                <div className="detail-add-photo-zones">
+                  <label className="add-photo-btn camera-btn" title="Tomar foto con cámara principal">
+                    📷 Cámara
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      capture="environment" 
+                      onChange={(e) => handleUploadImage('before', e)} 
+                      hidden 
+                    />
+                  </label>
+                  <label className="add-photo-btn gallery-btn" title="Elegir de archivos o galería">
+                    📁 Archivo
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={(e) => handleUploadImage('before', e)} 
+                      hidden 
+                    />
+                  </label>
+                </div>
+              )}
+            </div>
           </div>
 
+          {/* Fotos del Después */}
           <div className="card photo-card mt-4">
-            <h3>Fotos Después ({afterImages.length})</h3>
-            {afterImages.length > 0 ? (
-              <div className="thumbnail-grid">
-                {afterImages.map((img, i) => {
-                  const url = typeof img === 'string' ? img : img.url;
-                  return (
-                    <div key={i} className="thumbnail-wrapper" onClick={() => setLightboxImg(url)}>
-                      <img src={url} alt={`Después ${i + 1}`} className="thumbnail-img" />
-                      <span className="thumbnail-label">Después #{i + 1}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : <p className="text-muted">No hay fotos registradas</p>}
+            <h3>Fotos Después ({afterImages.length}/3)</h3>
+            <div className="thumbnail-grid">
+              {afterImages.map((img, i) => {
+                const url = typeof img === 'string' ? img : img.url;
+                return (
+                  <div key={i} className="thumbnail-wrapper" onClick={() => setLightboxImg(url)}>
+                    <img src={url} alt={`Después ${i + 1}`} className="thumbnail-img" />
+                    <span className="thumbnail-label">Después #{i + 1}</span>
+                    <button 
+                      className="delete-photo-btn" 
+                      onClick={(e) => handleDeleteImage('after', i, e)}
+                      title="Eliminar esta foto"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                );
+              })}
+
+              {afterImages.length < 3 && (
+                <div className="detail-add-photo-zones">
+                  <label className="add-photo-btn camera-btn" title="Tomar foto con cámara principal">
+                    📷 Cámara
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      capture="environment" 
+                      onChange={(e) => handleUploadImage('after', e)} 
+                      hidden 
+                    />
+                  </label>
+                  <label className="add-photo-btn gallery-btn" title="Elegir de archivos o galería">
+                    📁 Archivo
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={(e) => handleUploadImage('after', e)} 
+                      hidden 
+                    />
+                  </label>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

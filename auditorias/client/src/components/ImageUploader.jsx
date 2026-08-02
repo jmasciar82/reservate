@@ -3,6 +3,7 @@ import { compressImage } from '../utils/imageCompressor';
 import './ImageUploader.css';
 
 const ImageUploader = ({ images, onAdd, onRemove, maxImages, label }) => {
+  const cameraInputRef = useRef(null);
   const fileInputRef = useRef(null);
   const [isCompressing, setIsCompressing] = useState(false);
 
@@ -22,6 +23,7 @@ const ImageUploader = ({ images, onAdd, onRemove, maxImages, label }) => {
       }
     }
     setIsCompressing(false);
+    if (cameraInputRef.current) cameraInputRef.current.value = '';
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -50,22 +52,44 @@ const ImageUploader = ({ images, onAdd, onRemove, maxImages, label }) => {
         ))}
         
         {images.length < maxImages && (
-          <div 
-            className="drop-zone" 
-            onClick={() => fileInputRef.current.click()}
-            onDragOver={preventDefault}
-            onDrop={handleDrop}
-          >
-            <span className="camera-icon">📷</span>
-            <span className="drop-text">{isCompressing ? 'Comprimiendo...' : 'Agregar Foto'}</span>
-            <input 
-              type="file" 
-              ref={fileInputRef}
-              onChange={handleFileChange}
-              accept="image/*"
-              multiple
-              hidden 
-            />
+          <div className="upload-options">
+            {/* Direct Camera Button */}
+            <div 
+              className="drop-zone camera-zone" 
+              onClick={() => cameraInputRef.current.click()}
+              title="Abrir Cámara Principal"
+            >
+              <span className="camera-icon">📷</span>
+              <span className="drop-text">{isCompressing ? 'Comprimiendo...' : 'Tomar Foto'}</span>
+              <input 
+                type="file" 
+                ref={cameraInputRef}
+                onChange={handleFileChange}
+                accept="image/*"
+                capture="environment"
+                hidden 
+              />
+            </div>
+
+            {/* Gallery / File Picker Button */}
+            <div 
+              className="drop-zone gallery-zone" 
+              onClick={() => fileInputRef.current.click()}
+              onDragOver={preventDefault}
+              onDrop={handleDrop}
+              title="Seleccionar de Galería / Archivos"
+            >
+              <span className="camera-icon">📁</span>
+              <span className="drop-text">{isCompressing ? 'Comprimiendo...' : 'Elegir Archivos'}</span>
+              <input 
+                type="file" 
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                accept="image/*"
+                multiple
+                hidden 
+              />
+            </div>
           </div>
         )}
       </div>

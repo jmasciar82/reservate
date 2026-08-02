@@ -47,9 +47,14 @@
   transform: scale(1.1);
 }
 
+.upload-options {
+  display: flex;
+  gap: var(--spacing-3);
+}
+
 .drop-zone {
-  width: 120px;
-  height: 120px;
+  width: 110px;
+  height: 110px;
   border: 2px dashed var(--border);
   border-radius: var(--radius-md);
   display: flex;
@@ -61,9 +66,14 @@
   transition: all 0.2s ease;
 }
 
-.drop-zone:hover {
-  border-color: var(--accent-red);
-  background: var(--bg-card);
+.camera-zone:hover {
+  border-color: var(--accent-red, #e63946);
+  background: rgba(230, 57, 70, 0.1);
+}
+
+.gallery-zone:hover {
+  border-color: #3a86ff;
+  background: rgba(58, 134, 255, 0.1);
 }
 
 .camera-icon {
