@@ -63,11 +63,17 @@ const AuditListPage = () => {
 
   return (
     <div className="container audit-list-container animate-fade-in">
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div className="page-header list-page-header">
         <h1 className="page-title">Auditorías</h1>
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+        <div className="header-actions">
           <button className="btn btn-outline" onClick={handleDownloadConsolidatedPdf}>
-            📊 Reporte PDF General
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#e63946" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+            </svg>
+            <span>Reporte PDF General</span>
           </button>
           <Link to="/auditorias/nueva" className="btn btn-primary">
             <span>+</span> Nueva Auditoría

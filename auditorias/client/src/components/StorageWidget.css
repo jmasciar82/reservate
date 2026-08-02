@@ -81,3 +81,30 @@
 .storage-widget-footer strong {
   color: var(--text-primary);
 }
+
+@media (max-width: 640px) {
+  .storage-widget-card {
+    padding: 14px 16px;
+  }
+
+  .storage-widget-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .storage-widget-header > div:last-child {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .photo-estimate-badge {
+    font-size: 0.75rem;
+    padding: 3px 8px;
+  }
+
+  .storage-widget-footer {
+    flex-direction: column;
+    gap: 4px;
+  }
+}
