@@ -26,11 +26,10 @@ const App = () => {
               <Route path="/login" element={<LoginPage />} />
               
               <Route path="/" element={<ProtectedRoute />}>
-                <Route index element={<DashboardPage />} />
+                <Route index element={<AuditListPage />} />
                 <Route path="auditorias" element={<AuditListPage />} />
                 <Route path="auditorias/nueva" element={<NewAuditPage />} />
                 <Route path="auditorias/:id" element={<AuditDetailPage />} />
-                <Route path="usuarios" element={<UsersPage />} />
               </Route>
             </Routes>
           </BrowserRouter>
