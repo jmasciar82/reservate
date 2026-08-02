@@ -149,12 +149,12 @@ export const uploadAuditImage = async (req, res) => {
     
     const key = generateAuditKey(code, audit.auditId, s3TypeStr, index, req.file.originalname);
     
-    await uploadImage(req.file.buffer, key, req.file.mimetype);
+    const uploadedKey = await uploadImage(req.file.buffer, key, req.file.mimetype);
     
-    audit.images[mappedType].push(key);
+    audit.images[mappedType].push(uploadedKey);
     await audit.save();
 
-    const url = await getPresignedUrl(key);
+    const url = await getPresignedUrl(uploadedKey);
 
     res.json({ message: 'Imagen subida exitosamente', key, url, audit });
   } catch (error) {
@@ -209,9 +209,9 @@ export const finalizeAudit = async (req, res) => {
     const code = audit.pdvCode || audit.povCode;
     const pdfKey = `auditorias/${year}/${month}/${day}/${code}/${audit.auditId}/${audit.auditId}.pdf`;
     
-    await uploadPdf(pdfBuffer, pdfKey);
+    const uploadedPdfKey = await uploadPdf(pdfBuffer, pdfKey);
     
-    audit.pdfKey = pdfKey;
+    audit.pdfKey = uploadedPdfKey;
     await audit.save();
 
     res.json({ message: 'PDF generado exitosamente', audit });
@@ -238,8 +238,8 @@ export const downloadPdf = async (req, res) => {
       const code = audit.pdvCode || audit.povCode;
       const pdfKey = `auditorias/${year}/${month}/${day}/${code}/${audit.auditId}/${audit.auditId}.pdf`;
       
-      await uploadPdf(pdfBuffer, pdfKey);
-      audit.pdfKey = pdfKey;
+      const uploadedPdfKey = await uploadPdf(pdfBuffer, pdfKey);
+      audit.pdfKey = uploadedPdfKey;
       await audit.save();
     }
 

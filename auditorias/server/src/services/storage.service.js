@@ -109,9 +109,9 @@ export const getPresignedUrl = async (key) => {
     return key;
   }
 
-  // Local fallback endpoint
-  const host = process.env.PORT || 5000;
-  return `http://localhost:${host}/uploads/${key}`;
+  // Local fallback endpoint (uses RENDER_EXTERNAL_URL in production)
+  const baseUrl = process.env.RENDER_EXTERNAL_URL || process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 5000}`;
+  return `${baseUrl}/uploads/${key}`;
 };
 
 export const uploadPdf = async (fileBuffer, key) => {
