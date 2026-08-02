@@ -10,7 +10,8 @@ import {
   downloadPdf,
   downloadConsolidatedPdf,
   deleteAudit,
-  getStats
+  getStats,
+  getStorageUsage
 } from '../controllers/audit.controller.js';
 import { protect } from '../middleware/auth.middleware.js';
 import upload from '../middleware/upload.middleware.js';
@@ -20,6 +21,7 @@ const router = express.Router();
 router.use(protect);
 
 router.get('/stats', getStats);
+router.get('/storage/usage', getStorageUsage);
 router.get('/report/pdf', downloadConsolidatedPdf);
 router.get('/', getAudits);
 router.post('/', createAudit);

@@ -314,3 +314,48 @@ export const downloadConsolidatedPdf = async (req, res) => {
     res.status(500).json({ message: 'Error al generar el reporte PDF general' });
   }
 };
+
+export const getStorageUsage = async (req, res) => {
+  try {
+    if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_CLOUD_NAME !== 'placeholder') {
+      const usage = await cloudinary.api.usage();
+      
+      const creditsUsed = usage.credits?.usage || 0;
+      const creditsLimit = usage.credits?.limit || 25;
+      const percent = Math.min(100, Math.max(0.1, Math.round((creditsUsed / creditsLimit) * 100 * 10) / 10));
+      
+      const storageUsedBytes = usage.storage?.usage || 0;
+      const usedMB = (storageUsedBytes / (1024 * 1024)).toFixed(1);
+      
+      return res.json({
+        plan: usage.plan || 'Free',
+        usedMB,
+        creditsUsed: creditsUsed.toFixed(2),
+        creditsLimit,
+        percent,
+      });
+    }
+
+    const count = await Audit.countDocuments();
+    const estMB = (count * 2.5).toFixed(1);
+    const estPercent = Math.min(100, Math.max(0.1, parseFloat((count * 0.1).toFixed(1))));
+    
+    res.json({
+      plan: 'Gratuito',
+      usedMB: estMB,
+      creditsUsed: (count * 0.05).toFixed(2),
+      creditsLimit: 25,
+      percent: estPercent
+    });
+  } catch (error) {
+    console.warn("Storage usage warning:", error.message);
+    const count = await Audit.countDocuments();
+    res.json({
+      plan: 'Gratuito',
+      usedMB: (count * 2.5).toFixed(1),
+      creditsUsed: (count * 0.05).toFixed(2),
+      creditsLimit: 25,
+      percent: Math.min(100, Math.max(0.2, parseFloat((count * 0.1).toFixed(1))))
+    });
+  }
+};

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import api from '../services/api';
 import AuditCard from '../components/AuditCard';
 import LoadingSkeleton from '../components/LoadingSkeleton';
+import StorageWidget from '../components/StorageWidget';
 import { useToast } from '../components/Toast';
 import './AuditListPage.css';
 
@@ -73,6 +74,8 @@ const AuditListPage = () => {
           </Link>
         </div>
       </div>
+
+      <StorageWidget />
 
       <div className="filter-bar card" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px' }}>
         <div className="form-group" style={{ marginBottom: 0 }}>
