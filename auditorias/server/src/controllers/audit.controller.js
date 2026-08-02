@@ -1,6 +1,17 @@
+import mongoose from 'mongoose';
 import Audit from '../models/Audit.js';
 import { generateAuditKey, uploadImage, deleteObject, getPresignedUrl, uploadPdf } from '../services/storage.service.js';
 import { generatePdf } from '../services/pdf.service.js';
+
+// Helper to find an audit by Mongo _id or custom auditId (e.g., AUD-20260731-0001)
+const findAuditByIdOrCode = async (id) => {
+  const isMongoId = mongoose.isValidObjectId(id);
+  if (isMongoId) {
+    const audit = await Audit.findById(id);
+    if (audit) return audit;
+  }
+  return await Audit.findOne({ auditId: id });
+};
 
 export const createAudit = async (req, res) => {
   try {
@@ -59,7 +70,7 @@ export const getAudits = async (req, res) => {
 
 export const getAuditById = async (req, res) => {
   try {
-    const audit = await Audit.findById(req.params.id);
+    const audit = await findAuditByIdOrCode(req.params.id);
     if (!audit) {
       return res.status(404).json({ message: 'Auditoría no encontrada' });
     }
@@ -84,6 +95,7 @@ export const getAuditById = async (req, res) => {
 
     res.json(auditObj);
   } catch (error) {
+    console.error("getAuditById error:", error);
     res.status(500).json({ message: 'Error al obtener la auditoría' });
   }
 };
@@ -91,7 +103,7 @@ export const getAuditById = async (req, res) => {
 export const updateAudit = async (req, res) => {
   try {
     const { observations, status } = req.body;
-    const audit = await Audit.findById(req.params.id);
+    const audit = await findAuditByIdOrCode(req.params.id);
 
     if (!audit) {
       return res.status(404).json({ message: 'Auditoría no encontrada' });
@@ -118,7 +130,7 @@ export const uploadAuditImage = async (req, res) => {
       return res.status(400).json({ message: 'No se subió ninguna imagen' });
     }
 
-    const audit = await Audit.findById(id);
+    const audit = await findAuditByIdOrCode(id);
     if (!audit) {
       return res.status(404).json({ message: 'Auditoría no encontrada' });
     }
@@ -156,7 +168,7 @@ export const deleteAuditImage = async (req, res) => {
     const { id, type, index } = req.params;
     
     const mappedType = (type === 'antes' || type === 'before') ? 'before' : 'after';
-    const audit = await Audit.findById(id);
+    const audit = await findAuditByIdOrCode(id);
     
     if (!audit) {
       return res.status(404).json({ message: 'Auditoría no encontrada' });
@@ -182,7 +194,7 @@ export const deleteAuditImage = async (req, res) => {
 
 export const finalizeAudit = async (req, res) => {
   try {
-    const audit = await Audit.findById(req.params.id);
+    const audit = await findAuditByIdOrCode(req.params.id);
     if (!audit) {
       return res.status(404).json({ message: 'Auditoría no encontrada' });
     }
@@ -211,7 +223,7 @@ export const finalizeAudit = async (req, res) => {
 
 export const downloadPdf = async (req, res) => {
   try {
-    const audit = await Audit.findById(req.params.id);
+    const audit = await findAuditByIdOrCode(req.params.id);
     if (!audit) {
       return res.status(404).json({ message: 'Auditoría no encontrada' });
     }
