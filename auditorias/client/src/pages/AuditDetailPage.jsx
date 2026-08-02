@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useToast } from '../components/Toast';
 import { compressImage } from '../utils/imageCompressor';
+import LoadingSkeleton from '../components/LoadingSkeleton';
 import './AuditDetailPage.css';
 
 const AuditDetailPage = () => {
