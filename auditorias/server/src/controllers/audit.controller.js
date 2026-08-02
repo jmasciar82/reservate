@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import Audit from '../models/Audit.js';
 import { generateAuditKey, uploadImage, deleteObject, getPresignedUrl, uploadPdf } from '../services/storage.service.js';
-import { generatePdf } from '../services/pdf.service.js';
+import { generatePdf, generateConsolidatedPdf } from '../services/pdf.service.js';
 
 // Helper to find an audit by Mongo _id or custom auditId (e.g., AUD-20260731-0001)
 const findAuditByIdOrCode = async (id) => {
@@ -302,5 +302,26 @@ export const getStats = async (req, res) => {
     res.json({ total, today });
   } catch (error) {
     res.status(500).json({ message: 'Error al obtener estadísticas' });
+  }
+};
+
+export const downloadConsolidatedPdf = async (req, res) => {
+  try {
+    const audits = await Audit.find().sort({ createdAt: -1 });
+    if (audits.length === 0) {
+      return res.status(404).json({ message: 'No hay auditorías para generar el reporte' });
+    }
+
+    const pdfBuffer = await generateConsolidatedPdf(audits);
+    const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const pdfKey = `auditorias/reportes/Reporte_General_${dateStr}.pdf`;
+
+    const uploadedPdfKey = await uploadPdf(pdfBuffer, pdfKey);
+    const url = await getPresignedUrl(uploadedPdfKey);
+
+    res.json({ url, message: 'Reporte consolidado generado exitosamente' });
+  } catch (error) {
+    console.error("downloadConsolidatedPdf error:", error);
+    res.status(500).json({ message: 'Error al generar el reporte PDF general' });
   }
 };

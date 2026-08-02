@@ -8,6 +8,7 @@ import {
   deleteAuditImage,
   finalizeAudit,
   downloadPdf,
+  downloadConsolidatedPdf,
   deleteAudit,
   getStats
 } from '../controllers/audit.controller.js';
@@ -19,6 +20,7 @@ const router = express.Router();
 router.use(protect);
 
 router.get('/stats', getStats);
+router.get('/report/pdf', downloadConsolidatedPdf);
 router.get('/', getAudits);
 router.post('/', createAudit);
 router.get('/:id', getAuditById);

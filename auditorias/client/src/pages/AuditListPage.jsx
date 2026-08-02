@@ -51,17 +51,37 @@ const AuditListPage = () => {
     }
   };
 
+  const handleDownloadConsolidatedPdf = async () => {
+    success('Generando reporte PDF general...');
+    try {
+      const res = await api.get('/api/audits/report/pdf');
+      const url = res.data?.url || res.url;
+      if (url) {
+        window.open(url, '_blank');
+      } else {
+        error('No se pudo obtener el enlace del PDF');
+      }
+    } catch (err) {
+      error('Error al generar el reporte PDF general');
+    }
+  };
+
   const handleFilterChange = (e) => {
     setFilters({ ...filters, [e.target.name]: e.target.value });
   };
 
   return (
     <div className="container audit-list-container animate-fade-in">
-      <div className="page-header">
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h1 className="page-title">Auditorías</h1>
-        <Link to="/auditorias/nueva" className="btn btn-primary">
-          <span>+</span> Nueva Auditoría
-        </Link>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <button className="btn btn-outline" onClick={handleDownloadConsolidatedPdf}>
+            📊 Reporte PDF General
+          </button>
+          <Link to="/auditorias/nueva" className="btn btn-primary">
+            <span>+</span> Nueva Auditoría
+          </Link>
+        </div>
       </div>
 
       <div className="filter-bar card" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px' }}>

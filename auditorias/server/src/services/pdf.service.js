@@ -128,3 +128,113 @@ export const generatePdf = async (audit) => {
     }
   });
 };
+
+export const generateConsolidatedPdf = async (audits) => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const doc = new PDFDocument({ margin: 40, size: 'A4' });
+      const buffers = [];
+      doc.on('data', buffers.push.bind(buffers));
+      doc.on('end', () => {
+        resolve(Buffer.concat(buffers));
+      });
+
+      // Cover / General Header
+      doc.fontSize(22).font('Helvetica-Bold').fillColor('#e63946').text('Reporte General de Auditorías PDV', { align: 'center' });
+      doc.moveDown(0.5);
+      doc.fontSize(11).font('Helvetica').fillColor('#444444').text(`Total de Auditorías: ${audits.length} | Emisión: ${new Date().toLocaleString('es-ES')}`, { align: 'center' });
+      doc.moveDown(1.5);
+
+      for (let index = 0; index < audits.length; index++) {
+        const audit = audits[index];
+        const code = audit.pdvCode || audit.povCode || 'PDV-0000';
+        const dateStr = new Date(audit.date || audit.createdAt).toLocaleString('es-ES');
+        const auditor = audit.userName || (audit.user && audit.user.name) || 'Admin';
+
+        // Check if we need a new page
+        if (doc.y > 600) {
+          doc.addPage();
+        }
+
+        // Section Box Header
+        doc.rect(40, doc.y, 515, 24).fill('#1f1f2e');
+        doc.fillColor('#ffffff').fontSize(12).font('Helvetica-Bold').text(`Auditoría #${index + 1}: ${code} (${audit.auditId || audit._id})`, 50, doc.y - 18);
+        doc.moveDown(1.2);
+
+        // Details
+        doc.fillColor('#222222').fontSize(10).font('Helvetica-Bold').text(`Punto de Venta: `, 40, doc.y, { continued: true });
+        doc.font('Helvetica').text(code);
+        doc.font('Helvetica-Bold').text(`Auditor: `, { continued: true });
+        doc.font('Helvetica').text(auditor);
+        doc.font('Helvetica-Bold').text(`Fecha: `, { continued: true });
+        doc.font('Helvetica').text(dateStr);
+        doc.font('Helvetica-Bold').text(`Observaciones: `, { continued: true });
+        doc.font('Helvetica').text(audit.observations || 'Sin observaciones');
+        doc.moveDown(0.8);
+
+        // Render Before Photos
+        const beforeImgs = audit.images?.before || [];
+        if (beforeImgs.length > 0) {
+          doc.font('Helvetica-Bold').fontSize(9).fillColor('#e63946').text('Fotos Antes:');
+          doc.moveDown(0.3);
+          let imgX = 40;
+          let imgY = doc.y;
+          for (let i = 0; i < beforeImgs.length; i++) {
+            const buf = await fetchImageBuffer(beforeImgs[i]);
+            if (buf) {
+              try {
+                doc.image(buf, imgX, imgY, { fit: [95, 95] });
+                imgX += 105;
+              } catch (e) {
+                console.error("Error drawing before image in consolidated PDF:", e);
+              }
+            }
+          }
+          doc.y = imgY + 100;
+        }
+
+        // Render After Photos
+        const afterImgs = audit.images?.after || [];
+        if (afterImgs.length > 0) {
+          doc.font('Helvetica-Bold').fontSize(9).fillColor('#2a9d8f').text('Fotos Después:');
+          doc.moveDown(0.3);
+          let imgX = 40;
+          let imgY = doc.y;
+          for (let i = 0; i < afterImgs.length; i++) {
+            const buf = await fetchImageBuffer(afterImgs[i]);
+            if (buf) {
+              try {
+                doc.image(buf, imgX, imgY, { fit: [95, 95] });
+                imgX += 105;
+              } catch (e) {
+                console.error("Error drawing after image in consolidated PDF:", e);
+              }
+            }
+          }
+          doc.y = imgY + 100;
+        }
+
+        // Line separator
+        doc.moveDown(1);
+        doc.strokeColor('#e0e0e0').lineWidth(1).moveTo(40, doc.y).lineTo(555, doc.y).stroke();
+        doc.moveDown(1);
+      }
+
+      // Page numbers footer
+      const pages = doc.bufferedPageRange();
+      for (let i = 0; i < pages.count; i++) {
+        doc.switchToPage(i);
+        doc.fontSize(8).fillColor('#888888').text(
+          `Página ${i + 1} de ${pages.count} - Reporte Consolidado de Auditorías PDV`,
+          40,
+          doc.page.height - 30,
+          { align: 'center' }
+        );
+      }
+
+      doc.end();
+    } catch (error) {
+      reject(error);
+    }
+  });
+};
