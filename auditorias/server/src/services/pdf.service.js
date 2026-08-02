@@ -41,11 +41,17 @@ export const generatePdf = async (audit) => {
         resolve(Buffer.concat(buffers));
       });
 
+      const auditIdStr = audit.auditId || audit._id || 'AUD-000';
+      const pdvStr = audit.pdvCode || audit.povCode || 'PDV-000';
+      const userNameStr = audit.userName || (audit.user && audit.user.name) || 'Auditor';
+      const userEmailStr = audit.userEmail || (audit.user && audit.user.email) || '';
+      const dateVal = audit.date || audit.createdAt;
+      const dateStr = dateVal ? new Date(dateVal).toLocaleDateString('es-ES') : new Date().toLocaleDateString('es-ES');
+
       // Header
-      // Check if logo exists (placeholder for now)
       const logoPath = path.join(__dirname, '../assets/logo.png');
       if (fs.existsSync(logoPath)) {
-        doc.image(logoPath, 50, 45, { width: 100 });
+        try { doc.image(logoPath, 50, 45, { width: 100 }); } catch (e) {}
       } else {
         doc.fontSize(20).text('LOGO', 50, 45);
       }
@@ -56,10 +62,10 @@ export const generatePdf = async (audit) => {
       // Audit Info
       doc.fontSize(12).font('Helvetica-Bold').text('Información General:');
       doc.font('Helvetica').moveDown(0.5);
-      doc.text(`ID de Auditoría: ${audit.auditId}`);
-      doc.text(`Punto de Venta (PDV): ${audit.pdvCode || audit.povCode}`);
-      doc.text(`Auditor: ${audit.userName} (${audit.userEmail})`);
-      doc.text(`Fecha: ${new Date(audit.date).toLocaleDateString()}`);
+      doc.text(`ID de Auditoría: ${auditIdStr}`);
+      doc.text(`Punto de Venta (PDV): ${pdvStr}`);
+      doc.text(`Auditor: ${userNameStr} ${userEmailStr ? `(${userEmailStr})` : ''}`);
+      doc.text(`Fecha: ${dateStr}`);
       doc.moveDown(1);
 
       // Observations
@@ -79,7 +85,11 @@ export const generatePdf = async (audit) => {
         for (let i = 0; i < audit.images.before.length; i++) {
           const buffer = await fetchImageBuffer(audit.images.before[i]);
           if (buffer) {
-            doc.image(buffer, x, y, { width: 220, height: 220, fit: [220, 220] });
+            try {
+              doc.image(buffer, x, y, { width: 220, height: 220, fit: [220, 220] });
+            } catch (imgErr) {
+              console.error("PDFKit error drawing before image:", imgErr.message);
+            }
           }
           x += 250;
           if (x > 300) {
@@ -100,7 +110,11 @@ export const generatePdf = async (audit) => {
         for (let i = 0; i < audit.images.after.length; i++) {
           const buffer = await fetchImageBuffer(audit.images.after[i]);
           if (buffer) {
-            doc.image(buffer, x, y, { width: 220, height: 220, fit: [220, 220] });
+            try {
+              doc.image(buffer, x, y, { width: 220, height: 220, fit: [220, 220] });
+            } catch (imgErr) {
+              console.error("PDFKit error drawing after image:", imgErr.message);
+            }
           }
           x += 250;
           if (x > 300) {
@@ -115,7 +129,7 @@ export const generatePdf = async (audit) => {
       for (let i = 0; i < pages.count; i++) {
         doc.switchToPage(i);
         doc.fontSize(10).text(
-          `Generado el: ${new Date().toLocaleString()}`,
+          `Generado el: ${new Date().toLocaleString('es-ES')}`,
           50,
           doc.page.height - 50,
           { align: 'center' }
@@ -124,6 +138,7 @@ export const generatePdf = async (audit) => {
 
       doc.end();
     } catch (error) {
+      console.error("generatePdf error:", error);
       reject(error);
     }
   });

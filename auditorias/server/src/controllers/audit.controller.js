@@ -270,15 +270,16 @@ export const downloadPdf = async (req, res) => {
     }
 
     const pdfBuffer = await generatePdf(audit);
-    const code = audit.pdvCode || audit.povCode || 'PDV';
-    const filename = `Auditoria_${code}_${audit.auditId}.pdf`;
+    const cleanCode = (audit.pdvCode || audit.povCode || 'PDV').replace(/[^a-zA-Z0-9_-]/g, '');
+    const cleanId = (audit.auditId || audit._id || 'AUD').toString().replace(/[^a-zA-Z0-9_-]/g, '');
+    const filename = `Auditoria_${cleanCode}_${cleanId}.pdf`;
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
     res.send(pdfBuffer);
   } catch (error) {
-    console.error("Download PDF error:", error);
-    res.status(500).json({ message: 'Error al generar el PDF' });
+    console.error("Download PDF error details:", error);
+    res.status(500).json({ message: 'Error al generar el PDF', details: error.message });
   }
 };
 
