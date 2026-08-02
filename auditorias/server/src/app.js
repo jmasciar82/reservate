@@ -16,17 +16,20 @@ connectDB();
 
 // Middleware
 app.use(cors({
-  origin: [
-    'http://localhost:5173',
-    'http://localhost:5174',
-    'http://localhost:5175',
-    'http://localhost:5176',
-    'http://localhost:5177',
-    'http://localhost:5178',
-    'http://localhost:5179',
-    'https://reservate-backend-engq.vercel.app',
-    process.env.FRONTEND_URL || 'https://auditorias-pdv.vercel.app'
-  ],
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like server-to-server or postman)
+    if (!origin) return callback(null, true);
+    
+    // Allow localhost ports and any *.vercel.app domain
+    if (
+      origin.startsWith('http://localhost:') || 
+      origin.endsWith('.vercel.app')
+    ) {
+      return callback(null, true);
+    }
+    
+    callback(new Error('No permitido por CORS'));
+  },
   credentials: true
 }));
 app.use(express.json());
