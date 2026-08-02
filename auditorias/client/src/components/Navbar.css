@@ -62,6 +62,27 @@
   border-radius: 2px 2px 0 0;
 }
 
+.nav-link.btn-pdf-nav {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: var(--text-primary) !important;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.nav-link.btn-pdf-nav:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
+}
+
 .nav-link.btn-new-nav {
   background: linear-gradient(135deg, var(--accent-red), var(--accent-orange));
   color: #ffffff !important;
