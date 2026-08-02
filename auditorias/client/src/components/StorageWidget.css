@@ -36,6 +36,16 @@
   color: var(--text-secondary);
 }
 
+.photo-estimate-badge {
+  background: rgba(46, 196, 182, 0.12);
+  border: 1px solid rgba(46, 196, 182, 0.3);
+  color: #2ec4b6;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 20px;
+}
+
 .storage-percent-tag {
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.12);
