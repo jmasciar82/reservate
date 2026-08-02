@@ -181,14 +181,18 @@ export const generateConsolidatedPdf = async (audits) => {
           doc.addPage();
         }
 
-        // Section Box Header
-        doc.rect(40, doc.y, 515, 26).fill('#1f1f2e');
-        doc.fillColor('#ffffff').fontSize(12).font('Helvetica-Bold').text(`Punto de Venta: ${code}  |  ID: ${auditId}`, 50, doc.y - 19);
-        doc.moveDown(1.2);
+        const headerY = doc.y;
 
-        // Details
-        doc.fillColor('#222222').fontSize(10);
-        doc.font('Helvetica-Bold').text('Punto de Venta (PDV): ', { continued: true });
+        // Section Box Header
+        doc.rect(40, headerY, 515, 28).fill('#1f1f2e');
+        doc.fillColor('#ffffff').fontSize(12).font('Helvetica-Bold').text(`Punto de Venta: ${code}   |   ID: ${auditId}`, 52, headerY + 8);
+
+        // Move Y cleanly below the dark header box
+        doc.y = headerY + 36;
+
+        // Details in crisp dark text
+        doc.fillColor('#111111').fontSize(10);
+        doc.font('Helvetica-Bold').text('Punto de Venta (PDV): ', 40, doc.y, { continued: true });
         doc.font('Helvetica').text(code);
 
         doc.font('Helvetica-Bold').text('Auditor: ', { continued: true });
