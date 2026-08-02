@@ -314,7 +314,8 @@ export const downloadConsolidatedPdf = async (req, res) => {
 
     const pdfBuffer = await generateConsolidatedPdf(audits);
     const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-    const pdfKey = `auditorias/reportes/Reporte_General_${dateStr}.pdf`;
+    const timestamp = Date.now();
+    const pdfKey = `auditorias/reportes/Reporte_General_${dateStr}_${timestamp}.pdf`;
 
     const uploadedPdfKey = await uploadPdf(pdfBuffer, pdfKey);
     const url = await getPresignedUrl(uploadedPdfKey);

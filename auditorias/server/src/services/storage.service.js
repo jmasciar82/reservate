@@ -118,7 +118,7 @@ export const uploadPdf = async (fileBuffer, key) => {
   if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_CLOUD_NAME !== 'placeholder') {
     try {
       const folder = path.dirname(key);
-      const publicId = path.basename(key, path.extname(key));
+      const publicId = path.basename(key); // keep .pdf extension for raw resources
 
       const result = await new Promise((resolve, reject) => {
         const stream = cloudinary.uploader.upload_stream(
