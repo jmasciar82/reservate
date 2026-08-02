@@ -34,7 +34,7 @@ const fetchImageBuffer = async (keyOrUrl) => {
 export const generatePdf = async (audit) => {
   return new Promise(async (resolve, reject) => {
     try {
-      const doc = new PDFDocument({ margin: 50, size: 'A4' });
+      const doc = new PDFDocument({ margin: 50, size: 'A4', bufferPages: true });
       const buffers = [];
       doc.on('data', buffers.push.bind(buffers));
       doc.on('end', () => {
@@ -125,15 +125,19 @@ export const generatePdf = async (audit) => {
       }
 
       // Footer
-      const pages = doc.bufferedPageRange();
-      for (let i = 0; i < pages.count; i++) {
-        doc.switchToPage(i);
-        doc.fontSize(10).text(
-          `Generado el: ${new Date().toLocaleString('es-ES')}`,
-          50,
-          doc.page.height - 50,
-          { align: 'center' }
-        );
+      try {
+        const pages = doc.bufferedPageRange();
+        for (let i = 0; i < pages.count; i++) {
+          doc.switchToPage(i);
+          doc.fontSize(10).fillColor('#666666').text(
+            `Generado el: ${new Date().toLocaleString('es-ES')}`,
+            50,
+            doc.page.height - 50,
+            { align: 'center' }
+          );
+        }
+      } catch (e) {
+        console.warn("Footer pagination warning:", e.message);
       }
 
       doc.end();
@@ -147,7 +151,7 @@ export const generatePdf = async (audit) => {
 export const generateConsolidatedPdf = async (audits) => {
   return new Promise(async (resolve, reject) => {
     try {
-      const doc = new PDFDocument({ margin: 40, size: 'A4' });
+      const doc = new PDFDocument({ margin: 40, size: 'A4', bufferPages: true });
       const buffers = [];
       doc.on('data', buffers.push.bind(buffers));
       doc.on('end', () => {
@@ -236,15 +240,19 @@ export const generateConsolidatedPdf = async (audits) => {
       }
 
       // Page numbers footer
-      const pages = doc.bufferedPageRange();
-      for (let i = 0; i < pages.count; i++) {
-        doc.switchToPage(i);
-        doc.fontSize(8).fillColor('#888888').text(
-          `Página ${i + 1} de ${pages.count} - Reporte Consolidado de Auditorías PDV`,
-          40,
-          doc.page.height - 30,
-          { align: 'center' }
-        );
+      try {
+        const pages = doc.bufferedPageRange();
+        for (let i = 0; i < pages.count; i++) {
+          doc.switchToPage(i);
+          doc.fontSize(8).fillColor('#888888').text(
+            `Página ${i + 1} de ${pages.count} - Reporte Consolidado de Auditorías PDV`,
+            40,
+            doc.page.height - 30,
+            { align: 'center' }
+          );
+        }
+      } catch (e) {
+        console.warn("Consolidated footer pagination warning:", e.message);
       }
 
       doc.end();
