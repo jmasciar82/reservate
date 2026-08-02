@@ -60,24 +60,29 @@ export const generatePdf = async (audit) => {
       doc.moveDown(2);
 
       // Audit Info
-      doc.fontSize(12).font('Helvetica-Bold').text('Información General:');
-      doc.font('Helvetica').moveDown(0.5);
-      doc.text(`ID de Auditoría: ${auditIdStr}`);
-      doc.text(`Punto de Venta (PDV): ${pdvStr}`);
-      doc.text(`Auditor: ${userNameStr} ${userEmailStr ? `(${userEmailStr})` : ''}`);
-      doc.text(`Fecha: ${dateStr}`);
-      doc.moveDown(1);
+      doc.fontSize(14).font('Helvetica-Bold').fillColor('#e63946').text(`PUNTO DE VENTA (PDV): ${pdvStr}`);
+      doc.moveDown(0.5);
+
+      doc.fontSize(10).fillColor('#222222');
+      doc.font('Helvetica-Bold').text('ID de Auditoría: ', { continued: true });
+      doc.font('Helvetica').text(auditIdStr);
+
+      doc.font('Helvetica-Bold').text('Auditor: ', { continued: true });
+      doc.font('Helvetica').text(`${userNameStr} ${userEmailStr ? `(${userEmailStr})` : ''}`);
+
+      doc.font('Helvetica-Bold').text('Fecha: ', { continued: true });
+      doc.font('Helvetica').text(dateStr);
+      doc.moveDown(0.8);
 
       // Observations
-      doc.font('Helvetica-Bold').text('Observaciones:');
-      doc.font('Helvetica').moveDown(0.5);
-      doc.text(audit.observations || 'Sin observaciones.');
-      doc.moveDown(2);
+      doc.font('Helvetica-Bold').fontSize(11).text('Observaciones:');
+      doc.font('Helvetica').fontSize(10).text(audit.observations || 'Sin observaciones.');
+      doc.moveDown(1.5);
 
       // Before Images
       if (audit.images && audit.images.before && audit.images.before.length > 0) {
         doc.addPage();
-        doc.font('Helvetica-Bold').fontSize(16).text('Fotos Antes', { align: 'center' });
+        doc.font('Helvetica-Bold').fontSize(14).fillColor('#1f1f2e').text(`Fotos Antes - PDV: ${pdvStr} (${auditIdStr})`, { align: 'center' });
         doc.moveDown(1);
         
         let x = 50;
@@ -102,7 +107,7 @@ export const generatePdf = async (audit) => {
       // After Images
       if (audit.images && audit.images.after && audit.images.after.length > 0) {
         doc.addPage();
-        doc.font('Helvetica-Bold').fontSize(16).text('Fotos Después', { align: 'center' });
+        doc.font('Helvetica-Bold').fontSize(14).fillColor('#1f1f2e').text(`Fotos Después - PDV: ${pdvStr} (${auditIdStr})`, { align: 'center' });
         doc.moveDown(1);
         
         let x = 50;
@@ -129,10 +134,10 @@ export const generatePdf = async (audit) => {
         const pages = doc.bufferedPageRange();
         for (let i = 0; i < pages.count; i++) {
           doc.switchToPage(i);
-          doc.fontSize(10).fillColor('#666666').text(
-            `Generado el: ${new Date().toLocaleString('es-ES')}`,
+          doc.fontSize(9).fillColor('#666666').text(
+            `PDV: ${pdvStr} | ID: ${auditIdStr} | Generado el: ${new Date().toLocaleString('es-ES')}`,
             50,
-            doc.page.height - 50,
+            doc.page.height - 40,
             { align: 'center' }
           );
         }
@@ -167,6 +172,7 @@ export const generateConsolidatedPdf = async (audits) => {
       for (let index = 0; index < audits.length; index++) {
         const audit = audits[index];
         const code = audit.pdvCode || audit.povCode || 'PDV-0000';
+        const auditId = audit.auditId || audit._id || 'AUD-000';
         const dateStr = new Date(audit.date || audit.createdAt).toLocaleString('es-ES');
         const auditor = audit.userName || (audit.user && audit.user.name) || 'Admin';
 
@@ -176,18 +182,22 @@ export const generateConsolidatedPdf = async (audits) => {
         }
 
         // Section Box Header
-        doc.rect(40, doc.y, 515, 24).fill('#1f1f2e');
-        doc.fillColor('#ffffff').fontSize(12).font('Helvetica-Bold').text(`Auditoría #${index + 1}: ${code} (${audit.auditId || audit._id})`, 50, doc.y - 18);
+        doc.rect(40, doc.y, 515, 26).fill('#1f1f2e');
+        doc.fillColor('#ffffff').fontSize(12).font('Helvetica-Bold').text(`Punto de Venta: ${code}  |  ID: ${auditId}`, 50, doc.y - 19);
         doc.moveDown(1.2);
 
         // Details
-        doc.fillColor('#222222').fontSize(10).font('Helvetica-Bold').text(`Punto de Venta: `, 40, doc.y, { continued: true });
+        doc.fillColor('#222222').fontSize(10);
+        doc.font('Helvetica-Bold').text('Punto de Venta (PDV): ', { continued: true });
         doc.font('Helvetica').text(code);
-        doc.font('Helvetica-Bold').text(`Auditor: `, { continued: true });
+
+        doc.font('Helvetica-Bold').text('Auditor: ', { continued: true });
         doc.font('Helvetica').text(auditor);
-        doc.font('Helvetica-Bold').text(`Fecha: `, { continued: true });
+
+        doc.font('Helvetica-Bold').text('Fecha: ', { continued: true });
         doc.font('Helvetica').text(dateStr);
-        doc.font('Helvetica-Bold').text(`Observaciones: `, { continued: true });
+
+        doc.font('Helvetica-Bold').text('Observaciones: ', { continued: true });
         doc.font('Helvetica').text(audit.observations || 'Sin observaciones');
         doc.moveDown(0.8);
 
