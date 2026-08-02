@@ -38,8 +38,8 @@ export const generateAuditKey = (pdvCode, auditId, type, index, originalName) =>
 
 export const uploadImage = async (fileBuffer, key, mimeType) => {
   const optimizedBuffer = await sharp(fileBuffer)
-    .resize({ width: 1200, withoutEnlargement: true })
-    .jpeg({ quality: 80 })
+    .resize({ width: 1024, withoutEnlargement: true })
+    .jpeg({ quality: 72, mozjpeg: true })
     .toBuffer();
 
   // 1. Try Cloudinary if configured
