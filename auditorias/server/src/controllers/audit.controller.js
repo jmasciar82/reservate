@@ -269,26 +269,16 @@ export const downloadPdf = async (req, res) => {
       return res.status(404).json({ message: 'Auditoría no encontrada' });
     }
 
-    if (!audit.pdfKey) {
-      // Auto-generate PDF if not generated yet
-      const pdfBuffer = await generatePdf(audit);
-      const date = new Date();
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      const code = audit.pdvCode || audit.povCode;
-      const pdfKey = `auditorias/${year}/${month}/${day}/${code}/${audit.auditId}/${audit.auditId}.pdf`;
-      
-      const uploadedPdfKey = await uploadPdf(pdfBuffer, pdfKey);
-      audit.pdfKey = uploadedPdfKey;
-      await audit.save();
-    }
+    const pdfBuffer = await generatePdf(audit);
+    const code = audit.pdvCode || audit.povCode || 'PDV';
+    const filename = `Auditoria_${code}_${audit.auditId}.pdf`;
 
-    const url = await getPresignedUrl(audit.pdfKey);
-    res.json({ url });
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+    res.send(pdfBuffer);
   } catch (error) {
     console.error("Download PDF error:", error);
-    res.status(500).json({ message: 'Error al obtener URL del PDF' });
+    res.status(500).json({ message: 'Error al generar el PDF' });
   }
 };
 
@@ -314,13 +304,11 @@ export const downloadConsolidatedPdf = async (req, res) => {
 
     const pdfBuffer = await generateConsolidatedPdf(audits);
     const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-    const timestamp = Date.now();
-    const pdfKey = `auditorias/reportes/Reporte_General_${dateStr}_${timestamp}.pdf`;
+    const filename = `Reporte_General_Auditorias_${dateStr}.pdf`;
 
-    const uploadedPdfKey = await uploadPdf(pdfBuffer, pdfKey);
-    const url = await getPresignedUrl(uploadedPdfKey);
-
-    res.json({ url, message: 'Reporte consolidado generado exitosamente' });
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+    res.send(pdfBuffer);
   } catch (error) {
     console.error("downloadConsolidatedPdf error:", error);
     res.status(500).json({ message: 'Error al generar el reporte PDF general' });

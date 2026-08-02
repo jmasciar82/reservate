@@ -51,19 +51,9 @@ const AuditListPage = () => {
     }
   };
 
-  const handleDownloadConsolidatedPdf = async () => {
-    success('Generando reporte PDF general...');
-    try {
-      const res = await api.get('/api/audits/report/pdf');
-      const url = res.data?.url || res.url;
-      if (url) {
-        window.open(url, '_blank');
-      } else {
-        error('No se pudo obtener el enlace del PDF');
-      }
-    } catch (err) {
-      error('Error al generar el reporte PDF general');
-    }
+  const handleDownloadConsolidatedPdf = () => {
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    window.open(`${apiUrl}/api/audits/report/pdf`, '_blank');
   };
 
   const handleFilterChange = (e) => {

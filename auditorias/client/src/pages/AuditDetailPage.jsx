@@ -44,19 +44,9 @@ const AuditDetailPage = () => {
     }
   };
 
-  const downloadPDF = async () => {
-    try {
-      const res = await api.get(`/api/audits/${id}/pdf`);
-      if (res.data && res.data.url) {
-        window.open(res.data.url, '_blank');
-      } else if (res.url) {
-        window.open(res.url, '_blank');
-      } else {
-        success('Generando reporte PDF...');
-      }
-    } catch (err) {
-      error('Error al descargar el PDF');
-    }
+  const downloadPDF = () => {
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    window.open(`${apiUrl}/api/audits/${id}/pdf`, '_blank');
   };
 
   const handleSaveEdit = async () => {
