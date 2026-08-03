@@ -40,15 +40,15 @@ const Navbar = () => {
           <span>Auditorías PDV</span>
           <span className={`network-badge ${isOnline ? 'online' : 'offline'}`} style={{
             fontSize: '0.7rem',
-            padding: '2px 8px',
+            padding: '3px 10px',
             borderRadius: '12px',
-            background: isOnline ? 'rgba(46, 196, 182, 0.15)' : 'rgba(230, 57, 70, 0.2)',
-            color: isOnline ? '#2ec4b6' : '#e63946',
-            border: `1px solid ${isOnline ? 'rgba(46, 196, 182, 0.3)' : 'rgba(230, 57, 70, 0.4)'}`,
-            fontWeight: 600,
+            background: isOnline ? 'rgba(46, 196, 182, 0.2)' : 'rgba(230, 57, 70, 0.25)',
+            color: isOnline ? '#2ec4b6' : '#ff4d4d',
+            border: `1px solid ${isOnline ? '#2ec4b6' : '#ff4d4d'}`,
+            fontWeight: 700,
             whiteSpace: 'nowrap'
           }}>
-            {isOnline ? '🌐 En Línea' : '📶 Sin Conexión'}
+            {isOnline ? '🟢 En Línea' : '🔴 Sin Conexión'}
           </span>
         </div>
         
@@ -75,8 +75,8 @@ const Navbar = () => {
 
             <div className="navbar-user">
               <div className="user-info">
-                <img src={user.avatar || 'https://ui-avatars.com/api/?name=' + user.name + '&background=random'} alt="User Avatar" className="user-avatar" />
-                <span className="user-name">{user.name}</span>
+                <img src={user.avatar || 'https://ui-avatars.com/api/?name=' + (user.name || 'Usuario').replace(/\s*\(Demo\)/gi, '') + '&background=random'} alt="User Avatar" className="user-avatar" />
+                <span className="user-name">{(user.name || 'Usuario Admin').replace(/\s*\(Demo\)/gi, '')}</span>
               </div>
               <button className="btn btn-sm btn-secondary" onClick={logout}>Salir</button>
             </div>

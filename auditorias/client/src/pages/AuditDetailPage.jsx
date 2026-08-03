@@ -179,7 +179,7 @@ const AuditDetailPage = () => {
           <p><strong>ID Auditoría:</strong> {audit.auditId || audit._id}</p>
           <p><strong>Punto de Venta (PDV):</strong> {code}</p>
           <p><strong>Fecha:</strong> {new Date(audit.date || audit.createdAt).toLocaleString('es-ES')}</p>
-          <p><strong>Auditor:</strong> {audit.userName || (audit.user && audit.user.name)}</p>
+          <p><strong>Auditor:</strong> {(audit.userName || (audit.user && audit.user.name) || 'Usuario Admin').replace(/\s*\(Demo\)/gi, '')}</p>
           {audit.location && audit.location.latitude && audit.location.longitude ? (
             <p>
               <strong>Ubicación GPS:</strong> {audit.location.latitude.toFixed(6)}, {audit.location.longitude.toFixed(6)}{' '}

@@ -23,11 +23,14 @@ export const protect = async (req, res, next) => {
       if (!demoUser) {
         demoUser = await User.create({
           googleId: 'demo-google-id-12345',
-          name: 'Usuario Admin (Demo)',
+          name: 'Usuario Admin',
           email: 'demo@auditorias.com',
           picture: 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png',
           role: 'Admin'
         });
+      } else if (demoUser.name && demoUser.name.includes('(Demo)')) {
+        demoUser.name = 'Usuario Admin';
+        await demoUser.save();
       }
       req.user = demoUser;
     } catch (err) {

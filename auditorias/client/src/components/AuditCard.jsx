@@ -49,7 +49,7 @@ const AuditCard = ({ audit, onDelete }) => {
         </p>
         <p className="audit-card-info">
           <span className="icon">👤</span> 
-          {audit.userName || (audit.user && audit.user.name) || 'Usuario'}
+          {(audit.userName || (audit.user && audit.user.name) || 'Usuario Admin').replace(/\s*\(Demo\)/gi, '')}
         </p>
         {audit.location && audit.location.latitude && audit.location.longitude && (
           <p className="audit-card-info" style={{ marginTop: '4px' }}>
