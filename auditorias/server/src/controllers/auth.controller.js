@@ -66,19 +66,20 @@ export const loginWithPassword = async (req, res) => {
 
     const cleanEmail = email.trim().toLowerCase();
 
-    // Check if user exists
-    let user = await User.findOne({ 
-      $or: [
-        { email: cleanEmail },
-        { email: 'demo@auditorias.com' },
-        { email: 'admin@auditorias.com' }
-      ]
-    });
-
-    // Special bootstrapping for Admin with password Dalt@2010
+    // Check if Admin bootstrapping login
     const isAdminCredentials = (cleanEmail === 'admin' || cleanEmail === 'admin@dalt.com' || cleanEmail === 'demo@auditorias.com' || cleanEmail === 'admin@auditorias.com') && password === 'Dalt@2010';
 
+    let user;
+
     if (isAdminCredentials) {
+      user = await User.findOne({ 
+        $or: [
+          { email: cleanEmail },
+          { email: 'demo@auditorias.com' },
+          { email: 'admin@auditorias.com' }
+        ]
+      });
+
       if (!user) {
         const hashedPassword = await bcrypt.hash('Dalt@2010', 10);
         user = await User.create({
@@ -96,12 +97,15 @@ export const loginWithPassword = async (req, res) => {
         await user.save();
       }
     } else {
+      user = await User.findOne({ email: cleanEmail });
+
       if (!user) {
-        return res.status(401).json({ message: 'Credenciales inválidas' });
+        return res.status(401).json({ message: 'Usuario no encontrado' });
       }
+
       const isMatch = await user.matchPassword(password);
       if (!isMatch) {
-        return res.status(401).json({ message: 'Credenciales inválidas' });
+        return res.status(401).json({ message: 'Contraseña incorrecta' });
       }
     }
 
