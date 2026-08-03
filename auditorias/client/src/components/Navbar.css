@@ -30,6 +30,46 @@
   -webkit-text-fill-color: transparent;
 }
 
+.network-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  transition: all 0.3s ease;
+}
+
+.network-badge.online {
+  background: rgba(46, 196, 182, 0.15);
+  color: #2ec4b6 !important;
+  border: 1px solid #2ec4b6;
+}
+
+.network-badge.online .network-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: #2ec4b6;
+  box-shadow: 0 0 8px #2ec4b6;
+}
+
+.network-badge.offline {
+  background: rgba(230, 57, 70, 0.2);
+  color: #ff4d4d !important;
+  border: 1px solid #ff4d4d;
+}
+
+.network-badge.offline .network-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: #ff4d4d;
+  box-shadow: 0 0 8px #ff4d4d;
+}
+
 .navbar-links {
   display: flex;
   gap: var(--spacing-6);

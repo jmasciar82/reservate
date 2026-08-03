@@ -38,17 +38,9 @@ const Navbar = () => {
       <div className="container navbar-container">
         <div className="navbar-logo" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span>Auditorías PDV</span>
-          <span className={`network-badge ${isOnline ? 'online' : 'offline'}`} style={{
-            fontSize: '0.7rem',
-            padding: '3px 10px',
-            borderRadius: '12px',
-            background: isOnline ? 'rgba(46, 196, 182, 0.2)' : 'rgba(230, 57, 70, 0.25)',
-            color: isOnline ? '#2ec4b6' : '#ff4d4d',
-            border: `1px solid ${isOnline ? '#2ec4b6' : '#ff4d4d'}`,
-            fontWeight: 700,
-            whiteSpace: 'nowrap'
-          }}>
-            {isOnline ? '🟢 En Línea' : '🔴 Sin Conexión'}
+          <span className={`network-badge ${isOnline ? 'online' : 'offline'}`}>
+            <span className="network-dot"></span>
+            <span>{isOnline ? 'En Línea' : 'Sin Conexión'}</span>
           </span>
         </div>
         
