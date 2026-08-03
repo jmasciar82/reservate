@@ -56,37 +56,58 @@ const Navbar = () => {
         {user && (
           <>
             <div className={`navbar-links ${mobileMenuOpen ? 'active' : ''}`}>
-              <NavLink to="/auditorias" className={({isActive}) => isActive ? 'nav-link active' : 'nav-link'} end onClick={() => setMobileMenuOpen(false)}>Auditorías</NavLink>
-              <NavLink to="/auditorias/nueva" className={({isActive}) => isActive ? 'nav-link active btn-new-nav' : 'nav-link btn-new-nav'} onClick={() => setMobileMenuOpen(false)}>+ Nueva Auditoría</NavLink>
+              <NavLink 
+                to="/auditorias" 
+                className={({isActive}) => isActive ? 'mobile-nav-item active' : 'mobile-nav-item'} 
+                end 
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <span className="nav-icon">📊</span>
+                <span className="nav-text">Auditorías</span>
+              </NavLink>
+
+              <NavLink 
+                to="/auditorias/nueva" 
+                className={({isActive}) => isActive ? 'mobile-nav-item btn-new-mobile active' : 'mobile-nav-item btn-new-mobile'} 
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <span className="nav-icon">➕</span>
+                <span className="nav-text">+ Nueva Auditoría</span>
+              </NavLink>
+
               {user && (user.role === 'Admin' || user.role === 'Supervisor') && (
-                <NavLink to="/usuarios" className={({isActive}) => isActive ? 'nav-link active' : 'nav-link'} onClick={() => setMobileMenuOpen(false)}>👥 Usuarios</NavLink>
+                <NavLink 
+                  to="/usuarios" 
+                  className={({isActive}) => isActive ? 'mobile-nav-item active' : 'mobile-nav-item'} 
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <span className="nav-icon">👥</span>
+                  <span className="nav-text">Gestión de Usuarios</span>
+                </NavLink>
               )}
+
               <button 
-                className="nav-link btn-pdf-nav" 
+                className="mobile-nav-item btn-pdf-mobile" 
                 onClick={() => { setMobileMenuOpen(false); handleDownloadConsolidatedPdf(); }}
                 disabled={loadingPdf}
                 title="Descargar Reporte PDF General de todas las auditorías"
               >
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#e63946" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                  <polyline points="14 2 14 8 20 8"></polyline>
-                  <line x1="16" y1="13" x2="8" y2="13"></line>
-                  <line x1="16" y1="17" x2="8" y2="17"></line>
-                </svg>
-                <span>Reporte PDF General</span>
+                <span className="nav-icon">📄</span>
+                <span className="nav-text">Reporte PDF General</span>
               </button>
 
               {/* Mobile User Profile & Salir Section */}
               <div className="mobile-user-box">
-                <div className="user-info">
-                  <img src={user.avatar || 'https://ui-avatars.com/api/?name=' + (user.name || 'Usuario').replace(/\s*\(Demo\)/gi, '') + '&background=random'} alt="User Avatar" className="user-avatar" />
+                <div className="user-profile-header">
+                  <img src={user.avatar || 'https://ui-avatars.com/api/?name=' + (user.name || 'Usuario').replace(/\s*\(Demo\)/gi, '') + '&background=random'} alt="User Avatar" className="user-avatar-lg" />
                   <div>
-                    <div className="user-name">{(user.name || 'Usuario Admin').replace(/\s*\(Demo\)/gi, '')}</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{user.email}</div>
+                    <div className="user-name-lg">{(user.name || 'Usuario Admin').replace(/\s*\(Demo\)/gi, '')}</div>
+                    <div className="user-email-sub">{user.email}</div>
                   </div>
                 </div>
-                <button className="btn btn-sm btn-secondary" onClick={handleLogout} style={{ marginTop: '6px', width: '100%' }}>
-                  🚪 Salir / Cerrar Sesión
+                <button className="mobile-logout-btn" onClick={handleLogout}>
+                  <span>🚪</span>
+                  <span>Cerrar Sesión</span>
                 </button>
               </div>
             </div>
