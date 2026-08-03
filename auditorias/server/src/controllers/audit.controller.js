@@ -128,6 +128,10 @@ export const updateAudit = async (req, res) => {
 
 export const deleteAudit = async (req, res) => {
   try {
+    if (req.user && req.user.role === 'Auditor') {
+      return res.status(403).json({ message: 'Los auditores no tienen permiso para eliminar auditorías.' });
+    }
+
     const audit = await findAuditByIdOrCode(req.params.id);
 
     if (!audit) {
@@ -208,6 +212,10 @@ export const uploadAuditImage = async (req, res) => {
 
 export const deleteAuditImage = async (req, res) => {
   try {
+    if (req.user && req.user.role === 'Auditor') {
+      return res.status(403).json({ message: 'Los auditores no tienen permiso para eliminar imágenes.' });
+    }
+
     const { id, type, index } = req.params;
     
     const mappedType = (type === 'antes' || type === 'before') ? 'before' : 'after';

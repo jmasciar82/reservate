@@ -152,6 +152,7 @@ const AuditDetailPage = () => {
   const code = audit.pdvCode || audit.povCode || 'PDV-0000';
   const beforeImages = audit.images?.beforeUrls || audit.images?.before || [];
   const afterImages = audit.images?.afterUrls || audit.images?.after || [];
+  const canDelete = user?.role === 'Admin' || user?.role === 'Supervisor';
 
   return (
     <div className="container detail-container animate-fade-in">
@@ -167,9 +168,11 @@ const AuditDetailPage = () => {
           <button className="btn btn-primary" onClick={downloadPDF}>
             📄 Descargar PDF
           </button>
-          <button className="btn btn-danger" onClick={() => setShowDeleteModal(true)} style={{ background: '#e63946', color: '#fff', border: 'none' }}>
-            🗑️ Eliminar
-          </button>
+          {canDelete && (
+            <button className="btn btn-danger" onClick={() => setShowDeleteModal(true)} style={{ background: '#e63946', color: '#fff', border: 'none' }}>
+              🗑️ Eliminar
+            </button>
+          )}
         </div>
       </div>
 
@@ -217,13 +220,15 @@ const AuditDetailPage = () => {
                   <div key={i} className="thumbnail-wrapper" onClick={() => setLightboxImg(url)}>
                     <img src={url} alt={`Antes ${i + 1}`} className="thumbnail-img" />
                     <span className="thumbnail-label">Antes #{i + 1}</span>
-                    <button 
-                      className="delete-photo-btn" 
-                      onClick={(e) => handleDeleteImage('before', i, e)}
-                      title="Eliminar esta foto"
-                    >
-                      ✕
-                    </button>
+                    {canDelete && (
+                      <button 
+                        className="delete-photo-btn" 
+                        onClick={(e) => handleDeleteImage('before', i, e)}
+                        title="Eliminar esta foto"
+                      >
+                        ✕
+                      </button>
+                    )}
                   </div>
                 );
               })}
@@ -264,13 +269,15 @@ const AuditDetailPage = () => {
                   <div key={i} className="thumbnail-wrapper" onClick={() => setLightboxImg(url)}>
                     <img src={url} alt={`Después ${i + 1}`} className="thumbnail-img" />
                     <span className="thumbnail-label">Después #{i + 1}</span>
-                    <button 
-                      className="delete-photo-btn" 
-                      onClick={(e) => handleDeleteImage('after', i, e)}
-                      title="Eliminar esta foto"
-                    >
-                      ✕
-                    </button>
+                    {canDelete && (
+                      <button 
+                        className="delete-photo-btn" 
+                        onClick={(e) => handleDeleteImage('after', i, e)}
+                        title="Eliminar esta foto"
+                      >
+                        ✕
+                      </button>
+                    )}
                   </div>
                 );
               })}

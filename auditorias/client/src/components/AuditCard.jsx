@@ -1,12 +1,15 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import StatusBadge from './StatusBadge';
 import './AuditCard.css';
 
 const AuditCard = ({ audit, onDelete }) => {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const code = audit.pdvCode || audit.povCode || 'PDV-0000';
+  const canDelete = user?.role === 'Admin' || user?.role === 'Supervisor';
 
   const handleDelete = (e) => {
     e.stopPropagation();
@@ -21,7 +24,7 @@ const AuditCard = ({ audit, onDelete }) => {
         <h3 className="audit-card-title">{code}</h3>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span className="audit-id-tag">{audit.auditId}</span>
-          {onDelete && (
+          {onDelete && canDelete && (
             <button 
               className="card-delete-btn" 
               onClick={handleDelete}
