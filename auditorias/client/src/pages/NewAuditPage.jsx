@@ -63,11 +63,60 @@ const NewAuditPage = () => {
     setCurrentStep(prev => Math.max(prev - 1, 0));
   };
 
+  const fileToDataUrl = (file) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target.result);
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleSaveOffline = async (fullCode) => {
+    try {
+      const beforePayload = [];
+      for (let img of beforeImages) {
+        if (img.file) {
+          const dataUrl = await fileToDataUrl(img.file);
+          beforePayload.push({ dataUrl, name: img.file.name });
+        }
+      }
+
+      const afterPayload = [];
+      for (let img of afterImages) {
+        if (img.file) {
+          const dataUrl = await fileToDataUrl(img.file);
+          afterPayload.push({ dataUrl, name: img.file.name });
+        }
+      }
+
+      const { saveOfflineAudit } = await import('../utils/offlineStorage');
+      await saveOfflineAudit({
+        pdvCode: fullCode,
+        observations,
+        location,
+        beforeImages: beforePayload,
+        afterImages: afterPayload
+      });
+
+      success('⚠️ Auditoría guardada en modo offline. Se sincronizará al conectar.');
+      navigate('/auditorias');
+    } catch (e) {
+      console.error("Save offline error:", e);
+      error('Error al guardar en almacenamiento offline');
+    }
+  };
+
   const handleSubmit = async () => {
     setSubmitting(true);
-    try {
-      const fullCode = getFullPdvCode();
+    const fullCode = getFullPdvCode();
 
+    if (!navigator.onLine) {
+      await handleSaveOffline(fullCode);
+      setSubmitting(false);
+      return;
+    }
+
+    try {
       // 1. Create audit record
       const auditRes = await api.post('/api/audits', {
         pdvCode: fullCode,
@@ -97,8 +146,8 @@ const NewAuditPage = () => {
       success('Auditoría guardada correctamente');
       navigate(`/auditorias/${auditId}`);
     } catch (err) {
-      console.error(err);
-      error(err.message || 'Error al guardar la auditoría');
+      console.warn("Online upload failed, attempting offline save:", err.message);
+      await handleSaveOffline(fullCode);
     } finally {
       setSubmitting(false);
     }

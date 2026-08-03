@@ -8,17 +8,59 @@ import { useToast } from '../components/Toast';
 import './AuditListPage.css';
 
 const AuditListPage = () => {
+  const { success, error } = useToast();
   const [audits, setAudits] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({ date: '', pdvCode: '' });
+  
   const [auditToDelete, setAuditToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
-  const { success, error } = useToast();
+  const [pendingOffline, setPendingOffline] = useState([]);
+  const [syncing, setSyncing] = useState(false);
+
+  useEffect(() => {
+    checkPendingOffline();
+    fetchAudits();
+
+    const handleOnline = () => {
+      handleAutoSync();
+    };
+
+    window.addEventListener('online', handleOnline);
+    return () => window.removeEventListener('online', handleOnline);
+  }, []);
 
   useEffect(() => {
     fetchAudits();
   }, [filters]);
+
+  const checkPendingOffline = async () => {
+    try {
+      const { getPendingOfflineAudits } = await import('../utils/offlineStorage');
+      const list = await getPendingOfflineAudits();
+      setPendingOffline(list);
+    } catch (e) {
+      console.warn("Check offline error:", e);
+    }
+  };
+
+  const handleAutoSync = async () => {
+    try {
+      const { syncAllPendingAudits } = await import('../utils/syncManager');
+      setSyncing(true);
+      const res = await syncAllPendingAudits();
+      if (res.syncedCount > 0) {
+        success(`✅ Se sincronizaron ${res.syncedCount} auditoría(s) guardadas sin conexión`);
+        fetchAudits();
+      }
+      checkPendingOffline();
+    } catch (e) {
+      console.warn("Auto sync error:", e);
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const fetchAudits = async () => {
     setLoading(true);
@@ -80,6 +122,30 @@ const AuditListPage = () => {
           </Link>
         </div>
       </div>
+
+      {pendingOffline.length > 0 && (
+        <div style={{ padding: '14px 18px', background: 'rgba(233, 196, 106, 0.12)', border: '1px solid rgba(233, 196, 106, 0.3)', borderRadius: '12px', marginBottom: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{ fontSize: '1.4rem' }}>📶</span>
+            <div>
+              <div style={{ fontSize: '0.92rem', fontWeight: 600, color: '#e9c46a' }}>
+                Tenés {pendingOffline.length} auditoría(s) guardadas sin conexión
+              </div>
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                Se subirán automáticamente al recuperar conexión a internet.
+              </div>
+            </div>
+          </div>
+          <button 
+            className="btn btn-sm btn-primary" 
+            onClick={handleAutoSync} 
+            disabled={syncing}
+            style={{ background: 'linear-gradient(135deg, #e9c46a, #f4a261)', color: '#000', border: 'none', fontWeight: 700 }}
+          >
+            {syncing ? '⌛ Sincronizando...' : '⚡ Sincronizar Ahora'}
+          </button>
+        </div>
+      )}
 
       <StorageWidget />
 

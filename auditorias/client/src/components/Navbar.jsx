@@ -9,7 +9,20 @@ const Navbar = () => {
   const { user, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [loadingPdf, setLoadingPdf] = useState(false);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
   const { success, error } = useToast();
+
+  React.useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   const toggleMenu = () => {
     setMobileMenuOpen(!mobileMenuOpen);
@@ -23,8 +36,20 @@ const Navbar = () => {
   return (
     <nav className="navbar">
       <div className="container navbar-container">
-        <div className="navbar-logo">
-          Auditorías PDV
+        <div className="navbar-logo" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span>Auditorías PDV</span>
+          <span className={`network-badge ${isOnline ? 'online' : 'offline'}`} style={{
+            fontSize: '0.7rem',
+            padding: '2px 8px',
+            borderRadius: '12px',
+            background: isOnline ? 'rgba(46, 196, 182, 0.15)' : 'rgba(230, 57, 70, 0.2)',
+            color: isOnline ? '#2ec4b6' : '#e63946',
+            border: `1px solid ${isOnline ? 'rgba(46, 196, 182, 0.3)' : 'rgba(230, 57, 70, 0.4)'}`,
+            fontWeight: 600,
+            whiteSpace: 'nowrap'
+          }}>
+            {isOnline ? '🌐 En Línea' : '📶 Sin Conexión'}
+          </span>
         </div>
         
         {user && (
