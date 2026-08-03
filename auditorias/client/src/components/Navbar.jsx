@@ -33,6 +33,15 @@ const Navbar = () => {
     window.open(`${apiUrl}/api/audits/report/pdf`, '_blank');
   };
 
+  const handleLogout = () => {
+    localStorage.clear();
+    sessionStorage.clear();
+    if (logout) {
+      logout();
+    }
+    window.location.href = '/login';
+  };
+
   return (
     <nav className="navbar">
       <div className="container navbar-container">
@@ -70,7 +79,7 @@ const Navbar = () => {
                 <img src={user.avatar || 'https://ui-avatars.com/api/?name=' + (user.name || 'Usuario').replace(/\s*\(Demo\)/gi, '') + '&background=random'} alt="User Avatar" className="user-avatar" />
                 <span className="user-name">{(user.name || 'Usuario Admin').replace(/\s*\(Demo\)/gi, '')}</span>
               </div>
-              <button className="btn btn-sm btn-secondary" onClick={logout}>Salir</button>
+              <button className="btn btn-sm btn-secondary" onClick={handleLogout}>Salir</button>
             </div>
 
             <button className="mobile-toggle" onClick={toggleMenu}>
