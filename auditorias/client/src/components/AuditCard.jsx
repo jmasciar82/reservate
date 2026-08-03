@@ -51,6 +51,20 @@ const AuditCard = ({ audit, onDelete }) => {
           <span className="icon">👤</span> 
           {audit.userName || (audit.user && audit.user.name) || 'Usuario'}
         </p>
+        {audit.location && audit.location.latitude && audit.location.longitude && (
+          <p className="audit-card-info" style={{ marginTop: '4px' }}>
+            <span className="icon">📍</span>
+            <a 
+              href={`https://www.google.com/maps?q=${audit.location.latitude},${audit.location.longitude}`} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              style={{ color: '#0066cc', textDecoration: 'underline', fontSize: '0.85rem' }}
+            >
+              GPS: {audit.location.latitude.toFixed(4)}, {audit.location.longitude.toFixed(4)}
+            </a>
+          </p>
+        )}
         {audit.observations && (
           <p className="audit-card-obs" style={{ marginTop: '8px', fontSize: '0.85rem', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             💬 {audit.observations}

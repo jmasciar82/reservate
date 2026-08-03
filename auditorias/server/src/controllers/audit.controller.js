@@ -16,7 +16,7 @@ const findAuditByIdOrCode = async (id) => {
 export const createAudit = async (req, res) => {
   try {
     const code = req.body.pdvCode || req.body.povCode;
-    const { observations } = req.body;
+    const { observations, location } = req.body;
     
     if (!code) {
       return res.status(400).json({ message: 'Código PDV es requerido' });
@@ -26,6 +26,7 @@ export const createAudit = async (req, res) => {
       pdvCode: code,
       povCode: code,
       observations: observations || '',
+      location: location || null,
       user: req.user._id,
       userName: req.user.name,
       userEmail: req.user.email,
@@ -102,7 +103,7 @@ export const getAuditById = async (req, res) => {
 
 export const updateAudit = async (req, res) => {
   try {
-    const { observations, pdvCode, povCode, status } = req.body;
+    const { observations, pdvCode, povCode, status, location } = req.body;
     const audit = await findAuditByIdOrCode(req.params.id);
 
     if (!audit) {
@@ -116,6 +117,7 @@ export const updateAudit = async (req, res) => {
       audit.povCode = newCode;
     }
     if (status !== undefined) audit.status = status;
+    if (location !== undefined) audit.location = location;
 
     const updatedAudit = await audit.save();
     res.json(updatedAudit);

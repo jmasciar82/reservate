@@ -19,6 +19,33 @@ const NewAuditPage = () => {
   const [beforeImages, setBeforeImages] = useState([]);
   const [afterImages, setAfterImages] = useState([]);
 
+  const [location, setLocation] = useState(null);
+  const [gettingGps, setGettingGps] = useState(false);
+
+  React.useEffect(() => {
+    fetchGpsLocation();
+  }, []);
+
+  const fetchGpsLocation = () => {
+    if ('geolocation' in navigator) {
+      setGettingGps(true);
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setLocation({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude
+          });
+          setGettingGps(false);
+        },
+        (err) => {
+          console.warn("GPS error:", err.message);
+          setGettingGps(false);
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    }
+  };
+
   const getFullPdvCode = () => {
     const clean = pdvNumber.replace(/^PDV-/i, '').trim();
     return clean ? `PDV-${clean}` : '';
@@ -45,7 +72,8 @@ const NewAuditPage = () => {
       const auditRes = await api.post('/api/audits', {
         pdvCode: fullCode,
         povCode: fullCode,
-        observations: observations
+        observations: observations,
+        location: location
       });
       
       const auditId = auditRes.data ? (auditRes.data._id || auditRes.data.auditId) : (auditRes._id || auditRes.auditId);
@@ -120,6 +148,20 @@ const NewAuditPage = () => {
                   ✓ Código completo: <span>{getFullPdvCode()}</span>
                 </div>
               )}
+
+              <div style={{ marginTop: '20px', padding: '12px 16px', background: 'rgba(255, 255, 255, 0.04)', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                    📍 Ubicación GPS del Auditor
+                  </div>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                    {gettingGps ? 'Obteniendo coordenadas GPS...' : location ? `Lat: ${location.latitude.toFixed(6)}, Lng: ${location.longitude.toFixed(6)}` : 'No capturada'}
+                  </div>
+                </div>
+                <button type="button" className="btn btn-sm btn-outline" onClick={fetchGpsLocation} disabled={gettingGps}>
+                  {gettingGps ? '⌛ Buscando...' : location ? '🔄 Re-obtener GPS' : '📍 Capturar GPS'}
+                </button>
+              </div>
             </div>
           </div>
         )}

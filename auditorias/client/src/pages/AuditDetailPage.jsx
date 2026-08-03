@@ -116,6 +116,28 @@ const AuditDetailPage = () => {
     }
   };
 
+  const handleCaptureGpsCurrent = () => {
+    if ('geolocation' in navigator) {
+      success('Obteniendo posición GPS...');
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const loc = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude
+          };
+          try {
+            await api.patch(`/api/audits/${id}`, { location: loc });
+            setAudit(prev => ({ ...prev, location: loc }));
+            success('Ubicación GPS registrada exitosamente');
+          } catch (e) {
+            error('Error al guardar ubicación GPS');
+          }
+        },
+        (err) => error('No se pudo acceder al GPS del dispositivo')
+      );
+    }
+  };
+
   if (loading) {
     return (
       <div className="container detail-container">
@@ -158,6 +180,26 @@ const AuditDetailPage = () => {
           <p><strong>Punto de Venta (PDV):</strong> {code}</p>
           <p><strong>Fecha:</strong> {new Date(audit.date || audit.createdAt).toLocaleString('es-ES')}</p>
           <p><strong>Auditor:</strong> {audit.userName || (audit.user && audit.user.name)}</p>
+          {audit.location && audit.location.latitude && audit.location.longitude ? (
+            <p>
+              <strong>Ubicación GPS:</strong> {audit.location.latitude.toFixed(6)}, {audit.location.longitude.toFixed(6)}{' '}
+              <a 
+                href={`https://www.google.com/maps?q=${audit.location.latitude},${audit.location.longitude}`} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                style={{ color: '#0066cc', textDecoration: 'underline', marginLeft: '6px', fontWeight: 600 }}
+              >
+                🗺️ Ver en Google Maps
+              </a>
+            </p>
+          ) : (
+            <p style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
+              <strong>Ubicación GPS:</strong> <span style={{ color: 'var(--text-secondary)' }}>No registrada</span>
+              <button className="btn btn-sm btn-outline" onClick={handleCaptureGpsCurrent} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>
+                📍 Registrar GPS Actual
+              </button>
+            </p>
+          )}
           <div className="obs-section">
             <strong>Observaciones:</strong>
             <p className="obs-text">{audit.observations || 'Sin observaciones'}</p>

@@ -28,6 +28,11 @@ const auditSchema = new mongoose.Schema({
     before: [{ type: String }],
     after: [{ type: String }]
   },
+  location: {
+    latitude: { type: Number },
+    longitude: { type: Number },
+    address: { type: String }
+  },
   pdfKey: String
 }, {
   timestamps: true

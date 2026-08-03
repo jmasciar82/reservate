@@ -72,6 +72,17 @@ export const generatePdf = async (audit) => {
 
       doc.font('Helvetica-Bold').text('Fecha: ', { continued: true });
       doc.font('Helvetica').text(dateStr);
+
+      if (audit.location && audit.location.latitude && audit.location.longitude) {
+        const lat = audit.location.latitude.toFixed(6);
+        const lng = audit.location.longitude.toFixed(6);
+        const mapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+        doc.font('Helvetica-Bold').text('Ubicación GPS: ', { continued: true });
+        doc.font('Helvetica').text(`${lat}, ${lng}`);
+        doc.font('Helvetica-Bold').text('Enlace Google Maps: ', { continued: true });
+        doc.font('Helvetica').fillColor('#0066cc').text(mapsUrl, { link: mapsUrl, underline: true });
+        doc.fillColor('#222222');
+      }
       doc.moveDown(0.8);
 
       // Observations
@@ -200,6 +211,15 @@ export const generateConsolidatedPdf = async (audits) => {
 
         doc.font('Helvetica-Bold').text('Fecha: ', { continued: true });
         doc.font('Helvetica').text(dateStr);
+
+        if (audit.location && audit.location.latitude && audit.location.longitude) {
+          const lat = audit.location.latitude.toFixed(6);
+          const lng = audit.location.longitude.toFixed(6);
+          const mapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+          doc.font('Helvetica-Bold').text('GPS: ', { continued: true });
+          doc.font('Helvetica').fillColor('#0066cc').text(`${lat}, ${lng} (Ver en Maps)`, { link: mapsUrl, underline: true });
+          doc.fillColor('#111111');
+        }
 
         doc.font('Helvetica-Bold').text('Observaciones: ', { continued: true });
         doc.font('Helvetica').text(audit.observations || 'Sin observaciones');
