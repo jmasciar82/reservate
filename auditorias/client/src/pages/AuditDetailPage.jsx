@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useToast } from '../components/Toast';
+import { useAuth } from '../context/AuthContext';
 import { compressImage } from '../utils/imageCompressor';
 import LoadingSkeleton from '../components/LoadingSkeleton';
 import './AuditDetailPage.css';
@@ -9,6 +10,9 @@ import './AuditDetailPage.css';
 const AuditDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { success, error } = useToast();
+
   const [audit, setAudit] = useState(null);
   const [loading, setLoading] = useState(true);
   const [lightboxImg, setLightboxImg] = useState(null);
@@ -22,8 +26,6 @@ const AuditDetailPage = () => {
   // Delete State
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
-
-  const { success, error } = useToast();
 
   useEffect(() => {
     fetchAudit();
