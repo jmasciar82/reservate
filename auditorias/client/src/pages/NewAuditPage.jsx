@@ -51,10 +51,27 @@ const NewAuditPage = () => {
     return clean ? `PDV-${clean}` : '';
   };
 
-  const handleNext = () => {
-    if (currentStep === 0 && !pdvNumber.trim()) {
-      error('Ingresá el número del Punto de Venta');
-      return;
+  const handleNext = async () => {
+    if (currentStep === 0) {
+      if (!pdvNumber.trim()) {
+        error('Ingresá el número del Punto de Venta');
+        return;
+      }
+      const fullCode = getFullPdvCode();
+      try {
+        const res = await api.get(`/api/audits?pdvCode=${encodeURIComponent(fullCode)}`);
+        const auditsList = res.data || res || [];
+        const exactMatch = auditsList.find(a => 
+          (a.pdvCode && a.pdvCode.toUpperCase() === fullCode.toUpperCase()) ||
+          (a.povCode && a.povCode.toUpperCase() === fullCode.toUpperCase())
+        );
+        if (exactMatch) {
+          error(`El ${fullCode} ya fue auditado previamente (ID: ${exactMatch.auditId || exactMatch._id}). No se permiten PDV duplicados.`);
+          return;
+        }
+      } catch (err) {
+        console.warn("Check duplicate error:", err);
+      }
     }
     if (currentStep === 1 && beforeImages.length < 2) {
       error(`Debés cargar obligatoriamente las 2 fotos del Antes para poder continuar (Cargadas: ${beforeImages.length}/2)`);
@@ -98,19 +115,22 @@ const NewAuditPage = () => {
       }
 
       const { saveOfflineAudit } = await import('../utils/offlineStorage');
-      await saveOfflineAudit({
+      const draft = {
         pdvCode: fullCode,
+        povCode: fullCode,
         observations,
         location,
         beforeImages: beforePayload,
         afterImages: afterPayload
-      });
+      };
 
-      success('⚠️ Auditoría guardada en modo offline. Se sincronizará al conectar.');
+      await saveOfflineAudit(draft);
+
+      success('📶 Estás en modo offline. Auditoría guardada localmente para sincronizar al recuperar conexión.');
       navigate('/auditorias');
     } catch (e) {
       console.error("Save offline error:", e);
-      error('Error al guardar en almacenamiento offline');
+      error('Error al guardar borrador offline');
     }
   };
 
@@ -154,7 +174,13 @@ const NewAuditPage = () => {
       success('Auditoría guardada correctamente');
       navigate(`/auditorias/${auditId}`);
     } catch (err) {
-      console.warn("Online upload failed, attempting offline save:", err.message);
+      console.warn("Online upload failed:", err);
+      const errMsg = err.response?.data?.message || err.message || '';
+      if (errMsg.includes('ya fue auditado') || errMsg.includes('duplicado') || err.status === 400) {
+        error(errMsg || 'El Punto de Venta ya se encuentra auditado.');
+        setSubmitting(false);
+        return;
+      }
       await handleSaveOffline(fullCode);
     } finally {
       setSubmitting(false);

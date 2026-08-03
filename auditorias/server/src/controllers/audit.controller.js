@@ -22,9 +22,25 @@ export const createAudit = async (req, res) => {
       return res.status(400).json({ message: 'Código PDV es requerido' });
     }
 
+    const cleanCode = code.trim().toUpperCase();
+
+    // Check if an audit with this PDV code already exists
+    const existingAudit = await Audit.findOne({ 
+      $or: [
+        { pdvCode: { $regex: `^${cleanCode.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}$`, $options: 'i' } },
+        { povCode: { $regex: `^${cleanCode.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}$`, $options: 'i' } }
+      ]
+    });
+
+    if (existingAudit) {
+      return res.status(400).json({ 
+        message: `El Punto de Venta ${cleanCode} ya fue auditado previamente (ID: ${existingAudit.auditId || existingAudit._id}). No se permiten PDV duplicados.` 
+      });
+    }
+
     const audit = new Audit({
-      pdvCode: code,
-      povCode: code,
+      pdvCode: cleanCode,
+      povCode: cleanCode,
       observations: observations || '',
       location: location || null,
       user: req.user._id,
@@ -35,7 +51,10 @@ export const createAudit = async (req, res) => {
     const savedAudit = await audit.save();
     res.status(201).json(savedAudit);
   } catch (error) {
-    console.error(error);
+    console.error("createAudit error:", error);
+    if (error.code === 11000) {
+      return res.status(400).json({ message: 'Ya existe una auditoría registrada para ese Punto de Venta (PDV)' });
+    }
     res.status(500).json({ message: 'Error al crear la auditoría' });
   }
 };
@@ -113,8 +132,21 @@ export const updateAudit = async (req, res) => {
     if (observations !== undefined) audit.observations = observations;
     const newCode = pdvCode || povCode;
     if (newCode) {
-      audit.pdvCode = newCode;
-      audit.povCode = newCode;
+      const cleanCode = newCode.trim().toUpperCase();
+      const existingOther = await Audit.findOne({
+        _id: { $ne: audit._id },
+        $or: [
+          { pdvCode: { $regex: `^${cleanCode.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}$`, $options: 'i' } },
+          { povCode: { $regex: `^${cleanCode.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}$`, $options: 'i' } }
+        ]
+      });
+      if (existingOther) {
+        return res.status(400).json({
+          message: `El Punto de Venta ${cleanCode} ya pertenece a otra auditoría existente (ID: ${existingOther.auditId}).`
+        });
+      }
+      audit.pdvCode = cleanCode;
+      audit.povCode = cleanCode;
     }
     if (status !== undefined) audit.status = status;
     if (location !== undefined) audit.location = location;
