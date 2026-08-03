@@ -29,6 +29,7 @@ export const createUser = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const newUser = await User.create({
+      googleId: `usr_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
       name: name.trim(),
       email: cleanEmail,
       password: hashedPassword,
@@ -42,7 +43,10 @@ export const createUser = async (req, res) => {
     res.status(201).json(userObj);
   } catch (error) {
     console.error("Error creating user:", error);
-    res.status(500).json({ message: 'Error al crear el usuario' });
+    if (error.code === 11000) {
+      return res.status(400).json({ message: 'Ya existe un usuario registrado con ese email' });
+    }
+    res.status(500).json({ message: error.message || 'Error al crear el usuario' });
   }
 };
 
