@@ -58,7 +58,9 @@ const Navbar = () => {
             <div className={`navbar-links ${mobileMenuOpen ? 'active' : ''}`}>
               <NavLink to="/auditorias" className={({isActive}) => isActive ? 'nav-link active' : 'nav-link'} end onClick={() => setMobileMenuOpen(false)}>Auditorías</NavLink>
               <NavLink to="/auditorias/nueva" className={({isActive}) => isActive ? 'nav-link active btn-new-nav' : 'nav-link btn-new-nav'} onClick={() => setMobileMenuOpen(false)}>+ Nueva Auditoría</NavLink>
-              <NavLink to="/usuarios" className={({isActive}) => isActive ? 'nav-link active' : 'nav-link'} onClick={() => setMobileMenuOpen(false)}>👥 Usuarios</NavLink>
+              {user && (user.role === 'Admin' || user.role === 'Supervisor') && (
+                <NavLink to="/usuarios" className={({isActive}) => isActive ? 'nav-link active' : 'nav-link'} onClick={() => setMobileMenuOpen(false)}>👥 Usuarios</NavLink>
+              )}
               <button 
                 className="nav-link btn-pdf-nav" 
                 onClick={() => { setMobileMenuOpen(false); handleDownloadConsolidatedPdf(); }}
@@ -73,9 +75,24 @@ const Navbar = () => {
                 </svg>
                 <span>Reporte PDF General</span>
               </button>
+
+              {/* Mobile User Profile & Salir Section */}
+              <div className="mobile-user-box">
+                <div className="user-info">
+                  <img src={user.avatar || 'https://ui-avatars.com/api/?name=' + (user.name || 'Usuario').replace(/\s*\(Demo\)/gi, '') + '&background=random'} alt="User Avatar" className="user-avatar" />
+                  <div>
+                    <div className="user-name">{(user.name || 'Usuario Admin').replace(/\s*\(Demo\)/gi, '')}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{user.email}</div>
+                  </div>
+                </div>
+                <button className="btn btn-sm btn-secondary" onClick={handleLogout} style={{ marginTop: '6px', width: '100%' }}>
+                  🚪 Salir / Cerrar Sesión
+                </button>
+              </div>
             </div>
 
-            <div className="navbar-user">
+            {/* Desktop User Section */}
+            <div className="navbar-user desktop-user-only">
               <div className="user-info">
                 <img src={user.avatar || 'https://ui-avatars.com/api/?name=' + (user.name || 'Usuario').replace(/\s*\(Demo\)/gi, '') + '&background=random'} alt="User Avatar" className="user-avatar" />
                 <span className="user-name">{(user.name || 'Usuario Admin').replace(/\s*\(Demo\)/gi, '')}</span>
