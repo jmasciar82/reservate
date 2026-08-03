@@ -13,23 +13,21 @@ export const AuthProvider = ({ children }) => {
     if (saved) {
       try { return JSON.parse(saved); } catch (e) {}
     }
-    return {
-      _id: 'admin-user-id',
-      name: 'Usuario Admin',
-      email: 'admin@auditorias.com',
-      picture: 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png',
-      role: 'Admin'
-    };
+    return null;
   });
-  const [token, setToken] = useState(() => localStorage.getItem('token') || 'demo-token');
+  const [token, setToken] = useState(() => localStorage.getItem('token') || '');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (token) {
       localStorage.setItem('token', token);
+    } else {
+      localStorage.removeItem('token');
     }
     if (user) {
       localStorage.setItem('user', JSON.stringify(user));
+    } else {
+      localStorage.removeItem('user');
     }
   }, [token, user]);
 
@@ -63,6 +61,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('user');
     setToken('');
     setUser(null);
+    window.location.href = '/login';
   };
 
   const value = {
