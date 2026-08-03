@@ -35,7 +35,10 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     try {
       const res = await api.post('/api/auth/login', { email, password });
-      const userData = res.data;
+      const userData = (res && res.data) ? res.data : res;
+      if (!userData || !userData.token) {
+        throw new Error((userData && userData.message) ? userData.message : 'Token no recibido');
+      }
       setUser(userData);
       setToken(userData.token);
       localStorage.setItem('token', userData.token);

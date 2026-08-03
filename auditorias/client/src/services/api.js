@@ -12,8 +12,8 @@ const getHeaders = (isFormData = false) => {
   return headers;
 };
 
-const handleResponse = async (response) => {
-  if (response.status === 401) {
+const handleResponse = async (response, path = '') => {
+  if (response.status === 401 && !path.includes('/auth/login') && !path.includes('/auth/google')) {
     localStorage.removeItem('token');
     window.location.href = '/login';
     throw new Error('No autorizado');
@@ -35,7 +35,7 @@ const api = {
       method: 'GET',
       headers: getHeaders()
     });
-    return handleResponse(response);
+    return handleResponse(response, path);
   },
   post: async (path, body) => {
     const response = await fetch(`${API_URL}${path}`, {
@@ -43,7 +43,7 @@ const api = {
       headers: getHeaders(),
       body: JSON.stringify(body)
     });
-    return handleResponse(response);
+    return handleResponse(response, path);
   },
   patch: async (path, body) => {
     const response = await fetch(`${API_URL}${path}`, {
