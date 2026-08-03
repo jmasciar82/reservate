@@ -56,6 +56,14 @@ const NewAuditPage = () => {
       error('Ingresá el número del Punto de Venta');
       return;
     }
+    if (currentStep === 1 && beforeImages.length < 2) {
+      error(`Debés cargar obligatoriamente las 2 fotos del Antes para poder continuar (Cargadas: ${beforeImages.length}/2)`);
+      return;
+    }
+    if (currentStep === 2 && afterImages.length < 3) {
+      error(`Debés cargar obligatoriamente las 3 fotos del Después para poder continuar (Cargadas: ${afterImages.length}/3)`);
+      return;
+    }
     setCurrentStep(prev => Math.min(prev + 1, STEPS.length - 1));
   };
 
@@ -219,7 +227,7 @@ const NewAuditPage = () => {
         {currentStep === 1 && (
           <div className="step-content animate-slide-up">
             <ImageUploader 
-              label="Fotos del Antes"
+              label="Fotos del Antes (Obligatorio: 2 fotos)"
               images={beforeImages}
               maxImages={2}
               onAdd={(img) => setBeforeImages(prev => [...prev, img])}
@@ -232,7 +240,7 @@ const NewAuditPage = () => {
         {currentStep === 2 && (
           <div className="step-content animate-slide-up">
             <ImageUploader 
-              label="Fotos del Después"
+              label="Fotos del Después (Obligatorio: 3 fotos)"
               images={afterImages}
               maxImages={3}
               onAdd={(img) => setAfterImages(prev => [...prev, img])}

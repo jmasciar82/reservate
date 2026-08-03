@@ -31,6 +31,41 @@ const fetchImageBuffer = async (keyOrUrl) => {
   }
 };
 
+const drawHeaderBanner = (doc, titleText = 'REPORTE DE AUDITORÍA PDV', subtitleText = 'SISTEMA DE CONTROL DE PUNTOS DE VENTA') => {
+  doc.save();
+  
+  // Header background box (Dark Charcoal #14141f)
+  doc.rect(0, 0, 595.28, 75).fill('#14141f');
+
+  // Dalt Logo (Left side)
+  const daltLogoPath = path.join(__dirname, '../assets/dalt_logo.png');
+  const fallbackLogoPath = path.join(__dirname, '../assets/logo.png');
+
+  if (fs.existsSync(daltLogoPath)) {
+    try {
+      doc.image(daltLogoPath, 35, 20, { height: 35 });
+    } catch (e) {
+      console.error("Error embedding Dalt logo in PDF:", e);
+    }
+  } else if (fs.existsSync(fallbackLogoPath)) {
+    try {
+      doc.image(fallbackLogoPath, 35, 20, { height: 35 });
+    } catch (e) {}
+  } else {
+    doc.fillColor('#ffffff').fontSize(18).font('Helvetica-Bold').text('DALT', 35, 26);
+  }
+
+  // Header Title & Subtitle (Right side)
+  doc.fillColor('#ffffff').fontSize(14).font('Helvetica-Bold').text(titleText, 180, 22, { width: 380, align: 'right' });
+  doc.fillColor('#a0a0b8').fontSize(8.5).font('Helvetica').text(subtitleText, 180, 42, { width: 380, align: 'right' });
+
+  // Accent Line (Red #e63946)
+  doc.rect(0, 75, 595.28, 4).fill('#e63946');
+
+  doc.restore();
+  doc.y = 98;
+};
+
 export const generatePdf = async (audit) => {
   return new Promise(async (resolve, reject) => {
     try {
@@ -48,19 +83,11 @@ export const generatePdf = async (audit) => {
       const dateVal = audit.date || audit.createdAt;
       const dateStr = dateVal ? new Date(dateVal).toLocaleDateString('es-ES') : new Date().toLocaleDateString('es-ES');
 
-      // Header
-      const logoPath = path.join(__dirname, '../assets/logo.png');
-      if (fs.existsSync(logoPath)) {
-        try { doc.image(logoPath, 50, 45, { width: 100 }); } catch (e) {}
-      } else {
-        doc.fontSize(20).text('LOGO', 50, 45);
-      }
+      // Page 1 Header
+      drawHeaderBanner(doc, 'REPORTE DE AUDITORÍA PDV', `PDV: ${pdvStr}  |  ID: ${auditIdStr}`);
 
-      doc.fontSize(20).text('Reporte de Auditoría PDV', 200, 50, { align: 'right' });
-      doc.moveDown(2);
-
-      // Audit Info
-      doc.fontSize(14).font('Helvetica-Bold').fillColor('#e63946').text(`PUNTO DE VENTA (PDV): ${pdvStr}`);
+      // Audit Info Title Box
+      doc.fontSize(14).font('Helvetica-Bold').fillColor('#e63946').text(`PUNTO DE VENTA (PDV): ${pdvStr}`, 50, 98);
       doc.moveDown(0.5);
 
       doc.fontSize(10).fillColor('#222222');
@@ -70,7 +97,7 @@ export const generatePdf = async (audit) => {
       doc.font('Helvetica-Bold').text('Auditor: ', { continued: true });
       doc.font('Helvetica').text(`${userNameStr} ${userEmailStr ? `(${userEmailStr})` : ''}`);
 
-      doc.font('Helvetica-Bold').text('Fecha: ', { continued: true });
+      doc.font('Helvetica-Bold').text('Fecha de Auditoría: ', { continued: true });
       doc.font('Helvetica').text(dateStr);
 
       if (audit.location && audit.location.latitude && audit.location.longitude) {
@@ -86,23 +113,23 @@ export const generatePdf = async (audit) => {
       doc.moveDown(0.8);
 
       // Observations
-      doc.font('Helvetica-Bold').fontSize(11).text('Observaciones:');
-      doc.font('Helvetica').fontSize(10).text(audit.observations || 'Sin observaciones.');
+      doc.font('Helvetica-Bold').fontSize(11).fillColor('#14141f').text('Observaciones:');
+      doc.font('Helvetica').fontSize(10).fillColor('#333333').text(audit.observations || 'Sin observaciones.');
       doc.moveDown(1.5);
 
-      // Before Images
+      // Before Images Page
       if (audit.images && audit.images.before && audit.images.before.length > 0) {
         doc.addPage();
-        doc.font('Helvetica-Bold').fontSize(14).fillColor('#1f1f2e').text(`Fotos Antes - PDV: ${pdvStr} (${auditIdStr})`, { align: 'center' });
-        doc.moveDown(1);
+        drawHeaderBanner(doc, 'REGISTRO FOTOGRÁFICO - ANTES', `PDV: ${pdvStr}  |  ${audit.images.before.length} FOTOS`);
         
         let x = 50;
-        let y = 100;
+        let y = 110;
         for (let i = 0; i < audit.images.before.length; i++) {
           const buffer = await fetchImageBuffer(audit.images.before[i]);
           if (buffer) {
             try {
-              doc.image(buffer, x, y, { width: 220, height: 220, fit: [220, 220] });
+              doc.image(buffer, x, y, { width: 230, height: 230, fit: [230, 230] });
+              doc.fontSize(9).font('Helvetica-Bold').fillColor('#666666').text(`Foto Antes #${i + 1}`, x, y + 235, { width: 230, align: 'center' });
             } catch (imgErr) {
               console.error("PDFKit error drawing before image:", imgErr.message);
             }
@@ -110,24 +137,24 @@ export const generatePdf = async (audit) => {
           x += 250;
           if (x > 300) {
             x = 50;
-            y += 240;
+            y += 260;
           }
         }
       }
 
-      // After Images
+      // After Images Page
       if (audit.images && audit.images.after && audit.images.after.length > 0) {
         doc.addPage();
-        doc.font('Helvetica-Bold').fontSize(14).fillColor('#1f1f2e').text(`Fotos Después - PDV: ${pdvStr} (${auditIdStr})`, { align: 'center' });
-        doc.moveDown(1);
+        drawHeaderBanner(doc, 'REGISTRO FOTOGRÁFICO - DESPUÉS', `PDV: ${pdvStr}  |  ${audit.images.after.length} FOTOS`);
         
         let x = 50;
-        let y = 100;
+        let y = 110;
         for (let i = 0; i < audit.images.after.length; i++) {
           const buffer = await fetchImageBuffer(audit.images.after[i]);
           if (buffer) {
             try {
-              doc.image(buffer, x, y, { width: 220, height: 220, fit: [220, 220] });
+              doc.image(buffer, x, y, { width: 230, height: 230, fit: [230, 230] });
+              doc.fontSize(9).font('Helvetica-Bold').fillColor('#666666').text(`Foto Después #${i + 1}`, x, y + 235, { width: 230, align: 'center' });
             } catch (imgErr) {
               console.error("PDFKit error drawing after image:", imgErr.message);
             }
@@ -135,20 +162,20 @@ export const generatePdf = async (audit) => {
           x += 250;
           if (x > 300) {
             x = 50;
-            y += 240;
+            y += 260;
           }
         }
       }
 
-      // Footer
+      // Footer Pagination
       try {
         const pages = doc.bufferedPageRange();
         for (let i = 0; i < pages.count; i++) {
           doc.switchToPage(i);
-          doc.fontSize(9).fillColor('#666666').text(
-            `PDV: ${pdvStr} | ID: ${auditIdStr} | Generado el: ${new Date().toLocaleString('es-ES')}`,
+          doc.fontSize(8.5).fillColor('#777777').text(
+            `Página ${i + 1} de ${pages.count}  |  PDV: ${pdvStr}  |  DALT AUDITORÍAS - DOCUMENTO OFICIAL`,
             50,
-            doc.page.height - 40,
+            doc.page.height - 35,
             { align: 'center' }
           );
         }
@@ -175,10 +202,7 @@ export const generateConsolidatedPdf = async (audits) => {
       });
 
       // Cover / General Header
-      doc.fontSize(22).font('Helvetica-Bold').fillColor('#e63946').text('Reporte General de Auditorías PDV', { align: 'center' });
-      doc.moveDown(0.5);
-      doc.fontSize(11).font('Helvetica').fillColor('#444444').text(`Total de Auditorías: ${audits.length} | Emisión: ${new Date().toLocaleString('es-ES')}`, { align: 'center' });
-      doc.moveDown(1.5);
+      drawHeaderBanner(doc, 'REPORTE GENERAL DE AUDITORÍAS', `TOTAL: ${audits.length} AUDITORÍAS  |  EMISIÓN: ${new Date().toLocaleDateString('es-ES')}`);
 
       for (let index = 0; index < audits.length; index++) {
         const audit = audits[index];
