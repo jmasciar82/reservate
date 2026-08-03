@@ -54,6 +54,78 @@ export const googleLogin = async (req, res) => {
   }
 };
 
+import bcrypt from 'bcryptjs';
+
+export const loginWithPassword = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ message: 'Email/Usuario y contraseña requeridos' });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+
+    // Check if user exists
+    let user = await User.findOne({ 
+      $or: [
+        { email: cleanEmail },
+        { email: 'demo@auditorias.com' },
+        { email: 'admin@auditorias.com' }
+      ]
+    });
+
+    // Special bootstrapping for Admin with password Dalt@2010
+    const isAdminCredentials = (cleanEmail === 'admin' || cleanEmail === 'admin@dalt.com' || cleanEmail === 'demo@auditorias.com' || cleanEmail === 'admin@auditorias.com') && password === 'Dalt@2010';
+
+    if (isAdminCredentials) {
+      if (!user) {
+        const hashedPassword = await bcrypt.hash('Dalt@2010', 10);
+        user = await User.create({
+          name: 'Usuario Admin',
+          email: 'admin@auditorias.com',
+          password: hashedPassword,
+          role: 'Admin',
+          picture: 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png'
+        });
+      } else {
+        const hashedPassword = await bcrypt.hash('Dalt@2010', 10);
+        user.password = hashedPassword;
+        user.role = 'Admin';
+        user.name = 'Usuario Admin';
+        await user.save();
+      }
+    } else {
+      if (!user) {
+        return res.status(401).json({ message: 'Credenciales inválidas' });
+      }
+      const isMatch = await user.matchPassword(password);
+      if (!isMatch) {
+        return res.status(401).json({ message: 'Credenciales inválidas' });
+      }
+    }
+
+    // Generate JWT
+    const jwtToken = jwt.sign(
+      { id: user._id, role: user.role },
+      process.env.JWT_SECRET || 'secretkey123',
+      { expiresIn: '30d' }
+    );
+
+    res.json({
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      picture: user.picture,
+      role: user.role,
+      token: jwtToken
+    });
+  } catch (error) {
+    console.error("Login error:", error);
+    res.status(500).json({ message: 'Error en el servidor al iniciar sesión' });
+  }
+};
+
 export const getMe = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);

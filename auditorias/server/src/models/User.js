@@ -1,10 +1,10 @@
 import mongoose from 'mongoose';
+import bcrypt from 'bcryptjs';
 
 const userSchema = new mongoose.Schema({
   googleId: {
     type: String,
-    unique: true,
-    required: true,
+    sparse: true
   },
   name: {
     type: String,
@@ -14,6 +14,9 @@ const userSchema = new mongoose.Schema({
     type: String,
     unique: true,
     required: true,
+  },
+  password: {
+    type: String
   },
   picture: String,
   role: {
@@ -26,6 +29,11 @@ const userSchema = new mongoose.Schema({
     default: Date.now
   }
 });
+
+userSchema.methods.matchPassword = async function(enteredPassword) {
+  if (!this.password) return false;
+  return await bcrypt.compare(enteredPassword, this.password);
+};
 
 const User = mongoose.model('User', userSchema);
 export default User;
