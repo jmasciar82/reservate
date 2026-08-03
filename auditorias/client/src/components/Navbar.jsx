@@ -58,6 +58,7 @@ const Navbar = () => {
             <div className={`navbar-links ${mobileMenuOpen ? 'active' : ''}`}>
               <NavLink to="/auditorias" className={({isActive}) => isActive ? 'nav-link active' : 'nav-link'} end onClick={() => setMobileMenuOpen(false)}>Auditorías</NavLink>
               <NavLink to="/auditorias/nueva" className={({isActive}) => isActive ? 'nav-link active btn-new-nav' : 'nav-link btn-new-nav'} onClick={() => setMobileMenuOpen(false)}>+ Nueva Auditoría</NavLink>
+              <NavLink to="/usuarios" className={({isActive}) => isActive ? 'nav-link active' : 'nav-link'} onClick={() => setMobileMenuOpen(false)}>👥 Usuarios</NavLink>
               <button 
                 className="nav-link btn-pdf-nav" 
                 onClick={() => { setMobileMenuOpen(false); handleDownloadConsolidatedPdf(); }}
