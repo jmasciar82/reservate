@@ -91,20 +91,27 @@ const UsersPage = () => {
 
   return (
     <div className="container users-container animate-fade-in">
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+      <div className="page-header list-page-header">
         <div>
           <h1 className="page-title">Gestión de Usuarios</h1>
           <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
             Creá y administrá las cuentas de auditores y supervisores del sistema.
           </p>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowModal(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+        <button className="btn btn-primary" onClick={() => setShowModal(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 18px', fontWeight: 700 }}>
           <span>👤+</span>
-          <span>Nuevo Usuario</span>
+          <span>Crear Nuevo Usuario</span>
         </button>
       </div>
 
       <div className="card users-card">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '12px' }}>
+          <h2 style={{ fontSize: '1.1rem', fontWeight: 600, margin: 0 }}>Listado de Usuarios</h2>
+          <button className="btn btn-sm btn-primary" onClick={() => setShowModal(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            <span>➕ Crear Usuario</span>
+          </button>
+        </div>
+
         {loading ? (
           <div className="text-center" style={{ padding: '40px', color: 'var(--text-secondary)' }}>Cargando usuarios...</div>
         ) : (
