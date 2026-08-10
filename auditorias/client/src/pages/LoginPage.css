@@ -49,16 +49,11 @@
   margin-bottom: var(--spacing-6);
 }
 
-.logo-circle {
-  width: 64px;
-  height: 64px;
-  background: linear-gradient(135deg, var(--accent-red), var(--accent-orange));
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 2rem;
-  box-shadow: 0 8px 16px rgba(230, 57, 70, 0.3);
+.login-logo-img {
+  height: 60px;
+  width: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 12px rgba(230, 57, 70, 0.3));
 }
 
 .login-title {

@@ -8,16 +8,25 @@ const LoginPage = () => {
   const { user, loginWithPassword } = useAuth();
   const { success, error } = useToast();
   
-  const [email, setEmail] = useState('admin@auditorias.com');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   if (user) {
+    if (user.role === 'Viewer') {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      window.location.href = `${apiUrl}/api/audits/report/pdf`;
+      return null;
+    }
     return <Navigate to="/" replace />;
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!email) {
+      error('Por favor ingresá el usuario');
+      return;
+    }
     if (!password) {
       error('Por favor ingresá la contraseña');
       return;
@@ -38,21 +47,22 @@ const LoginPage = () => {
     <div className="login-container">
       <div className="login-card card animate-slide-up">
         <div className="login-logo">
-          <div className="logo-circle">🔒</div>
+          <img src="/dalt_logo.png" alt="DALT Logo" className="login-logo-img" />
         </div>
         <h1 className="login-title">Auditorías PDV</h1>
-        <p className="login-subtitle">Acceso Administrativo al Sistema</p>
+        <p className="login-subtitle">Acceso al Sistema</p>
 
         <form onSubmit={handleSubmit} className="login-form">
           <div className="form-group" style={{ marginBottom: '16px', textAlign: 'left' }}>
-            <label className="form-label">Usuario / Email</label>
+            <label className="form-label">Usuario</label>
             <input 
               type="text" 
               className="form-input" 
               value={email} 
               onChange={(e) => setEmail(e.target.value)} 
-              placeholder="admin@auditorias.com"
+              placeholder="Ingresá tu usuario"
               required 
+              autoFocus
             />
           </div>
 
@@ -65,7 +75,6 @@ const LoginPage = () => {
               onChange={(e) => setPassword(e.target.value)} 
               placeholder="••••••••" 
               required 
-              autoFocus
             />
           </div>
 

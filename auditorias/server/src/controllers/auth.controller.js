@@ -69,6 +69,9 @@ export const loginWithPassword = async (req, res) => {
     // Check if Admin bootstrapping login
     const isAdminCredentials = (cleanEmail === 'admin' || cleanEmail === 'admin@dalt.com' || cleanEmail === 'demo@auditorias.com' || cleanEmail === 'admin@auditorias.com') && password === 'Dalt@2010';
 
+    // Check if Massalin viewer login
+    const isMassalinCredentials = (cleanEmail === 'massalin' || cleanEmail === 'massalin@auditorias.com') && password === 'Massalin@2026';
+
     let user;
 
     if (isAdminCredentials) {
@@ -94,6 +97,26 @@ export const loginWithPassword = async (req, res) => {
         user.password = hashedPassword;
         user.role = 'Admin';
         user.name = 'Usuario Admin';
+        await user.save();
+      }
+    } else if (isMassalinCredentials) {
+      user = await User.findOne({ email: 'massalin@auditorias.com' });
+
+      if (!user) {
+        const hashedPassword = await bcrypt.hash('Massalin@2026', 10);
+        user = await User.create({
+          googleId: `massalin_${Date.now()}`,
+          name: 'Massalin',
+          email: 'massalin@auditorias.com',
+          password: hashedPassword,
+          role: 'Viewer',
+          picture: 'https://ui-avatars.com/api/?name=Massalin&background=random'
+        });
+      } else {
+        const hashedPassword = await bcrypt.hash('Massalin@2026', 10);
+        user.password = hashedPassword;
+        user.role = 'Viewer';
+        user.name = 'Massalin';
         await user.save();
       }
     } else {
