@@ -13,11 +13,6 @@ const LoginPage = () => {
   const [submitting, setSubmitting] = useState(false);
 
   if (user) {
-    if (user.role === 'Viewer') {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      window.location.href = `${apiUrl}/api/audits/report/pdf`;
-      return null;
-    }
     return <Navigate to="/" replace />;
   }
 

@@ -5,10 +5,12 @@ import AuditCard from '../components/AuditCard';
 import LoadingSkeleton from '../components/LoadingSkeleton';
 import StorageWidget from '../components/StorageWidget';
 import { useToast } from '../components/Toast';
+import { useAuth } from '../context/AuthContext';
 import './AuditListPage.css';
 
 const AuditListPage = () => {
   const { success, error } = useToast();
+  const { user } = useAuth();
   const [audits, setAudits] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({ date: '', pdvCode: '' });
@@ -19,7 +21,13 @@ const AuditListPage = () => {
   const [pendingOffline, setPendingOffline] = useState([]);
   const [syncing, setSyncing] = useState(false);
 
+  const [generatingPdf, setGeneratingPdf] = useState(false);
+
   useEffect(() => {
+    if (user?.role === 'Viewer') {
+      setLoading(false);
+      return;
+    }
     checkPendingOffline();
     fetchAudits();
 
@@ -32,6 +40,7 @@ const AuditListPage = () => {
   }, []);
 
   useEffect(() => {
+    if (user?.role === 'Viewer') return;
     fetchAudits();
   }, [filters]);
 
@@ -49,30 +58,29 @@ const AuditListPage = () => {
     try {
       const { syncAllPendingAudits } = await import('../utils/syncManager');
       setSyncing(true);
-      const res = await syncAllPendingAudits();
-      if (res.syncedCount > 0) {
-        success(`✅ Se sincronizaron ${res.syncedCount} auditoría(s) guardadas sin conexión`);
+      const result = await syncAllPendingAudits();
+      setSyncing(false);
+      if (result.synced > 0) {
+        success(`Se sincronizaron ${result.synced} auditoría(s)`);
+        checkPendingOffline();
         fetchAudits();
       }
-      checkPendingOffline();
     } catch (e) {
-      console.warn("Auto sync error:", e);
-    } finally {
       setSyncing(false);
+      console.warn("Auto sync error:", e);
     }
   };
 
   const fetchAudits = async () => {
-    setLoading(true);
     try {
-      const query = new URLSearchParams();
-      if (filters.date) query.append('date', filters.date);
-      if (filters.pdvCode) query.append('pdvCode', filters.pdvCode);
-      
-      const res = await api.get(`/api/audits?${query.toString()}`);
-      setAudits(Array.isArray(res.data) ? res.data : (res.data?.audits || (Array.isArray(res) ? res : [])));
+      setLoading(true);
+      const params = new URLSearchParams();
+      if (filters.date) params.append('date', filters.date);
+      if (filters.pdvCode) params.append('pdvCode', filters.pdvCode);
+      const res = await api.get(`/api/audits?${params.toString()}`);
+      setAudits(res.data || res || []);
     } catch (err) {
-      console.error("Error fetching audits", err);
+      console.error("Error fetching audits:", err);
     } finally {
       setLoading(false);
     }
@@ -94,28 +102,95 @@ const AuditListPage = () => {
     }
   };
 
-  const handleDownloadConsolidatedPdf = () => {
+  const handleDownloadConsolidatedPdf = async () => {
     const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-    window.open(`${apiUrl}/api/audits/report/pdf`, '_blank');
+    setGeneratingPdf(true);
+    try {
+      const response = await fetch(`${apiUrl}/api/audits/report/pdf`);
+      if (!response.ok) throw new Error('Error al generar PDF');
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Reporte_Auditorias_${new Date().toISOString().slice(0,10)}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+    } catch (err) {
+      error('Error al descargar el reporte PDF');
+      console.error(err);
+    } finally {
+      setGeneratingPdf(false);
+    }
   };
 
   const handleFilterChange = (e) => {
     setFilters({ ...filters, [e.target.name]: e.target.value });
   };
 
+  // --- Viewer-only view ---
+  if (user?.role === 'Viewer') {
+    return (
+      <div className="container animate-fade-in" style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        {generatingPdf && (
+          <div className="pdf-loading-overlay">
+            <div className="pdf-loading-card card animate-scale-in">
+              <div className="pdf-spinner"></div>
+              <h2 style={{ color: 'var(--text-primary)', marginTop: '20px' }}>Generando Reporte PDF</h2>
+              <p style={{ color: 'var(--text-secondary)', marginTop: '8px' }}>Cargando imágenes y datos, esto puede tardar unos segundos...</p>
+            </div>
+          </div>
+        )}
+        <div className="viewer-panel card" style={{ textAlign: 'center', padding: '48px 40px', maxWidth: '480px', width: '100%' }}>
+          <div style={{ fontSize: '3rem', marginBottom: '16px' }}>📊</div>
+          <h1 style={{ color: 'var(--text-primary)', fontSize: '1.5rem', marginBottom: '8px' }}>Reporte de Auditorías</h1>
+          <p style={{ color: 'var(--text-secondary)', marginBottom: '32px', fontSize: '0.95rem' }}>
+            Descargá el reporte PDF consolidado con todas las auditorías cargadas.
+          </p>
+          <button 
+            className="btn btn-primary" 
+            onClick={handleDownloadConsolidatedPdf}
+            disabled={generatingPdf}
+            style={{ padding: '14px 32px', fontSize: '1.05rem', fontWeight: 600, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+            </svg>
+            {generatingPdf ? 'Generando...' : 'Descargar Reporte PDF General'}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // --- Normal view (Admin, Supervisor, Auditor) ---
   return (
     <div className="container audit-list-container animate-fade-in">
+      {generatingPdf && (
+        <div className="pdf-loading-overlay">
+          <div className="pdf-loading-card card animate-scale-in">
+            <div className="pdf-spinner"></div>
+            <h2 style={{ color: 'var(--text-primary)', marginTop: '20px' }}>Generando Reporte PDF</h2>
+            <p style={{ color: 'var(--text-secondary)', marginTop: '8px' }}>Cargando imágenes y datos, esto puede tardar unos segundos...</p>
+          </div>
+        </div>
+      )}
+
       <div className="page-header list-page-header">
         <h1 className="page-title">Auditorías</h1>
         <div className="header-actions">
-          <button className="btn btn-outline" onClick={handleDownloadConsolidatedPdf}>
+          <button className="btn btn-outline" onClick={handleDownloadConsolidatedPdf} disabled={generatingPdf}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#e63946" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
               <polyline points="14 2 14 8 20 8"></polyline>
               <line x1="16" y1="13" x2="8" y2="13"></line>
               <line x1="16" y1="17" x2="8" y2="17"></line>
             </svg>
-            <span>Reporte PDF General</span>
+            <span>{generatingPdf ? 'Generando...' : 'Reporte PDF General'}</span>
           </button>
           <Link to="/auditorias/nueva" className="btn btn-primary">
             <span>+</span> Nueva Auditoría

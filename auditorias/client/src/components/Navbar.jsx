@@ -66,14 +66,16 @@ const Navbar = () => {
                 <span className="nav-text">Auditorías</span>
               </NavLink>
 
-              <NavLink 
-                to="/auditorias/nueva" 
-                className={({isActive}) => isActive ? 'mobile-nav-item btn-new-mobile active' : 'mobile-nav-item btn-new-mobile'} 
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                <span className="nav-icon">➕</span>
-                <span className="nav-text">+ Nueva Auditoría</span>
-              </NavLink>
+              {user?.role !== 'Viewer' && (
+                <NavLink 
+                  to="/auditorias/nueva" 
+                  className={({isActive}) => isActive ? 'mobile-nav-item btn-new-mobile active' : 'mobile-nav-item btn-new-mobile'} 
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <span className="nav-icon">➕</span>
+                  <span className="nav-text">+ Nueva Auditoría</span>
+                </NavLink>
+              )}
 
               {user && (user.role === 'Admin' || user.role === 'Supervisor') && (
                 <NavLink 
