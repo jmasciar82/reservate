@@ -22,6 +22,8 @@ const AuditListPage = () => {
   const [syncing, setSyncing] = useState(false);
 
   const [generatingPdf, setGeneratingPdf] = useState(false);
+  const [pdfProgress, setPdfProgress] = useState(0);
+  const [pdfStatus, setPdfStatus] = useState('Iniciando...');
 
   useEffect(() => {
     if (user?.role === 'Viewer') {
@@ -105,23 +107,83 @@ const AuditListPage = () => {
   const handleDownloadConsolidatedPdf = async () => {
     const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
     setGeneratingPdf(true);
+    setPdfProgress(5);
+    setPdfStatus('Procesando imágenes y generando PDF...');
+
+    let simulated = 5;
+    const interval = setInterval(() => {
+      if (simulated < 35) {
+        simulated += Math.floor(Math.random() * 5) + 3;
+        setPdfProgress(Math.min(simulated, 35));
+      }
+    }, 250);
+
     try {
       const response = await fetch(`${apiUrl}/api/audits/report/pdf`);
-      if (!response.ok) throw new Error('Error al generar PDF');
-      const blob = await response.blob();
+      clearInterval(interval);
+
+      if (!response.ok) throw new Error('Error al solicitar PDF');
+
+      const contentLength = response.headers.get('content-length');
+      const totalBytes = contentLength ? parseInt(contentLength, 10) : 0;
+
+      let blob;
+      if (!response.body) {
+        setPdfProgress(90);
+        setPdfStatus('Descargando archivo...');
+        blob = await response.blob();
+      } else {
+        const reader = response.body.getReader();
+        let receivedBytes = 0;
+        const chunks = [];
+        setPdfProgress(35);
+        setPdfStatus('Descargando PDF...');
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          chunks.push(value);
+          receivedBytes += value.length;
+
+          if (totalBytes > 0) {
+            const percent = Math.min(99, Math.round(35 + (receivedBytes / totalBytes) * 64));
+            const loadedKb = (receivedBytes / 1024).toFixed(0);
+            const totalKb = (totalBytes / 1024).toFixed(0);
+            setPdfProgress(percent);
+            setPdfStatus(`Descargando ${loadedKb} KB / ${totalKb} KB`);
+          } else {
+            const loadedKb = (receivedBytes / 1024).toFixed(0);
+            const percent = Math.min(95, 35 + Math.floor(receivedBytes / 50000));
+            setPdfProgress(percent);
+            setPdfStatus(`Descargando ${loadedKb} KB...`);
+          }
+        }
+        blob = new Blob(chunks, { type: 'application/pdf' });
+      }
+
+      setPdfProgress(100);
+      setPdfStatus('¡PDF Listo! Abriendo...');
+
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `Reporte_Auditorias_${new Date().toISOString().slice(0,10)}.pdf`;
+      a.download = `Reporte_Auditorias_${new Date().toISOString().slice(0, 10)}.pdf`;
       document.body.appendChild(a);
       a.click();
-      window.URL.revokeObjectURL(url);
-      a.remove();
+      setTimeout(() => {
+        window.URL.revokeObjectURL(url);
+        a.remove();
+      }, 1000);
     } catch (err) {
+      clearInterval(interval);
       error('Error al descargar el reporte PDF');
       console.error(err);
     } finally {
-      setGeneratingPdf(false);
+      setTimeout(() => {
+        setGeneratingPdf(false);
+        setPdfProgress(0);
+      }, 800);
     }
   };
 
@@ -129,22 +191,46 @@ const AuditListPage = () => {
     setFilters({ ...filters, [e.target.name]: e.target.value });
   };
 
+  const renderPdfOverlay = () => (
+    <div className="pdf-loading-overlay">
+      <div className="pdf-loading-card card animate-scale-in">
+        <div className="pdf-spinner"></div>
+        <h2 style={{ color: 'var(--text-primary)', marginTop: '20px', fontSize: '1.4rem' }}>
+          Generando Reporte PDF
+        </h2>
+        
+        {/* Progress percentage display */}
+        <div style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--accent-red, #e63946)', margin: '14px 0 8px 0', letterSpacing: '-0.5px' }}>
+          {pdfProgress}%
+        </div>
+
+        {/* Progress Bar Container */}
+        <div style={{ width: '100%', height: '10px', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '10px', overflow: 'hidden', marginBottom: '14px' }}>
+          <div style={{ 
+            width: `${pdfProgress}%`, 
+            height: '100%', 
+            background: 'linear-gradient(90deg, #e63946, #ff6b35)', 
+            borderRadius: '10px', 
+            transition: 'width 0.25s ease-out',
+            boxShadow: '0 0 12px rgba(230, 57, 70, 0.6)'
+          }}></div>
+        </div>
+
+        <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+          {pdfStatus}
+        </p>
+      </div>
+    </div>
+  );
+
   // --- Viewer-only view ---
   if (user?.role === 'Viewer') {
     return (
       <div className="container animate-fade-in" style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        {generatingPdf && (
-          <div className="pdf-loading-overlay">
-            <div className="pdf-loading-card card animate-scale-in">
-              <div className="pdf-spinner"></div>
-              <h2 style={{ color: 'var(--text-primary)', marginTop: '20px' }}>Generando Reporte PDF</h2>
-              <p style={{ color: 'var(--text-secondary)', marginTop: '8px' }}>Cargando imágenes y datos, esto puede tardar unos segundos...</p>
-            </div>
-          </div>
-        )}
+        {generatingPdf && renderPdfOverlay()}
         <div className="viewer-panel card" style={{ textAlign: 'center', padding: '48px 40px', maxWidth: '480px', width: '100%' }}>
-          <div style={{ fontSize: '3rem', marginBottom: '16px' }}>📊</div>
-          <h1 style={{ color: 'var(--text-primary)', fontSize: '1.5rem', marginBottom: '8px' }}>Reporte de Auditorías</h1>
+          <div style={{ fontSize: '3.5rem', marginBottom: '16px' }}>📊</div>
+          <h1 style={{ color: 'var(--text-primary)', fontSize: '1.6rem', marginBottom: '8px' }}>Reporte de Auditorías</h1>
           <p style={{ color: 'var(--text-secondary)', marginBottom: '32px', fontSize: '0.95rem' }}>
             Descargá el reporte PDF consolidado con todas las auditorías cargadas.
           </p>
@@ -160,7 +246,7 @@ const AuditListPage = () => {
               <line x1="16" y1="13" x2="8" y2="13"></line>
               <line x1="16" y1="17" x2="8" y2="17"></line>
             </svg>
-            {generatingPdf ? 'Generando...' : 'Descargar Reporte PDF General'}
+            {generatingPdf ? `Generando (${pdfProgress}%)...` : 'Descargar Reporte PDF General'}
           </button>
         </div>
       </div>
@@ -170,15 +256,7 @@ const AuditListPage = () => {
   // --- Normal view (Admin, Supervisor, Auditor) ---
   return (
     <div className="container audit-list-container animate-fade-in">
-      {generatingPdf && (
-        <div className="pdf-loading-overlay">
-          <div className="pdf-loading-card card animate-scale-in">
-            <div className="pdf-spinner"></div>
-            <h2 style={{ color: 'var(--text-primary)', marginTop: '20px' }}>Generando Reporte PDF</h2>
-            <p style={{ color: 'var(--text-secondary)', marginTop: '8px' }}>Cargando imágenes y datos, esto puede tardar unos segundos...</p>
-          </div>
-        </div>
-      )}
+      {generatingPdf && renderPdfOverlay()}
 
       <div className="page-header list-page-header">
         <h1 className="page-title">Auditorías</h1>
@@ -190,7 +268,7 @@ const AuditListPage = () => {
               <line x1="16" y1="13" x2="8" y2="13"></line>
               <line x1="16" y1="17" x2="8" y2="17"></line>
             </svg>
-            <span>{generatingPdf ? 'Generando...' : 'Reporte PDF General'}</span>
+            <span>{generatingPdf ? `Generando (${pdfProgress}%)...` : 'Reporte PDF General'}</span>
           </button>
           <Link to="/auditorias/nueva" className="btn btn-primary">
             <span>+</span> Nueva Auditoría

@@ -317,6 +317,7 @@ export const downloadPdf = async (req, res) => {
     const filename = `Auditoria_${cleanCode}_${cleanId}.pdf`;
 
     res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Length', pdfBuffer.length);
     res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
     res.send(pdfBuffer);
   } catch (error) {
@@ -350,6 +351,7 @@ export const downloadConsolidatedPdf = async (req, res) => {
     const filename = `Reporte_General_Auditorias_${dateStr}.pdf`;
 
     res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Length', pdfBuffer.length);
     res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
     res.send(pdfBuffer);
   } catch (error) {

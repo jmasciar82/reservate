@@ -30,7 +30,8 @@ app.use(cors({
     
     callback(new Error('No permitido por CORS'));
   },
-  credentials: true
+  credentials: true,
+  exposedHeaders: ['Content-Length', 'Content-Disposition']
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
