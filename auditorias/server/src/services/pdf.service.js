@@ -83,13 +83,13 @@ export const generatePdf = async (audit) => {
       // Page 1 Header
       drawHeaderBanner(doc, 'REPORTE DE AUDITORÍA', `PUNTO DE VENTA: ${pdvNumber}`);
 
-      // PDV Number
-      doc.fontSize(16).font('Helvetica-Bold').fillColor('#e63946').text(`Punto de Venta: ${pdvNumber}`, 50, 100);
-      doc.moveDown(1);
+      // PDV Number (use width constraint so long names wrap properly)
+      doc.fontSize(13).font('Helvetica-Bold').fillColor('#e63946').text(`Punto de Venta: ${pdvNumber}`, 50, 98, { width: 495 });
+      doc.moveDown(0.8);
 
       // Observations
-      doc.font('Helvetica-Bold').fontSize(11).fillColor('#14141f').text('Observaciones:');
-      doc.font('Helvetica').fontSize(10).fillColor('#333333').text(audit.observations || 'Sin observaciones.');
+      doc.font('Helvetica-Bold').fontSize(11).fillColor('#14141f').text('Observaciones:', { width: 495 });
+      doc.font('Helvetica').fontSize(10).fillColor('#333333').text(audit.observations || 'Sin observaciones.', { width: 495 });
       doc.moveDown(1.5);
 
       // All Photos combined (before + after, no distinction)
