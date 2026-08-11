@@ -68,7 +68,7 @@ const drawHeaderBanner = (doc, titleText = 'REPORTE DE AUDITORÍA PDV', subtitle
 export const generatePdf = async (audit) => {
   return new Promise(async (resolve, reject) => {
     try {
-      const doc = new PDFDocument({ margin: 40, size: 'A4', bufferPages: true });
+      const doc = new PDFDocument({ margin: 40, size: 'A4', bufferPages: true, autoPageBreak: false });
       const buffers = [];
       doc.on('data', buffers.push.bind(buffers));
       doc.on('end', () => {
@@ -132,7 +132,7 @@ export const generatePdf = async (audit) => {
           const buf = validBuffers[i];
           try {
             doc.image(buf, x, y, { width: 245, height: 235, fit: [245, 235] });
-            doc.fontSize(8.5).font('Helvetica-Bold').fillColor('#666666').text(`Foto #${i + 1}`, x, y + 238, { width: 245, align: 'center' });
+            doc.fontSize(8.5).font('Helvetica-Bold').fillColor('#666666').text(`Foto #${i + 1}`, x, y + 238, { width: 245, align: 'center', lineBreak: false });
           } catch (imgErr) {
             console.error("PDFKit error drawing image:", imgErr.message);
           }
@@ -146,13 +146,14 @@ export const generatePdf = async (audit) => {
       // Footer Pagination
       try {
         const pages = doc.bufferedPageRange();
+        doc.options.autoPageBreak = false;
         for (let i = 0; i < pages.count; i++) {
           doc.switchToPage(i);
           doc.fontSize(8).fillColor('#777777').text(
             `Página ${i + 1} de ${pages.count}  |  PV: ${pdvNumber}  |  DALT AUDITORÍAS`,
             40,
             doc.page.height - 25,
-            { align: 'center' }
+            { align: 'center', lineBreak: false }
           );
         }
       } catch (e) {
@@ -170,7 +171,7 @@ export const generatePdf = async (audit) => {
 export const generateConsolidatedPdf = async (audits) => {
   return new Promise(async (resolve, reject) => {
     try {
-      const doc = new PDFDocument({ margin: 40, size: 'A4', bufferPages: true });
+      const doc = new PDFDocument({ margin: 40, size: 'A4', bufferPages: true, autoPageBreak: false });
       const buffers = [];
       doc.on('data', buffers.push.bind(buffers));
       doc.on('end', () => {
@@ -263,13 +264,14 @@ export const generateConsolidatedPdf = async (audits) => {
       // Footer Pagination
       try {
         const pages = doc.bufferedPageRange();
+        doc.options.autoPageBreak = false;
         for (let i = 0; i < pages.count; i++) {
           doc.switchToPage(i);
           doc.fontSize(8).fillColor('#888888').text(
             `Página ${i + 1} de ${pages.count} - Reporte Consolidado de Auditorías PDV`,
             40,
             doc.page.height - 25,
-            { align: 'center' }
+            { align: 'center', lineBreak: false }
           );
         }
       } catch (e) {
