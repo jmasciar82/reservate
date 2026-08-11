@@ -102,30 +102,31 @@ export const generatePdf = async (audit) => {
         if (buf) validBuffers.push(buf);
       }
 
+      const PAGE_BOTTOM = 740;
+
       if (validBuffers.length > 0) {
         let x = 40;
         let y = doc.y;
 
         // If not enough room on page 1 for the first image row, add page
-        if (y + 250 > doc.page.height - 50) {
+        if (y + 250 > PAGE_BOTTOM) {
           doc.addPage();
           drawHeaderBanner(doc, 'REGISTRO FOTOGRÁFICO', `PUNTO DE VENTA: ${pdvNumber}  |  ${validBuffers.length} FOTOS`);
           x = 40;
-          y = 85;
+          y = doc.y + 10;
         }
 
         for (let i = 0; i < validBuffers.length; i++) {
-          // Check if we need a new page for next row (every 2 images)
           if (i > 0 && i % 2 === 0) {
             x = 40;
             y += 260;
           }
 
-          if (y + 250 > doc.page.height - 50) {
+          if (y + 250 > PAGE_BOTTOM) {
             doc.addPage();
             drawHeaderBanner(doc, 'REGISTRO FOTOGRÁFICO', `PUNTO DE VENTA: ${pdvNumber}`);
             x = 40;
-            y = 85;
+            y = doc.y + 10;
           }
 
           const buf = validBuffers[i];
@@ -150,7 +151,7 @@ export const generatePdf = async (audit) => {
           doc.fontSize(8).fillColor('#777777').text(
             `Página ${i + 1} de ${pages.count}  |  PV: ${pdvNumber}  |  DALT AUDITORÍAS`,
             40,
-            doc.page.height - 30,
+            doc.page.height - 25,
             { align: 'center' }
           );
         }
@@ -176,15 +177,28 @@ export const generateConsolidatedPdf = async (audits) => {
         resolve(Buffer.concat(buffers));
       });
 
-      // Cover / General Header
-      drawHeaderBanner(doc, 'REPORTE GENERAL DE AUDITORÍAS', `TOTAL: ${audits.length} AUDITORÍAS  |  EMISIÓN: ${new Date().toLocaleDateString('es-ES')}`);
+      const PAGE_BOTTOM = 730;
+
+      const ensureSpace = (neededHeight, headerTitle = 'REPORTE GENERAL DE AUDITORÍAS', headerSub = '') => {
+        if (doc.y + neededHeight > PAGE_BOTTOM) {
+          doc.addPage();
+          drawHeaderBanner(doc, headerTitle, headerSub);
+        }
+      };
+
+      // Page 1 Header
+      drawHeaderBanner(
+        doc, 
+        'REPORTE GENERAL DE AUDITORÍAS', 
+        `TOTAL: ${audits.length} AUDITORÍAS  |  EMISIÓN: ${new Date().toLocaleDateString('es-ES')}`
+      );
 
       for (let index = 0; index < audits.length; index++) {
         const audit = audits[index];
         const rawCode = audit.pdvCode || audit.povCode || '';
         const pdvNumber = rawCode.replace(/^PDV-/i, '').trim() || rawCode;
 
-        // Pre-fetch valid image buffers for this audit
+        // Pre-fetch valid images
         const rawImgs = [...(audit.images?.before || []), ...(audit.images?.after || [])];
         const validImgs = [];
         for (const imgUrl of rawImgs) {
@@ -192,33 +206,24 @@ export const generateConsolidatedPdf = async (audits) => {
           if (buf) validImgs.push(buf);
         }
 
-        // Calculate approximate height needed for this audit
-        const imageRows = Math.ceil(validImgs.length / 4);
-        const estimatedHeight = 70 + (imageRows * 110);
+        // Section header + observations height = ~60px
+        ensureSpace(60, 'REPORTE GENERAL DE AUDITORÍAS', `PUNTO DE VENTA: ${pdvNumber}`);
 
-        // Check if current page has enough space; if not, add page
-        if (doc.y + estimatedHeight > doc.page.height - 50 && doc.y > 100) {
-          doc.addPage();
-          drawHeaderBanner(doc, 'REPORTE GENERAL DE AUDITORÍAS', `PÁGINA ${index + 1}`);
-        }
-
+        // Draw Section Header Box
         const headerY = doc.y;
+        doc.rect(40, headerY, 515, 24).fill('#1f1f2e');
+        doc.fillColor('#ffffff').fontSize(11).font('Helvetica-Bold').text(`Punto de Venta: ${pdvNumber}`, 52, headerY + 6);
+        doc.y = headerY + 30;
 
-        // Section Box Header
-        doc.rect(40, headerY, 515, 26).fill('#1f1f2e');
-        doc.fillColor('#ffffff').fontSize(11).font('Helvetica-Bold').text(`Punto de Venta: ${pdvNumber}`, 52, headerY + 7);
-
-        // Move Y cleanly below section box
-        doc.y = headerY + 32;
-
-        // Observations
+        // Draw Observations
         doc.fillColor('#111111').fontSize(9.5);
         doc.font('Helvetica-Bold').text('Observaciones: ', 40, doc.y, { continued: true });
         doc.font('Helvetica').text(audit.observations || 'Sin observaciones');
-        doc.moveDown(0.5);
+        doc.moveDown(0.4);
 
         // Render images grid (4 per row)
         if (validImgs.length > 0) {
+          ensureSpace(30, 'REPORTE GENERAL DE AUDITORÍAS', `PV: ${pdvNumber}`);
           doc.font('Helvetica-Bold').fontSize(8.5).fillColor('#666666').text('Fotos:');
           doc.moveDown(0.3);
 
@@ -231,11 +236,12 @@ export const generateConsolidatedPdf = async (audits) => {
               imgY += 105;
             }
 
-            if (imgY + 100 > doc.page.height - 40) {
+            // Check if this image row fits
+            if (imgY + 100 > PAGE_BOTTOM) {
               doc.addPage();
               drawHeaderBanner(doc, 'REPORTE GENERAL DE AUDITORÍAS', `PV: ${pdvNumber}`);
               imgX = 40;
-              imgY = 85;
+              imgY = doc.y + 10;
             }
 
             try {
@@ -248,13 +254,13 @@ export const generateConsolidatedPdf = async (audits) => {
           doc.y = imgY + 105;
         }
 
-        // Line separator
-        doc.moveDown(0.5);
+        // Draw Line Separator
+        ensureSpace(15, 'REPORTE GENERAL DE AUDITORÍAS', `PV: ${pdvNumber}`);
         doc.strokeColor('#e0e0e0').lineWidth(0.8).moveTo(40, doc.y).lineTo(555, doc.y).stroke();
         doc.moveDown(0.8);
       }
 
-      // Page numbers footer
+      // Footer Pagination
       try {
         const pages = doc.bufferedPageRange();
         for (let i = 0; i < pages.count; i++) {
